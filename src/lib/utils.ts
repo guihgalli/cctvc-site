@@ -80,3 +80,56 @@ export function formatDate(date: string): string {
   const [year, month, day] = date.split('-')
   return `${day}/${month}/${year}`
 }
+
+const DIAS_SEMANA = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
+const MESES = [
+  'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
+  'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ',
+]
+
+function parseIsoDate(date: string): Date {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+/** Abreviação do dia da semana (SEX, SÁB, ...) */
+export function getWeekdayShort(date: string): string {
+  return DIAS_SEMANA[parseIsoDate(date).getDay()]
+}
+
+/** Abreviação do mês (AGO, SET, ...) */
+export function getMonthShort(date: string): string {
+  return MESES[parseIsoDate(date).getMonth()]
+}
+
+/** Dia do mês sem zero à esquerda */
+export function getDayNumber(date: string): number {
+  return parseIsoDate(date).getDate()
+}
+
+/** Verifica se a data corresponde ao dia de hoje */
+export function isToday(date: string): boolean {
+  const today = new Date()
+  const d = parseIsoDate(date)
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  )
+}
+
+/** Gera uma sequência de datas ISO (YYYY-MM-DD) a partir de hoje */
+export function generateDateRange(days: number): string[] {
+  const dates: string[] = []
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    dates.push(`${y}-${m}-${day}`)
+  }
+  return dates
+}
