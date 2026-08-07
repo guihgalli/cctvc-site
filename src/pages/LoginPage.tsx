@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Layout } from '../components/Layout'
+import { Logo } from '../components/Logo'
 import { useAuth } from '../contexts/AuthContext'
 import { isValidUserCode, isValidPassword } from '../lib/utils'
 
@@ -47,9 +48,7 @@ export function LoginPage() {
       <div className="max-w-md mx-auto px-4 py-16">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-emerald-800 font-bold">CCTVC</span>
-            </div>
+            <Logo size="md" className="mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-emerald-900">Entrar</h1>
             <p className="text-stone-500 text-sm mt-1">Acesso para sócios do clube</p>
           </div>

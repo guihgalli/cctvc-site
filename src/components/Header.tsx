@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { Logo } from './Logo'
 
 export function Header() {
   const { user, logout, isAdmin } = useAuth()
@@ -11,9 +12,7 @@ export function Header() {
     <header className="bg-emerald-900 text-white shadow-lg">
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 bg-emerald-700 rounded-full flex items-center justify-center font-bold text-sm group-hover:bg-emerald-600 transition-colors">
-            CCTVC
-          </div>
+          <Logo size="sm" className="drop-shadow-sm group-hover:scale-105 transition-transform" />
           <div className="hidden sm:block">
             <p className="font-semibold text-sm leading-tight">Clube de Caça e Tiro</p>
             <p className="text-emerald-300 text-xs">Velha Central</p>

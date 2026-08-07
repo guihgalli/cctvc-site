@@ -1,19 +1,18 @@
 import { Link } from 'react-router-dom'
 import { Layout } from '../components/Layout'
+import { Logo } from '../components/Logo'
 
 export function HomePage() {
   return (
     <Layout>
       <section className="relative bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-950 text-white">
         <div className="max-w-4xl mx-auto px-4 py-24 text-center">
-          <div className="w-24 h-24 bg-emerald-700 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <span className="text-2xl font-bold">CCTVC</span>
-          </div>
+          <Logo size="lg" className="mx-auto mb-6 drop-shadow-xl" />
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Clube de Caça e Tiro Velha Central
           </h1>
           <p className="text-emerald-200 text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-            Tradição, esporte e convivência em Velha Central. Reserve suas quadras esportivas
+            Tradição, esporte e convivência em Blumenau desde 01 de Maio de 1900. Reserve suas quadras esportivas
             de forma rápida e prática.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
