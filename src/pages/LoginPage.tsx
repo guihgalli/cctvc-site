@@ -120,8 +120,6 @@ export function LoginPage() {
           </div>
 
           <p className="text-center text-stone-400 text-xs mt-6">
-            A senha corresponde aos 3 primeiros dígitos do seu CPF cadastrado.
-            <br />
             Ainda não tem acesso? Solicite o login pelo WhatsApp do clube.
           </p>
 
