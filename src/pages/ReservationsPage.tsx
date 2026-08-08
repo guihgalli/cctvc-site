@@ -9,8 +9,13 @@ import {
   cancelBooking,
 } from '../services/api'
 import {
-  generateTimeSlots,
+  BOOKING_DATE_RANGE_DAYS,
+  DEFAULT_SLOT_END,
+  DEFAULT_SLOT_MINUTES,
+  DEFAULT_SLOT_START,
   generateDateRange,
+  generateTimeSlotsFromRange,
+  getWeekdayIndex,
   getWeekdayShort,
   getMonthShort,
   getDayNumber,
@@ -20,7 +25,32 @@ import {
   formatDate,
   formatTime,
 } from '../lib/utils'
-import type { Quadra, Reserva } from '../types'
+import type { HorarioQuadra, Quadra, Reserva } from '../types'
+
+function horarioDoDia(
+  quadra: Quadra | null,
+  data: string
+): HorarioQuadra | { hora_inicio: string; hora_fim: string; intervalo_min: number } | null {
+  if (!quadra) return null
+
+  const dia = getWeekdayIndex(data)
+  const configurados = (quadra.horarios_quadra || []).filter((h) => h.ativo !== false)
+
+  if (configurados.length === 0) {
+    // Fallback enquanto a migration não rodou / sem configuração
+    return {
+      hora_inicio: DEFAULT_SLOT_START,
+      hora_fim: DEFAULT_SLOT_END,
+      intervalo_min: DEFAULT_SLOT_MINUTES,
+    }
+  }
+
+  return configurados.find((h) => h.dia_semana === dia) || null
+}
+
+function diaDisponivel(quadra: Quadra | null, data: string): boolean {
+  return !!horarioDoDia(quadra, data)
+}
 
 function PlusIcon() {
   return (
@@ -69,8 +99,15 @@ export function ReservationsPage() {
   const [abaAtiva, setAbaAtiva] = useState<'reservar' | 'minhas'>('reservar')
   const dateStripRef = useRef<HTMLDivElement>(null)
 
-  const horarios = generateTimeSlots(7, 22, 60)
-  const datasDisponiveis = generateDateRange(21)
+  const datasDisponiveis = generateDateRange(BOOKING_DATE_RANGE_DAYS)
+  const janelaDia = horarioDoDia(quadraSelecionada, dataSelecionada)
+  const horarios = janelaDia
+    ? generateTimeSlotsFromRange(
+        formatTime(janelaDia.hora_inicio),
+        formatTime(janelaDia.hora_fim),
+        janelaDia.intervalo_min || DEFAULT_SLOT_MINUTES
+      )
+    : []
 
   function rolarDatas(direcao: 'left' | 'right') {
     dateStripRef.current?.scrollBy({ left: direcao === 'left' ? -160 : 160, behavior: 'smooth' })
@@ -87,11 +124,25 @@ export function ReservationsPage() {
     }
   }, [quadraSelecionada, dataSelecionada])
 
+  useEffect(() => {
+    if (!quadraSelecionada) return
+    if (diaDisponivel(quadraSelecionada, dataSelecionada)) return
+    const proxima = datasDisponiveis.find((data) => diaDisponivel(quadraSelecionada, data))
+    if (proxima) setDataSelecionada(proxima)
+  }, [quadraSelecionada])
+
   async function carregarQuadras() {
     try {
       const data = await fetchCourts()
       setQuadras(data)
-      if (data.length > 0) setQuadraSelecionada(data[0])
+      if (data.length > 0) {
+        const primeira = data[0]
+        setQuadraSelecionada(primeira)
+        if (!diaDisponivel(primeira, dataSelecionada)) {
+          const proxima = datasDisponiveis.find((data) => diaDisponivel(primeira, data))
+          if (proxima) setDataSelecionada(proxima)
+        }
+      }
     } catch {
       setMessage({ type: 'error', text: 'Erro ao carregar quadras.' })
     } finally {
@@ -132,6 +183,11 @@ export function ReservationsPage() {
 
   async function handleReservar(horaInicio: string, horaFim: string) {
     if (!quadraSelecionada || !dataSelecionada || !user) return
+
+    if (!janelaDia) {
+      setMessage({ type: 'error', text: 'Quadra fechada neste dia.' })
+      return
+    }
 
     if (isPastDate(dataSelecionada)) {
       setMessage({ type: 'error', text: 'Não é possível reservar datas passadas.' })
@@ -291,6 +347,7 @@ export function ReservationsPage() {
                 >
                   {datasDisponiveis.map((data) => {
                     const selecionada = data === dataSelecionada
+                    const disponivel = diaDisponivel(quadraSelecionada, data)
                     return (
                       <button
                         key={data}
@@ -298,7 +355,9 @@ export function ReservationsPage() {
                         className={`shrink-0 w-[76px] flex flex-col items-center gap-0.5 rounded-2xl py-3 transition-colors ${
                           selecionada
                             ? 'bg-emerald-700 text-white'
-                            : 'bg-white text-stone-700 border border-stone-200 hover:border-emerald-300'
+                            : disponivel
+                              ? 'bg-white text-stone-700 border border-stone-200 hover:border-emerald-300'
+                              : 'bg-stone-50 text-stone-400 border border-stone-100'
                         }`}
                       >
                         <span className={`text-[11px] font-semibold tracking-wide ${selecionada ? 'text-emerald-100' : 'text-stone-400'}`}>
@@ -310,6 +369,11 @@ export function ReservationsPage() {
                         </span>
                         {isToday(data) && (
                           <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${selecionada ? 'bg-white' : 'bg-emerald-500'}`} />
+                        )}
+                        {!disponivel && (
+                          <span className={`text-[9px] font-medium ${selecionada ? 'text-emerald-100' : 'text-stone-400'}`}>
+                            Fechado
+                          </span>
                         )}
                       </button>
                     )
@@ -326,81 +390,93 @@ export function ReservationsPage() {
 
               {quadraSelecionada && dataSelecionada && (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
                     <h3 className="font-semibold text-stone-700">
                       Horários — {formatDate(dataSelecionada)}
                     </h3>
-                    <div className="flex items-center gap-3 text-xs text-stone-500">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded border border-dashed border-stone-300" />
-                        Livre
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded border-2 border-emerald-500" />
-                        Sua reserva
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded border border-stone-300 bg-stone-100" />
-                        Ocupado
-                      </span>
+                    {janelaDia && (
+                      <div className="flex items-center gap-3 text-xs text-stone-500">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded border border-dashed border-stone-300" />
+                          Livre
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded border-2 border-emerald-500" />
+                          Sua reserva
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded border border-stone-300 bg-stone-100" />
+                          Ocupado
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {!janelaDia ? (
+                    <div className="bg-white rounded-xl border border-stone-200 p-8 text-center text-stone-500">
+                      Quadra fechada neste dia.
                     </div>
-                  </div>
+                  ) : horarios.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-stone-200 p-8 text-center text-stone-500">
+                      Nenhum horário disponível para esta configuração.
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100 overflow-hidden">
+                      {horarios.map((slot) => {
+                        const reserva = horarioOcupado(slot.start)
+                        const disponivel = horarioDisponivel(slot.start)
+                        const minha = !!reserva && !!user && reserva.usuario_id === user.id
 
-                  <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100 overflow-hidden">
-                    {horarios.map((slot) => {
-                      const reserva = horarioOcupado(slot.start)
-                      const disponivel = horarioDisponivel(slot.start)
-                      const minha = !!reserva && !!user && reserva.usuario_id === user.id
+                        return (
+                          <div key={slot.start} className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+                            <span className="w-12 shrink-0 text-sm font-semibold text-stone-600">
+                              {slot.start}
+                            </span>
 
-                      return (
-                        <div key={slot.start} className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
-                          <span className="w-12 shrink-0 text-sm font-semibold text-stone-600">
-                            {slot.start}
-                          </span>
-
-                          {reserva ? (
-                            <div
-                              className={`flex-1 flex items-center justify-between gap-3 rounded-lg border px-4 py-2.5 ${
-                                minha
-                                  ? 'border-emerald-300 bg-emerald-50'
-                                  : 'border-stone-200 bg-stone-50'
-                              }`}
-                            >
-                              <div>
-                                <p className={`font-semibold text-sm ${minha ? 'text-emerald-800' : 'text-stone-500'}`}>
-                                  {minha ? 'Sua reserva' : 'Ocupado'}
-                                </p>
-                                <p className="text-xs text-stone-400 flex items-center gap-1 mt-0.5">
-                                  <LockIcon /> {slot.start} – {slot.end}
-                                </p>
+                            {reserva ? (
+                              <div
+                                className={`flex-1 flex items-center justify-between gap-3 rounded-lg border px-4 py-2.5 ${
+                                  minha
+                                    ? 'border-emerald-300 bg-emerald-50'
+                                    : 'border-stone-200 bg-stone-50'
+                                }`}
+                              >
+                                <div>
+                                  <p className={`font-semibold text-sm ${minha ? 'text-emerald-800' : 'text-stone-500'}`}>
+                                    {minha ? 'Sua reserva' : 'Ocupado'}
+                                  </p>
+                                  <p className="text-xs text-stone-400 flex items-center gap-1 mt-0.5">
+                                    <LockIcon /> {slot.start} – {slot.end}
+                                  </p>
+                                </div>
+                                {minha && (
+                                  <button
+                                    onClick={() => handleCancelar(reserva.id)}
+                                    className="text-stone-400 hover:text-red-600 transition-colors p-1"
+                                    aria-label="Cancelar reserva"
+                                  >
+                                    <TrashIcon />
+                                  </button>
+                                )}
                               </div>
-                              {minha && (
-                                <button
-                                  onClick={() => handleCancelar(reserva.id)}
-                                  className="text-stone-400 hover:text-red-600 transition-colors p-1"
-                                  aria-label="Cancelar reserva"
-                                >
-                                  <TrashIcon />
-                                </button>
-                              )}
-                            </div>
-                          ) : (
-                            <button
-                              disabled={!disponivel || reservando}
-                              onClick={() => handleReservar(slot.start, slot.end)}
-                              className={`flex-1 flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
-                                disponivel
-                                  ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400'
-                                  : 'border-stone-200 text-stone-300 cursor-not-allowed'
-                              }`}
-                            >
-                              <PlusIcon /> Reservar horário
-                            </button>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
+                            ) : (
+                              <button
+                                disabled={!disponivel || reservando}
+                                onClick={() => handleReservar(slot.start, slot.end)}
+                                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
+                                  disponivel
+                                    ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400'
+                                    : 'border-stone-200 text-stone-300 cursor-not-allowed'
+                                }`}
+                              >
+                                <PlusIcon /> Reservar horário
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

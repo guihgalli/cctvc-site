@@ -5,13 +5,15 @@ import {
   createCourt,
   updateCourt,
   uploadCourtPhoto,
+  replaceCourtSchedules,
   fetchAllBookings,
   fetchUsers,
   createUser,
   updateUser,
 } from '../services/api'
+import { CourtScheduleEditor, resumirHorarios } from '../components/CourtScheduleEditor'
 import { formatDate, formatTime, formatCpf, cleanCpf, cpfToPassword } from '../lib/utils'
-import type { Quadra, Reserva, Usuario } from '../types'
+import type { CourtScheduleInput, Quadra, Reserva, Usuario } from '../types'
 
 type AbaAdmin = 'quadras' | 'agenda' | 'usuarios'
 
@@ -29,6 +31,8 @@ export function AdminPage() {
   const [tipoEsporte, setTipoEsporte] = useState('')
   const [quadraSelecionadaId, setQuadraSelecionadaId] = useState<string | null>(null)
   const [arquivoFoto, setArquivoFoto] = useState<File | null>(null)
+  const [horariosQuadraId, setHorariosQuadraId] = useState<string | null>(null)
+  const [salvandoHorarios, setSalvandoHorarios] = useState(false)
 
   const [mostrarFormUsuario, setMostrarFormUsuario] = useState(false)
   const [codigoUsuario, setCodigoUsuario] = useState('')
@@ -104,6 +108,20 @@ export function AdminPage() {
       carregarDados()
     } catch {
       setMessage({ type: 'error', text: 'Erro ao atualizar quadra.' })
+    }
+  }
+
+  async function handleSalvarHorarios(quadraId: string, schedules: CourtScheduleInput[]) {
+    setSalvandoHorarios(true)
+    try {
+      await replaceCourtSchedules(quadraId, schedules)
+      setMessage({ type: 'success', text: 'Horários da quadra salvos!' })
+      setHorariosQuadraId(null)
+      await carregarDados()
+    } catch {
+      setMessage({ type: 'error', text: 'Erro ao salvar horários. Execute a migration no Supabase.' })
+    } finally {
+      setSalvandoHorarios(false)
     }
   }
 
@@ -283,7 +301,19 @@ export function AdminPage() {
                           {quadra.ativo ? 'Ativa' : 'Inativa'}
                         </button>
                       </div>
-                      <div className="mt-3 flex items-center gap-2">
+                      <p className="mt-2 text-xs text-stone-500 line-clamp-2">
+                        {resumirHorarios(quadra.horarios_quadra)}
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setHorariosQuadraId((id) => (id === quadra.id ? null : quadra.id))
+                          }
+                          className="text-xs border border-stone-300 text-stone-700 px-3 py-1 rounded hover:bg-stone-50"
+                        >
+                          {horariosQuadraId === quadra.id ? 'Fechar horários' : 'Dias e horários'}
+                        </button>
                         <input
                           type="file"
                           accept="image/*"
@@ -302,6 +332,14 @@ export function AdminPage() {
                           </button>
                         )}
                       </div>
+                      {horariosQuadraId === quadra.id && (
+                        <CourtScheduleEditor
+                          horarios={quadra.horarios_quadra}
+                          saving={salvandoHorarios}
+                          onSave={(schedules) => handleSalvarHorarios(quadra.id, schedules)}
+                          onCancel={() => setHorariosQuadraId(null)}
+                        />
+                      )}
                     </div>
                   </div>
                 )
