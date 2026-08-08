@@ -1,10 +1,33 @@
 import { supabase } from '../lib/supabase'
-import type { Quadra, Reserva, Usuario, FotoQuadra } from '../types'
+import {
+  DEFAULT_SLOT_END,
+  DEFAULT_SLOT_MINUTES,
+  DEFAULT_SLOT_START,
+} from '../lib/utils'
+import type {
+  CourtScheduleInput,
+  FotoQuadra,
+  HorarioQuadra,
+  Quadra,
+  Reserva,
+  Usuario,
+} from '../types'
+
+const COURT_SELECT = '*, fotos_quadras(*), horarios_quadra(*)'
+
+function buildDefaultSchedules(): CourtScheduleInput[] {
+  return Array.from({ length: 7 }, (_, dia_semana) => ({
+    dia_semana,
+    hora_inicio: DEFAULT_SLOT_START,
+    hora_fim: DEFAULT_SLOT_END,
+    intervalo_min: DEFAULT_SLOT_MINUTES,
+  }))
+}
 
 export async function fetchCourts(): Promise<Quadra[]> {
   const { data, error } = await supabase
     .from('quadras')
-    .select('*, fotos_quadras(*)')
+    .select(COURT_SELECT)
     .eq('ativo', true)
     .order('nome')
 
@@ -15,7 +38,7 @@ export async function fetchCourts(): Promise<Quadra[]> {
 export async function fetchAllCourts(): Promise<Quadra[]> {
   const { data, error } = await supabase
     .from('quadras')
-    .select('*, fotos_quadras(*)')
+    .select(COURT_SELECT)
     .order('nome')
 
   if (error) throw error
@@ -34,7 +57,46 @@ export async function createCourt(quadra: {
     .single()
 
   if (error) throw error
+
+  try {
+    await replaceCourtSchedules(data.id, buildDefaultSchedules())
+  } catch {
+    /* horários podem ser configurados depois no admin */
+  }
+
   return data
+}
+
+export async function replaceCourtSchedules(
+  quadraId: string,
+  schedules: CourtScheduleInput[]
+): Promise<HorarioQuadra[]> {
+  const { error: deleteError } = await supabase
+    .from('horarios_quadra')
+    .delete()
+    .eq('quadra_id', quadraId)
+
+  if (deleteError) throw deleteError
+
+  if (schedules.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('horarios_quadra')
+    .insert(
+      schedules.map((schedule) => ({
+        quadra_id: quadraId,
+        dia_semana: schedule.dia_semana,
+        hora_inicio: schedule.hora_inicio,
+        hora_fim: schedule.hora_fim,
+        intervalo_min: schedule.intervalo_min,
+        ativo: true,
+      }))
+    )
+    .select()
+    .order('dia_semana')
+
+  if (error) throw error
+  return data || []
 }
 
 export async function updateCourt(

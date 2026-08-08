@@ -10,6 +10,18 @@ export interface Usuario {
   criado_em: string
 }
 
+export interface HorarioQuadra {
+  id: string
+  quadra_id: string
+  /** 0=domingo … 6=sábado */
+  dia_semana: number
+  hora_inicio: string
+  hora_fim: string
+  intervalo_min: number
+  ativo: boolean
+  criado_em: string
+}
+
 export interface Quadra {
   id: string
   nome: string
@@ -18,6 +30,7 @@ export interface Quadra {
   ativo: boolean
   criado_em: string
   fotos_quadras?: FotoQuadra[]
+  horarios_quadra?: HorarioQuadra[]
 }
 
 export interface FotoQuadra {
@@ -26,6 +39,13 @@ export interface FotoQuadra {
   url: string
   principal: boolean
   criado_em: string
+}
+
+export type CourtScheduleInput = {
+  dia_semana: number
+  hora_inicio: string
+  hora_fim: string
+  intervalo_min: number
 }
 
 export interface Reserva {

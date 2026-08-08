@@ -55,26 +55,61 @@ export function formatTime(time: string): string {
   return time.slice(0, 5)
 }
 
-/** Gera slots de horário para um dia */
+export const DEFAULT_SLOT_START = '07:00'
+export const DEFAULT_SLOT_END = '22:00'
+export const DEFAULT_SLOT_MINUTES = 60
+export const BOOKING_DATE_RANGE_DAYS = 21
+
+export const DIAS_SEMANA_LABELS = [
+  'Domingo',
+  'Segunda',
+  'Terça',
+  'Quarta',
+  'Quinta',
+  'Sexta',
+  'Sábado',
+] as const
+
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = formatTime(time).split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function minutesToTime(total: number): string {
+  const hours = Math.floor(total / 60)
+  const minutes = total % 60
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+/** Gera slots de horário a partir de horas inteiras (legado) */
 export function generateTimeSlots(
   startHour = 7,
   endHour = 22,
   intervalMinutes = 60
 ): { start: string; end: string }[] {
+  return generateTimeSlotsFromRange(
+    minutesToTime(startHour * 60),
+    minutesToTime(endHour * 60),
+    intervalMinutes
+  )
+}
+
+/** Gera slots de horário a partir de HH:MM */
+export function generateTimeSlotsFromRange(
+  startTime: string,
+  endTime: string,
+  intervalMinutes = 60
+): { start: string; end: string }[] {
   const slots: { start: string; end: string }[] = []
+  const start = timeToMinutes(startTime)
+  const end = timeToMinutes(endTime)
 
-  for (let hour = startHour; hour < endHour; hour += intervalMinutes / 60) {
-    const startH = Math.floor(hour)
-    const startM = (hour % 1) * 60
-    const endTotal = hour + intervalMinutes / 60
-    const endH = Math.floor(endTotal)
-    const endM = (endTotal % 1) * 60
+  if (intervalMinutes <= 0 || end <= start) return slots
 
-    if (endH > endHour || (endH === endHour && endM > 0)) break
-
+  for (let current = start; current + intervalMinutes <= end; current += intervalMinutes) {
     slots.push({
-      start: `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
-      end: `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`,
+      start: minutesToTime(current),
+      end: minutesToTime(current + intervalMinutes),
     })
   }
 
@@ -116,9 +151,14 @@ function parseIsoDate(date: string): Date {
   return new Date(year, month - 1, day)
 }
 
+/** Índice do dia da semana (0=domingo … 6=sábado) */
+export function getWeekdayIndex(date: string): number {
+  return parseIsoDate(date).getDay()
+}
+
 /** Abreviação do dia da semana (SEX, SÁB, ...) */
 export function getWeekdayShort(date: string): string {
-  return DIAS_SEMANA[parseIsoDate(date).getDay()]
+  return DIAS_SEMANA[getWeekdayIndex(date)]
 }
 
 /** Abreviação do mês (AGO, SET, ...) */

@@ -6,9 +6,9 @@ Site institucional com sistema de reserva de quadras esportivas.
 
 - **Home simples** com link para reservas e Instagram
 - **Login** com usuário (6 dígitos) e senha (3 primeiros dígitos do CPF)
-- **Reservas (usuário)**: visualizar quadras, escolher data/horário, cancelar reservas
-- **Painel Admin**: cadastrar quadras, upload de fotos, ver agenda, gerenciar usuários
-- Validações: não permite reservar datas/horários passados nem horários já ocupados
+- **Reservas (usuário)**: visualizar quadras, escolher data/horário conforme disponibilidade da quadra, cancelar reservas
+- **Painel Admin**: cadastrar quadras, configurar dias/horários disponíveis, upload de fotos, ver agenda, gerenciar usuários
+- Validações: não permite reservar datas/horários passados, dias fechados nem horários já ocupados
 
 ## Stack
 
@@ -99,7 +99,15 @@ src/
 ├── services/       # Chamadas à API (Supabase)
 └── types/          # Tipos TypeScript
 supabase/
-└── schema.sql      # Schema do banco de dados
+├── schema.sql                 # Schema completo do banco
+└── migrations/                # Scripts incrementais (ex.: horários por quadra)
+```
+
+### Banco já existente
+
+Se o projeto Supabase já foi criado antes dos horários por quadra, execute também:
+
+`supabase/migrations/001_horarios_quadra.sql`
 ```
 
 ## Cadastro de Usuários
