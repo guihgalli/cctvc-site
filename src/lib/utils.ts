@@ -26,6 +26,30 @@ export function formatCpf(cpf: string): string {
   return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
 }
 
+/** Máscara progressiva de CPF durante digitação */
+export function maskCpfInput(value: string): string {
+  const cleaned = cleanCpf(value).slice(0, 11)
+  if (cleaned.length <= 3) return cleaned
+  if (cleaned.length <= 6) return cleaned.replace(/(\d{3})(\d+)/, '$1.$2')
+  if (cleaned.length <= 9) return cleaned.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3')
+  return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1.$2.$3-$4')
+}
+
+/** Valida se o CPF tem 11 dígitos */
+export function isValidCpfLength(cpf: string): boolean {
+  return cleanCpf(cpf).length === 11
+}
+
+/** Número do WhatsApp da secretaria do clube (E.164 sem +) */
+export const CLUBE_WHATSAPP_NUMBER = '5547988080903'
+
+/** Monta URL do WhatsApp solicitando login para o CPF informado */
+export function buildWhatsAppLoginRequestUrl(cpf: string): string {
+  const formatted = formatCpf(cpf)
+  const text = `Olá! Gostaria de solicitar meu login de acesso às reservas do clube. CPF: ${formatted}`
+  return `https://wa.me/${CLUBE_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+}
+
 /** Formata hora HH:MM */
 export function formatTime(time: string): string {
   return time.slice(0, 5)

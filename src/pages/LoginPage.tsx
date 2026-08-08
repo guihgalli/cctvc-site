@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { Logo } from '../components/Logo'
+import { SolicitarLoginModal } from '../components/SolicitarLoginModal'
 import { useAuth } from '../contexts/AuthContext'
 import { isValidUserCode, isValidPassword } from '../lib/utils'
 
@@ -9,6 +10,7 @@ export function LoginPage() {
   const [userCode, setUserCode] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [solicitarLoginOpen, setSolicitarLoginOpen] = useState(false)
   const { login, loading, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -107,10 +109,20 @@ export function LoginPage() {
             </button>
           </form>
 
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setSolicitarLoginOpen(true)}
+              className="w-full border border-emerald-700 text-emerald-800 hover:bg-emerald-50 font-semibold py-3 rounded-lg transition-colors"
+            >
+              Solicitar login
+            </button>
+          </div>
+
           <p className="text-center text-stone-400 text-xs mt-6">
             A senha corresponde aos 3 primeiros dígitos do seu CPF cadastrado.
             <br />
-            Problemas? Contate a secretaria do clube.
+            Ainda não tem acesso? Solicite o login pelo WhatsApp do clube.
           </p>
 
           <p className="text-center mt-4">
@@ -120,6 +132,11 @@ export function LoginPage() {
           </p>
         </div>
       </div>
+
+      <SolicitarLoginModal
+        open={solicitarLoginOpen}
+        onClose={() => setSolicitarLoginOpen(false)}
+      />
     </Layout>
   )
 }
