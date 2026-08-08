@@ -52,6 +52,12 @@ export async function updateCourt(
   return data
 }
 
+export async function deleteCourt(id: string): Promise<void> {
+  const { error } = await supabase.from('quadras').delete().eq('id', id)
+
+  if (error) throw error
+}
+
 export async function uploadCourtPhoto(
   quadraId: string,
   file: File,

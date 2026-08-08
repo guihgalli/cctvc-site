@@ -4,6 +4,7 @@ import {
   fetchAllCourts,
   createCourt,
   updateCourt,
+  deleteCourt,
   uploadCourtPhoto,
   fetchAllBookings,
   fetchUsers,
@@ -24,6 +25,7 @@ export function AdminPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const [mostrarFormQuadra, setMostrarFormQuadra] = useState(false)
+  const [editandoQuadraId, setEditandoQuadraId] = useState<string | null>(null)
   const [nomeQuadra, setNomeQuadra] = useState('')
   const [descricaoQuadra, setDescricaoQuadra] = useState('')
   const [tipoEsporte, setTipoEsporte] = useState('')
@@ -66,22 +68,66 @@ export function AdminPage() {
     }
   }
 
-  async function handleCriarQuadra(e: FormEvent) {
+  function limparFormQuadra() {
+    setNomeQuadra('')
+    setDescricaoQuadra('')
+    setTipoEsporte('')
+    setEditandoQuadraId(null)
+    setMostrarFormQuadra(false)
+  }
+
+  function handleEditarQuadra(quadra: Quadra) {
+    setEditandoQuadraId(quadra.id)
+    setNomeQuadra(quadra.nome)
+    setDescricaoQuadra(quadra.descricao || '')
+    setTipoEsporte(quadra.tipo_esporte || '')
+    setMostrarFormQuadra(true)
+    setMessage(null)
+  }
+
+  async function handleSalvarQuadra(e: FormEvent) {
     e.preventDefault()
     try {
-      await createCourt({
-        nome: nomeQuadra,
-        descricao: descricaoQuadra || undefined,
-        tipo_esporte: tipoEsporte || undefined,
-      })
-      setMessage({ type: 'success', text: 'Quadra cadastrada!' })
-      setNomeQuadra('')
-      setDescricaoQuadra('')
-      setTipoEsporte('')
-      setMostrarFormQuadra(false)
+      if (editandoQuadraId) {
+        await updateCourt(editandoQuadraId, {
+          nome: nomeQuadra,
+          descricao: descricaoQuadra || '',
+          tipo_esporte: tipoEsporte || '',
+        })
+        setMessage({ type: 'success', text: 'Quadra atualizada!' })
+      } else {
+        await createCourt({
+          nome: nomeQuadra,
+          descricao: descricaoQuadra || undefined,
+          tipo_esporte: tipoEsporte || undefined,
+        })
+        setMessage({ type: 'success', text: 'Quadra cadastrada!' })
+      }
+      limparFormQuadra()
       carregarDados()
     } catch {
-      setMessage({ type: 'error', text: 'Erro ao cadastrar quadra.' })
+      setMessage({
+        type: 'error',
+        text: editandoQuadraId ? 'Erro ao atualizar quadra.' : 'Erro ao cadastrar quadra.',
+      })
+    }
+  }
+
+  async function handleExcluirQuadra(quadra: Quadra) {
+    if (
+      !confirm(
+        `Excluir a quadra "${quadra.nome}"? Esta ação remove também as fotos e reservas vinculadas.`
+      )
+    ) {
+      return
+    }
+    try {
+      await deleteCourt(quadra.id)
+      setMessage({ type: 'success', text: 'Quadra excluída!' })
+      if (editandoQuadraId === quadra.id) limparFormQuadra()
+      carregarDados()
+    } catch {
+      setMessage({ type: 'error', text: 'Erro ao excluir quadra.' })
     }
   }
 
@@ -194,7 +240,17 @@ export function AdminPage() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-stone-700">Quadras Cadastradas</h2>
               <button
-                onClick={() => setMostrarFormQuadra(!mostrarFormQuadra)}
+                onClick={() => {
+                  if (mostrarFormQuadra) {
+                    limparFormQuadra()
+                  } else {
+                    setEditandoQuadraId(null)
+                    setNomeQuadra('')
+                    setDescricaoQuadra('')
+                    setTipoEsporte('')
+                    setMostrarFormQuadra(true)
+                  }
+                }}
                 className="bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-600"
               >
                 {mostrarFormQuadra ? 'Cancelar' : '+ Nova Quadra'}
@@ -203,9 +259,12 @@ export function AdminPage() {
 
             {mostrarFormQuadra && (
               <form
-                onSubmit={handleCriarQuadra}
+                onSubmit={handleSalvarQuadra}
                 className="bg-white rounded-xl p-6 border border-stone-200 mb-6 space-y-4"
               >
+                <h3 className="font-medium text-stone-700">
+                  {editandoQuadraId ? 'Editar Quadra' : 'Nova Quadra'}
+                </h3>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Nome *</label>
@@ -239,7 +298,7 @@ export function AdminPage() {
                   type="submit"
                   className="bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm hover:bg-emerald-600"
                 >
-                  Cadastrar
+                  {editandoQuadraId ? 'Salvar alterações' : 'Cadastrar'}
                 </button>
               </form>
             )}
@@ -283,7 +342,21 @@ export function AdminPage() {
                           {quadra.ativo ? 'Ativa' : 'Inativa'}
                         </button>
                       </div>
-                      <div className="mt-3 flex items-center gap-2">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditarQuadra(quadra)}
+                          className="text-xs border border-stone-300 text-stone-700 px-3 py-1 rounded hover:bg-stone-50"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleExcluirQuadra(quadra)}
+                          className="text-xs border border-red-200 text-red-700 px-3 py-1 rounded hover:bg-red-50"
+                        >
+                          Excluir
+                        </button>
                         <input
                           type="file"
                           accept="image/*"
