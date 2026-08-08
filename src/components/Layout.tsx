@@ -8,11 +8,46 @@ interface LayoutProps {
 
 export function Layout({ children, showHeader = true }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
+    <div className="min-h-screen bg-[#f8faf8] flex flex-col">
       {showHeader && <Header />}
       <main className="flex-1">{children}</main>
-      <footer className="bg-emerald-950 text-emerald-400 text-center py-4 text-sm">
-        <p>© {new Date().getFullYear()} CCTVC - Clube de Caça e Tiro Velha Central</p>
+      <footer className="bg-emerald-950 text-emerald-200">
+        <div className="max-w-5xl mx-auto px-4 py-8 grid gap-6 md:grid-cols-[1.2fr_1fr_1fr] text-sm">
+          <div>
+            <p className="font-display text-emerald-50 text-base mb-2">
+              CCTVC — Clube de Caça e Tiro Velha Central
+            </p>
+            <p className="text-emerald-300/90 leading-relaxed">
+              Tradição, esporte e lazer em Blumenau desde 1º de maio de 1900.
+            </p>
+          </div>
+          <div>
+            <p className="text-emerald-50 font-medium mb-2">Contato</p>
+            <p className="leading-relaxed">
+              Rua dos Caçadores, 3680
+              <br />
+              Velha Central — Blumenau/SC
+              <br />
+              <a href="tel:+5547988080903" className="hover:text-white transition-colors">
+                (47) 98808-0903
+              </a>
+            </p>
+          </div>
+          <div>
+            <p className="text-emerald-50 font-medium mb-2">Redes</p>
+            <a
+              href="https://www.instagram.com/cctvelhacentral/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+            >
+              Instagram @cctvelhacentral
+            </a>
+          </div>
+        </div>
+        <div className="border-t border-emerald-900/80 text-center py-4 text-xs text-emerald-400">
+          © {new Date().getFullYear()} CCTVC - Clube de Caça e Tiro Velha Central
+        </div>
       </footer>
     </div>
   )

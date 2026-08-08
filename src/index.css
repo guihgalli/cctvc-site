@@ -1,10 +1,108 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
 }
 
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  background: #f8faf8;
+  color: #1c1917;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.home-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(52, 211, 153, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 15%, rgba(16, 185, 129, 0.16), transparent 50%),
+    linear-gradient(145deg, #064e3b 0%, #065f46 42%, #022c22 100%);
+}
+
+.home-hero__pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, black 35%, transparent 95%);
+  pointer-events: none;
+}
+
+.home-fade-up {
+  animation: home-fade-up 700ms ease-out both;
+}
+
+.home-fade-up--delay-1 {
+  animation-delay: 80ms;
+}
+
+.home-fade-up--delay-2 {
+  animation-delay: 160ms;
+}
+
+.home-fade-up--delay-3 {
+  animation-delay: 240ms;
+}
+
+.home-fade-up--delay-4 {
+  animation-delay: 320ms;
+}
+
+@keyframes home-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-stat-panel {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.75rem 1.5rem;
+  border: 1px solid rgba(6, 78, 59, 0.12);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(236, 253, 245, 0.9)),
+    #ffffff;
+}
+
+.home-stat-panel__divider {
+  height: 1px;
+  background: rgba(6, 78, 59, 0.12);
+}
+
+.home-feature {
+  padding-top: 0.25rem;
+  border-top: 2px solid #059669;
+}
+
+.home-event {
+  padding-left: 1rem;
+  border-left: 2px solid #059669;
+}
+
+.home-reserve-panel {
+  align-self: center;
+  padding: 1.75rem;
+  border: 1px solid rgba(167, 243, 208, 0.28);
+  background: linear-gradient(160deg, rgba(6, 95, 70, 0.55), rgba(2, 44, 34, 0.35));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-fade-up,
+  .home-fade-up--delay-1,
+  .home-fade-up--delay-2,
+  .home-fade-up--delay-3,
+  .home-fade-up--delay-4 {
+    animation: none;
+  }
 }
