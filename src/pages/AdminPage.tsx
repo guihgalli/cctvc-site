@@ -327,93 +327,95 @@ export function AdminPage() {
                 return (
                   <div
                     key={quadra.id}
-                    className={`bg-white rounded-xl border p-4 flex gap-4 items-start ${
+                    className={`bg-white rounded-xl border p-4 space-y-3 min-w-0 overflow-hidden ${
                       quadra.ativo ? 'border-stone-200' : 'border-stone-200 opacity-60'
                     }`}
                   >
-                    {foto ? (
-                      <img src={foto.url} alt={quadra.nome} className="w-24 h-24 object-cover rounded-lg shrink-0" />
-                    ) : (
-                      <div className="w-24 h-24 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400 text-xs shrink-0">
-                        Sem foto
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold text-emerald-900">{quadra.nome}</p>
-                          {quadra.tipo_esporte && (
-                            <p className="text-stone-500 text-sm">{quadra.tipo_esporte}</p>
-                          )}
-                          {quadra.descricao && (
-                            <p className="text-stone-600 text-sm mt-1">{quadra.descricao}</p>
+                    <div className="flex gap-4 items-start min-w-0">
+                      {foto ? (
+                        <img src={foto.url} alt={quadra.nome} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg shrink-0" />
+                      ) : (
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400 text-xs shrink-0">
+                          Sem foto
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-emerald-900 truncate">{quadra.nome}</p>
+                            {quadra.tipo_esporte && (
+                              <p className="text-stone-500 text-sm">{quadra.tipo_esporte}</p>
+                            )}
+                            {quadra.descricao && (
+                              <p className="text-stone-600 text-sm mt-1">{quadra.descricao}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleAlternarQuadra(quadra)}
+                            className={`text-xs px-2 py-1 rounded shrink-0 ${
+                              quadra.ativo
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-stone-100 text-stone-500'
+                            }`}
+                          >
+                            {quadra.ativo ? 'Ativa' : 'Inativa'}
+                          </button>
+                        </div>
+                        <p className="mt-2 text-xs text-stone-500 line-clamp-2">
+                          {resumirHorarios(quadra.horarios_quadra)}
+                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditarQuadra(quadra)}
+                            className="text-xs border border-stone-300 text-stone-700 px-3 py-1 rounded hover:bg-stone-50"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExcluirQuadra(quadra)}
+                            className="text-xs border border-red-200 text-red-700 px-3 py-1 rounded hover:bg-red-50"
+                          >
+                            Excluir
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setHorariosQuadraId((id) => (id === quadra.id ? null : quadra.id))
+                            }
+                            className="text-xs border border-stone-300 text-stone-700 px-3 py-1 rounded hover:bg-stone-50"
+                          >
+                            {horariosQuadraId === quadra.id ? 'Fechar horários' : 'Dias e horários'}
+                          </button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              setQuadraSelecionadaId(quadra.id)
+                              setArquivoFoto(e.target.files?.[0] || null)
+                            }}
+                            className="text-xs max-w-full"
+                          />
+                          {quadraSelecionadaId === quadra.id && arquivoFoto && (
+                            <button
+                              onClick={() => handleEnviarFoto(quadra.id)}
+                              className="text-xs bg-emerald-700 text-white px-3 py-1 rounded hover:bg-emerald-600"
+                            >
+                              Enviar
+                            </button>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleAlternarQuadra(quadra)}
-                          className={`text-xs px-2 py-1 rounded shrink-0 ${
-                            quadra.ativo
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-stone-100 text-stone-500'
-                          }`}
-                        >
-                          {quadra.ativo ? 'Ativa' : 'Inativa'}
-                        </button>
                       </div>
-                      <p className="mt-2 text-xs text-stone-500 line-clamp-2">
-                        {resumirHorarios(quadra.horarios_quadra)}
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEditarQuadra(quadra)}
-                          className="text-xs border border-stone-300 text-stone-700 px-3 py-1 rounded hover:bg-stone-50"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleExcluirQuadra(quadra)}
-                          className="text-xs border border-red-200 text-red-700 px-3 py-1 rounded hover:bg-red-50"
-                        >
-                          Excluir
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setHorariosQuadraId((id) => (id === quadra.id ? null : quadra.id))
-                          }
-                          className="text-xs border border-stone-300 text-stone-700 px-3 py-1 rounded hover:bg-stone-50"
-                        >
-                          {horariosQuadraId === quadra.id ? 'Fechar horários' : 'Dias e horários'}
-                        </button>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            setQuadraSelecionadaId(quadra.id)
-                            setArquivoFoto(e.target.files?.[0] || null)
-                          }}
-                          className="text-xs"
-                        />
-                        {quadraSelecionadaId === quadra.id && arquivoFoto && (
-                          <button
-                            onClick={() => handleEnviarFoto(quadra.id)}
-                            className="text-xs bg-emerald-700 text-white px-3 py-1 rounded hover:bg-emerald-600"
-                          >
-                            Enviar
-                          </button>
-                        )}
-                      </div>
-                      {horariosQuadraId === quadra.id && (
-                        <CourtScheduleEditor
-                          horarios={quadra.horarios_quadra}
-                          saving={salvandoHorarios}
-                          onSave={(schedules) => handleSalvarHorarios(quadra.id, schedules)}
-                          onCancel={() => setHorariosQuadraId(null)}
-                        />
-                      )}
                     </div>
+                    {horariosQuadraId === quadra.id && (
+                      <CourtScheduleEditor
+                        horarios={quadra.horarios_quadra}
+                        saving={salvandoHorarios}
+                        onSave={(schedules) => handleSalvarHorarios(quadra.id, schedules)}
+                        onCancel={() => setHorariosQuadraId(null)}
+                      />
+                    )}
                   </div>
                 )
               })}

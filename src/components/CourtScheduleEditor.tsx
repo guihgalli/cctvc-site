@@ -89,7 +89,7 @@ export function CourtScheduleEditor({ horarios, saving = false, onSave, onCancel
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-3 rounded-lg border border-stone-200 bg-stone-50 p-3 space-y-3"
+      className="w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-50 p-3 space-y-3"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-stone-700">Dias e horários disponíveis</p>
@@ -108,35 +108,36 @@ export function CourtScheduleEditor({ horarios, saving = false, onSave, onCancel
         </label>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 min-w-0">
         {dias.map((dia, index) => (
           <div
             key={DIAS_SEMANA_LABELS[index]}
-            className="grid grid-cols-[auto_1fr] sm:grid-cols-[7rem_1fr_1fr] gap-2 items-center bg-white rounded-md border border-stone-200 px-2 py-2"
+            className="flex flex-col gap-2 bg-white rounded-md border border-stone-200 px-2.5 py-2 min-w-0"
           >
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input
                 type="checkbox"
                 checked={dia.ativo}
                 onChange={(e) => atualizarDia(index, { ativo: e.target.checked })}
+                className="shrink-0"
               />
-              {DIAS_SEMANA_LABELS[index]}
+              <span className="truncate">{DIAS_SEMANA_LABELS[index]}</span>
             </label>
-            <div className="flex items-center gap-2 col-span-1 sm:col-span-2">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 min-w-0">
               <input
                 type="time"
                 value={dia.hora_inicio}
                 disabled={!dia.ativo}
                 onChange={(e) => atualizarDia(index, { hora_inicio: e.target.value })}
-                className="border rounded-md px-2 py-1 text-sm disabled:opacity-40 w-full"
+                className="min-w-0 w-full border rounded-md px-1.5 py-1 text-sm disabled:opacity-40"
               />
-              <span className="text-stone-400 text-xs shrink-0">até</span>
+              <span className="text-stone-400 text-xs shrink-0 px-0.5">até</span>
               <input
                 type="time"
                 value={dia.hora_fim}
                 disabled={!dia.ativo}
                 onChange={(e) => atualizarDia(index, { hora_fim: e.target.value })}
-                className="border rounded-md px-2 py-1 text-sm disabled:opacity-40 w-full"
+                className="min-w-0 w-full border rounded-md px-1.5 py-1 text-sm disabled:opacity-40"
               />
             </div>
           </div>
@@ -145,7 +146,7 @@ export function CourtScheduleEditor({ horarios, saving = false, onSave, onCancel
 
       {erro && <p className="text-xs text-red-600">{erro}</p>}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="submit"
           disabled={saving}
