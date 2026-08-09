@@ -97,6 +97,36 @@ body {
   background: linear-gradient(160deg, rgba(6, 95, 70, 0.55), rgba(2, 44, 34, 0.35));
 }
 
+.home-step {
+  padding-top: 0.25rem;
+  border-top: 2px solid #059669;
+}
+
+.home-map {
+  overflow: hidden;
+  border: 1px solid rgba(6, 78, 59, 0.14);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(236, 253, 245, 0.88)),
+    #ffffff;
+  min-height: 280px;
+}
+
+.home-map__frame {
+  display: block;
+  width: 100%;
+  min-height: 280px;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  border: 0;
+}
+
+@media (min-width: 1024px) {
+  .home-map,
+  .home-map__frame {
+    min-height: 360px;
+  }
+}
+
 .home-instagram {
   background:
     radial-gradient(ellipse 70% 55% at 10% 0%, rgba(16, 185, 129, 0.1), transparent 55%),
