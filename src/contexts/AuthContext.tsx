@@ -28,6 +28,8 @@ interface AuthContextType {
   loading: boolean
   login: (userCode: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
+  /** Substitui o token de sessão (ex.: após alterar senha). */
+  updateSessionToken: (token: string) => void
   isAdmin: boolean
 }
 
@@ -137,6 +139,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const updateSessionToken = useCallback((token: string) => {
+    const current = loadStoredAuth()
+    if (!current?.user) {
+      persistAuth(null)
+      setUser(null)
+      return
+    }
+    persistAuth({ token, user: current.user })
+  }, [])
+
   return (
     <AuthContext.Provider
       value={{
@@ -144,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         login,
         logout,
+        updateSessionToken,
         isAdmin: user?.perfil === 'admin',
       }}
     >

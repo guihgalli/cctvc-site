@@ -121,7 +121,7 @@ Execute na ordem, conforme o que ainda faltava:
 
 - Login do sócio: **código (6 dígitos) + senha (3 dígitos)**
 - Senha armazenada como **hash bcrypt** (`senha_hash`); senha inicial = 3 primeiros dígitos do CPF
-- Usuário logado altera a própria senha via RPC `alterar_senha` (exige senha atual)
+- Usuário logado altera a própria senha via RPC `alterar_senha` (exige senha atual, rate limit e rotação de sessão)
 - A senha é validada **no servidor** (RPC `fazer_login`); o CPF não é enviado ao browser no login
 - Sessão com token opaco (`sessoes`), validada em todas as mutações
 - RLS sem acesso direto a `usuarios` / `reservas`; painel admin só via RPCs com perfil admin

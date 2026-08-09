@@ -6,7 +6,7 @@ import { changePassword } from '../services/api'
 import { getErrorMessage, isValidPassword } from '../lib/utils'
 
 export function AccountPage() {
-  const { user } = useAuth()
+  const { user, updateSessionToken } = useAuth()
   const [senhaAtual, setSenhaAtual] = useState('')
   const [senhaNova, setSenhaNova] = useState('')
   const [senhaNovaConfirm, setSenhaNovaConfirm] = useState('')
@@ -36,7 +36,8 @@ export function AccountPage() {
 
     setSaving(true)
     try {
-      await changePassword(senhaAtual, senhaNova)
+      const result = await changePassword(senhaAtual, senhaNova)
+      updateSessionToken(result.token)
       setSuccess('Senha alterada com sucesso!')
       setSenhaAtual('')
       setSenhaNova('')

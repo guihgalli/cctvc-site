@@ -39,6 +39,7 @@ DECLARE
   v_user usuarios%ROWTYPE;
   v_token text;
   v_fails int;
+  v_ok boolean := false;
 BEGIN
   IF p_codigo IS NULL OR p_codigo !~ '^\d{6}$' OR p_senha IS NULL OR p_senha !~ '^\d{3}$' THEN
     RAISE EXCEPTION 'Usuário ou senha inválidos' USING ERRCODE = 'P0001';
@@ -59,10 +60,19 @@ BEGIN
   FROM usuarios
   WHERE codigo_usuario = p_codigo;
 
-  IF NOT FOUND
-     OR NOT v_user.ativo
-     OR v_user.senha_hash IS NULL
-     OR v_user.senha_hash IS DISTINCT FROM crypt(p_senha, v_user.senha_hash) THEN
+  IF FOUND AND v_user.ativo AND v_user.senha_hash IS NOT NULL THEN
+    v_ok := (v_user.senha_hash = crypt(p_senha, v_user.senha_hash));
+  ELSE
+    -- Hash dummy fixo: força custo bcrypt semelhante quando o usuário
+    -- não existe / está inativo (reduz oracle de timing).
+    PERFORM crypt(
+      p_senha,
+      '$2a$06$dZzOtKcscL4pUx1Is0mVk.OUrGO.B5Ya7t53lgAoQALAeHfawXqKi'
+    );
+    v_ok := false;
+  END IF;
+
+  IF NOT v_ok THEN
     INSERT INTO tentativas_login (codigo_usuario) VALUES (p_codigo);
     RAISE EXCEPTION 'Usuário ou senha inválidos' USING ERRCODE = 'P0001';
   END IF;
@@ -89,6 +99,9 @@ $$;
 
 -- -----------------------------------------------------------------------------
 -- Usuário logado altera a própria senha
+-- - exige senha atual
+-- - rate limit (5 falhas / 15 min) — evita brute-force do PIN via sessão roubada
+-- - rotaciona o token da sessão (invalida a sessão antiga e todas as outras)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION alterar_senha(
   p_token text,
@@ -102,8 +115,21 @@ SET search_path = public
 AS $$
 DECLARE
   v_user usuarios%ROWTYPE;
+  v_fails int;
+  v_new_token text;
 BEGIN
   v_user := app_require_usuario(p_token);
+
+  DELETE FROM tentativas_login WHERE tentado_em < NOW() - INTERVAL '1 day';
+
+  SELECT COUNT(*)::int INTO v_fails
+  FROM tentativas_login
+  WHERE codigo_usuario = v_user.codigo_usuario
+    AND tentado_em > NOW() - INTERVAL '15 minutes';
+
+  IF v_fails >= 5 THEN
+    RAISE EXCEPTION 'Muitas tentativas. Aguarde alguns minutos.' USING ERRCODE = 'P0001';
+  END IF;
 
   IF p_senha_atual IS NULL OR p_senha_atual !~ '^\d{3}$'
      OR p_senha_nova IS NULL OR p_senha_nova !~ '^\d{3}$' THEN
@@ -116,6 +142,7 @@ BEGIN
 
   IF v_user.senha_hash IS NULL
      OR v_user.senha_hash IS DISTINCT FROM crypt(p_senha_atual, v_user.senha_hash) THEN
+    INSERT INTO tentativas_login (codigo_usuario) VALUES (v_user.codigo_usuario);
     RAISE EXCEPTION 'Senha atual incorreta.' USING ERRCODE = 'P0001';
   END IF;
 
@@ -123,12 +150,15 @@ BEGIN
   SET senha_hash = crypt(p_senha_nova, gen_salt('bf'))
   WHERE id = v_user.id;
 
-  -- Encerra outras sessões; mantém a atual
-  DELETE FROM sessoes
-  WHERE usuario_id = v_user.id
-    AND token IS DISTINCT FROM p_token;
+  DELETE FROM tentativas_login WHERE codigo_usuario = v_user.codigo_usuario;
 
-  RETURN json_build_object('ok', true);
+  -- Invalida TODAS as sessões (inclui a atual) e emite novo token
+  DELETE FROM sessoes WHERE usuario_id = v_user.id;
+  v_new_token := app_new_token();
+  INSERT INTO sessoes (token, usuario_id, expira_em)
+  VALUES (v_new_token, v_user.id, NOW() + INTERVAL '7 days');
+
+  RETURN json_build_object('ok', true, 'token', v_new_token);
 END;
 $$;
 
@@ -277,8 +307,14 @@ END;
 $$;
 
 -- -----------------------------------------------------------------------------
--- Grants
+-- Grants (revoke PUBLIC primeiro — least privilege)
 -- -----------------------------------------------------------------------------
+REVOKE ALL ON FUNCTION alterar_senha(text, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fazer_login(text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION admin_criar_usuario(text, text, text, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION admin_atualizar_usuario(text, uuid, text, text, boolean, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION admin_listar_usuarios(text) FROM PUBLIC;
+
 GRANT EXECUTE ON FUNCTION alterar_senha(text, text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION fazer_login(text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_criar_usuario(text, text, text, text, text) TO anon, authenticated;
