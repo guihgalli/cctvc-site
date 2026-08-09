@@ -13,7 +13,15 @@ import {
   updateUser,
 } from '../services/api'
 import { CourtScheduleEditor, resumirHorarios } from '../components/CourtScheduleEditor'
-import { formatDate, formatTime, formatCpf, cleanCpf, cpfToPassword } from '../lib/utils'
+import {
+  formatDate,
+  formatTime,
+  formatCpf,
+  cleanCpf,
+  cpfToPassword,
+  getErrorMessage,
+  prepareCourtPhoto,
+} from '../lib/utils'
 import type { CourtScheduleInput, Quadra, Reserva, Usuario } from '../types'
 
 type AbaAdmin = 'quadras' | 'agenda' | 'usuarios'
@@ -114,48 +122,56 @@ export function AdminPage() {
   async function handleSalvarQuadra(e: FormEvent) {
     e.preventDefault()
     setSalvandoQuadra(true)
+    setMessage(null)
+    const editando = Boolean(editandoQuadraId)
     try {
       let quadraId = editandoQuadraId
 
-      if (editandoQuadraId) {
-        await updateCourt(editandoQuadraId, {
-          nome: nomeQuadra,
-          descricao: descricaoQuadra || '',
-          tipo_esporte: tipoEsporte || '',
-        })
-      } else {
-        const criada = await createCourt({
-          nome: nomeQuadra,
-          descricao: descricaoQuadra || undefined,
-          tipo_esporte: tipoEsporte || undefined,
-        })
-        quadraId = criada.id
+      try {
+        if (editandoQuadraId) {
+          await updateCourt(editandoQuadraId, {
+            nome: nomeQuadra,
+            descricao: descricaoQuadra || '',
+            tipo_esporte: tipoEsporte || '',
+          })
+        } else {
+          const criada = await createCourt({
+            nome: nomeQuadra,
+            descricao: descricaoQuadra || undefined,
+            tipo_esporte: tipoEsporte || undefined,
+          })
+          quadraId = criada.id
+        }
+      } catch (err) {
+        throw new Error(
+          `Falha ao ${editando ? 'atualizar' : 'cadastrar'} a quadra: ${getErrorMessage(err)}`
+        )
       }
 
       if (arquivoFoto && quadraId) {
-        await uploadCourtPhoto(quadraId, arquivoFoto, true)
+        try {
+          const fotoPronta = await prepareCourtPhoto(arquivoFoto)
+          await uploadCourtPhoto(quadraId, fotoPronta, true)
+        } catch (err) {
+          throw new Error(
+            `Quadra salva, mas a foto falhou: ${getErrorMessage(err)}. Tente outra imagem JPG/PNG.`
+          )
+        }
       }
 
       setMessage({
         type: 'success',
-        text: editandoQuadraId ? 'Quadra atualizada!' : 'Quadra cadastrada!',
+        text: editando ? 'Quadra atualizada!' : 'Quadra cadastrada!',
       })
       limparFormQuadra()
-      carregarDados()
+      await carregarDados()
     } catch (err) {
-      const detalhe =
-        err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : null
       setMessage({
         type: 'error',
-        text: detalhe
-          ? `Erro ao salvar quadra: ${detalhe}`
-          : editandoQuadraId
-            ? 'Erro ao atualizar quadra ou enviar foto.'
-            : 'Erro ao cadastrar quadra ou enviar foto.',
+        text: getErrorMessage(
+          err,
+          editando ? 'Erro ao atualizar quadra ou enviar foto.' : 'Erro ao cadastrar quadra ou enviar foto.'
+        ),
       })
     } finally {
       setSalvandoQuadra(false)
@@ -365,7 +381,8 @@ export function AdminPage() {
                       <p className="text-xs text-stone-500">
                         {editandoQuadraId
                           ? 'Selecione uma imagem para substituir a foto atual (opcional).'
-                          : 'Opcional. A foto aparece na listagem e na reserva.'}
+                          : 'Opcional. A foto aparece na listagem e na reserva.'}{' '}
+                        No celular, preferir foto da galeria; o app converte automaticamente para JPG.
                       </p>
                       {arquivoFoto && (
                         <button

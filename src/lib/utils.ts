@@ -55,6 +55,70 @@ export function formatTime(time: string): string {
   return time.slice(0, 5)
 }
 
+/** Extrai mensagem legível de erros do Supabase / DOM / desconhecidos */
+export function getErrorMessage(err: unknown, fallback = 'Erro inesperado.'): string {
+  if (!err) return fallback
+  if (typeof err === 'string' && err.trim()) return err
+  if (err instanceof Error && err.message) return err.message
+  if (typeof err === 'object') {
+    const obj = err as { message?: unknown; error?: unknown; details?: unknown }
+    if (typeof obj.message === 'string' && obj.message.trim()) return obj.message
+    if (typeof obj.error === 'string' && obj.error.trim()) return obj.error
+    if (typeof obj.details === 'string' && obj.details.trim()) return obj.details
+    try {
+      return JSON.stringify(err)
+    } catch {
+      /* ignore */
+    }
+  }
+  return fallback
+}
+
+/**
+ * Normaliza foto da galeria/câmera (inclui HEIC do iPhone) para JPEG
+ * redimensionado, evitando falhas de upload no Supabase Storage.
+ */
+export async function prepareCourtPhoto(file: File, maxSize = 1600): Promise<File> {
+  if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif|heic|heif)$/i.test(file.name)) {
+    throw new Error('Selecione um arquivo de imagem (JPG, PNG ou da galeria do celular).')
+  }
+
+  const objectUrl = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () =>
+        reject(new Error('Não foi possível ler a imagem. Tente outra foto ou salve como JPG.'))
+      el.src = objectUrl
+    })
+
+    const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+    const width = Math.max(1, Math.round(img.width * scale))
+    const height = Math.max(1, Math.round(img.height * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Falha ao processar a imagem no navegador.')
+    ctx.drawImage(img, 0, 0, width, height)
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (result) => (result ? resolve(result) : reject(new Error('Falha ao converter a imagem.'))),
+        'image/jpeg',
+        0.85
+      )
+    })
+
+    const baseName = file.name.replace(/\.[^.]+$/, '') || 'quadra'
+    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' })
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
 export const DEFAULT_SLOT_START = '07:00'
 export const DEFAULT_SLOT_END = '22:00'
 export const DEFAULT_SLOT_MINUTES = 60

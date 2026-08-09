@@ -133,7 +133,10 @@ export async function uploadCourtPhoto(
 
   const { error: uploadError } = await supabase.storage
     .from(COURT_PHOTOS_BUCKET)
-    .upload(fileName, file)
+    .upload(fileName, file, {
+      contentType: file.type || 'image/jpeg',
+      upsert: false,
+    })
 
   if (uploadError) throw uploadError
 
