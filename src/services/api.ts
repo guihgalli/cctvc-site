@@ -74,6 +74,32 @@ export async function logoutSession(token: string): Promise<void> {
   }
 }
 
+export interface ChangePasswordResult {
+  ok: boolean
+  token: string
+}
+
+/** Usuário logado altera a própria senha (exige sessão válida). Retorna novo token. */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<ChangePasswordResult> {
+  const token = requireToken()
+  const result = await rpc<ChangePasswordResult>(
+    'alterar_senha',
+    {
+      p_token: token,
+      p_senha_atual: currentPassword,
+      p_senha_nova: newPassword,
+    },
+    'Erro ao alterar senha.'
+  )
+  if (!result?.token) {
+    throw new Error('Resposta inválida ao alterar senha. Atualize a migration no Supabase.')
+  }
+  return result
+}
+
 /** Catálogo público: apenas quadras ativas (RLS) */
 export async function fetchCourts(): Promise<Quadra[]> {
   const { data, error } = await supabase

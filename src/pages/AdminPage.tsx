@@ -235,7 +235,7 @@ export function AdminPage() {
       })
       setMessage({
         type: 'success',
-        text: `Usuário cadastrado! Senha: ${cpfToPassword(cpf)}`,
+        text: `Usuário cadastrado! Senha inicial: ${cpfToPassword(cpf)}`,
       })
       setCodigoUsuario('')
       setCpfUsuario('')
@@ -609,7 +609,8 @@ export function AdminPage() {
                   </div>
                 </div>
                 <p className="text-stone-500 text-xs">
-                  A senha será os 3 primeiros dígitos do CPF informado.
+                  A senha inicial será os 3 primeiros dígitos do CPF. O sócio pode alterá-la depois
+                  em Conta.
                 </p>
                 <button
                   type="submit"

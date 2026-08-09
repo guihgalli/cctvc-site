@@ -77,7 +77,7 @@ export function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-stone-700 mb-1">
-                Senha (3 dígitos do CPF)
+                Senha (3 dígitos)
               </label>
               <input
                 id="password"

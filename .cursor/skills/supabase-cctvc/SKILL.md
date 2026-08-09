@@ -57,10 +57,12 @@ Com `PGPASSWORD` ou `SUPABASE_DB_URL` já definidos.
 - Migrations incrementais: `supabase/migrations/`
   - `001_horarios_quadra.sql` — tabela `horarios_quadra` + seed padrão
   - `002_storage_fotos_quadra.sql` — bucket + policies de Storage
+  - `003_security_hardening.sql` — sessões, RLS, RPCs de auth/reservas/admin
+  - `004_alterar_senha.sql` — coluna `senha_hash`, login com hash, RPC `alterar_senha`
 
 Tabelas principais:
 
-- `usuarios`, `quadras`, `fotos_quadras`, `horarios_quadra`, `reservas`
+- `usuarios` (inclui `senha_hash` após a 004), `quadras`, `fotos_quadras`, `horarios_quadra`, `reservas`, `sessoes`
 
 API thin wrappers: `src/services/api.ts`.
 

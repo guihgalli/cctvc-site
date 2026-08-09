@@ -17,12 +17,13 @@ CREATE TABLE usuarios (
   nome          VARCHAR(255) NOT NULL,
   perfil        VARCHAR(10) NOT NULL DEFAULT 'usuario' CHECK (perfil IN ('usuario', 'admin')),
   ativo         BOOLEAN NOT NULL DEFAULT true,
+  -- senha_hash é criada/preenchida na migration 004_alterar_senha.sql (bcrypt)
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 COMMENT ON TABLE usuarios IS 'Sócios e administradores cadastrados no clube';
 COMMENT ON COLUMN usuarios.codigo_usuario IS 'Matrícula do sócio — 6 dígitos numéricos';
-COMMENT ON COLUMN usuarios.cpf IS 'CPF completo (11 dígitos). Senha = 3 primeiros dígitos';
+COMMENT ON COLUMN usuarios.cpf IS 'CPF completo (11 dígitos). Independente da senha após o cadastro.';
 COMMENT ON COLUMN usuarios.perfil IS 'usuario = sócio comum | admin = administrador';
 
 -- -----------------------------------------------------------------------------
@@ -114,6 +115,7 @@ CREATE UNIQUE INDEX idx_reserva_sem_conflito
 -- Sem políticas permissivas: acesso a dados sensíveis só via RPCs com sessão.
 -- OBRIGATÓRIO após este script: execute também
 --   supabase/migrations/003_security_hardening.sql
+--   supabase/migrations/004_alterar_senha.sql
 -- (e 002_storage_fotos_quadra.sql se ainda não rodou; 003 recria as policies)
 -- -----------------------------------------------------------------------------
 ALTER TABLE usuarios         ENABLE ROW LEVEL SECURITY;
@@ -131,7 +133,8 @@ ALTER TABLE reservas         ENABLE ROW LEVEL SECURITY;
 -- -----------------------------------------------------------------------------
 
 -- Administrador padrão
--- Usuário: 000001 | Senha: 123 (3 primeiros dígitos do CPF 12345678901)
+-- Usuário: 000001 | Senha inicial: 123 (3 primeiros dígitos do CPF 12345678901)
+-- Após a migration 004, a senha fica em senha_hash (bcrypt) e pode ser alterada.
 INSERT INTO usuarios (codigo_usuario, cpf, nome, perfil) VALUES
   ('000001', '12345678901', 'Administrador', 'admin');
 
