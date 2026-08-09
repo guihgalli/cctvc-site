@@ -1,22 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  INSTAGRAM_PROFILE_URL,
-  instagramPosts,
-} from '../data/instagramPosts'
+import { useInstagramPosts } from '../hooks/useInstagramPosts'
 
 const AUTO_ADVANCE_MS = 4500
 
 export function InstagramCarousel() {
+  const { posts, profileUrl, loading } = useInstagramPosts()
   const trackRef = useRef<HTMLUListElement>(null)
   const activeIndexRef = useRef(0)
   const [activeIndex, setActiveIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const reduceMotion = usePrefersReducedMotion()
 
+  useEffect(() => {
+    activeIndexRef.current = 0
+    setActiveIndex(0)
+    trackRef.current?.scrollTo({ left: 0 })
+  }, [posts])
+
   const scrollToIndex = (index: number) => {
     const track = trackRef.current
-    if (!track) return
-    const clamped = (index + instagramPosts.length) % instagramPosts.length
+    if (!track || posts.length === 0) return
+    const clamped = (index + posts.length) % posts.length
     const slide = track.children[clamped] as HTMLElement | undefined
     if (!slide) return
     track.scrollTo({
@@ -52,15 +56,15 @@ export function InstagramCarousel() {
     track.addEventListener('scroll', syncActive, { passive: true })
     syncActive()
     return () => track.removeEventListener('scroll', syncActive)
-  }, [])
+  }, [posts])
 
   useEffect(() => {
-    if (paused || reduceMotion || instagramPosts.length < 2) return
+    if (paused || reduceMotion || posts.length < 2) return
     const id = window.setInterval(() => {
       scrollToIndex(activeIndexRef.current + 1)
     }, AUTO_ADVANCE_MS)
     return () => window.clearInterval(id)
-  }, [paused, reduceMotion])
+  }, [paused, reduceMotion, posts.length])
 
   return (
     <section
@@ -90,18 +94,18 @@ export function InstagramCarousel() {
             <p className="text-stone-600 text-lg leading-relaxed">
               Momentos do clube no{' '}
               <a
-                href={INSTAGRAM_PROFILE_URL}
+                href={profileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-emerald-800 font-medium underline underline-offset-4 hover:text-emerald-950"
               >
                 @cctvelhacentral
               </a>
-              .
+              {loading ? ' — atualizando feed…' : '.'}
             </p>
           </div>
           <a
-            href={INSTAGRAM_PROFILE_URL}
+            href={profileUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex self-start md:self-auto border border-emerald-800/20 text-emerald-950 px-5 py-2.5 rounded-lg font-semibold hover:bg-emerald-950 hover:text-white transition-colors"
@@ -115,8 +119,9 @@ export function InstagramCarousel() {
             ref={trackRef}
             className="home-instagram__track"
             aria-label="Carrossel de fotos do Instagram"
+            aria-busy={loading}
           >
-            {instagramPosts.map((post, index) => (
+            {posts.map((post, index) => (
               <li key={post.id} className="home-instagram__slide">
                 <a
                   href={post.permalink}
@@ -150,7 +155,7 @@ export function InstagramCarousel() {
               ←
             </button>
             <div className="home-instagram__dots" role="tablist" aria-label="Selecionar foto">
-              {instagramPosts.map((post, index) => (
+              {posts.map((post, index) => (
                 <button
                   key={post.id}
                   type="button"
