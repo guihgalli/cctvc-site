@@ -31,8 +31,10 @@ export function AdminPage() {
   const [nomeQuadra, setNomeQuadra] = useState('')
   const [descricaoQuadra, setDescricaoQuadra] = useState('')
   const [tipoEsporte, setTipoEsporte] = useState('')
-  const [quadraSelecionadaId, setQuadraSelecionadaId] = useState<string | null>(null)
   const [arquivoFoto, setArquivoFoto] = useState<File | null>(null)
+  const [fotoAtualUrl, setFotoAtualUrl] = useState<string | null>(null)
+  const [previewFotoUrl, setPreviewFotoUrl] = useState<string | null>(null)
+  const [salvandoQuadra, setSalvandoQuadra] = useState(false)
   const [horariosQuadraId, setHorariosQuadraId] = useState<string | null>(null)
   const [salvandoHorarios, setSalvandoHorarios] = useState(false)
 
@@ -72,48 +74,83 @@ export function AdminPage() {
     }
   }
 
-  function limparFormQuadra() {
+  function resetCamposQuadra() {
+    if (previewFotoUrl) URL.revokeObjectURL(previewFotoUrl)
     setNomeQuadra('')
     setDescricaoQuadra('')
     setTipoEsporte('')
+    setArquivoFoto(null)
+    setFotoAtualUrl(null)
+    setPreviewFotoUrl(null)
     setEditandoQuadraId(null)
+  }
+
+  function limparFormQuadra() {
+    resetCamposQuadra()
     setMostrarFormQuadra(false)
   }
 
+  function handleSelecionarFoto(file: File | null) {
+    if (previewFotoUrl) URL.revokeObjectURL(previewFotoUrl)
+    setArquivoFoto(file)
+    setPreviewFotoUrl(file ? URL.createObjectURL(file) : null)
+  }
+
   function handleEditarQuadra(quadra: Quadra) {
+    const foto = quadra.fotos_quadras?.find((f) => f.principal) || quadra.fotos_quadras?.[0]
+    if (previewFotoUrl) URL.revokeObjectURL(previewFotoUrl)
     setEditandoQuadraId(quadra.id)
     setNomeQuadra(quadra.nome)
     setDescricaoQuadra(quadra.descricao || '')
     setTipoEsporte(quadra.tipo_esporte || '')
+    setArquivoFoto(null)
+    setPreviewFotoUrl(null)
+    setFotoAtualUrl(foto?.url || null)
     setMostrarFormQuadra(true)
     setMessage(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function handleSalvarQuadra(e: FormEvent) {
     e.preventDefault()
+    setSalvandoQuadra(true)
     try {
+      let quadraId = editandoQuadraId
+
       if (editandoQuadraId) {
         await updateCourt(editandoQuadraId, {
           nome: nomeQuadra,
           descricao: descricaoQuadra || '',
           tipo_esporte: tipoEsporte || '',
         })
-        setMessage({ type: 'success', text: 'Quadra atualizada!' })
       } else {
-        await createCourt({
+        const criada = await createCourt({
           nome: nomeQuadra,
           descricao: descricaoQuadra || undefined,
           tipo_esporte: tipoEsporte || undefined,
         })
-        setMessage({ type: 'success', text: 'Quadra cadastrada!' })
+        quadraId = criada.id
       }
+
+      if (arquivoFoto && quadraId) {
+        await uploadCourtPhoto(quadraId, arquivoFoto, true)
+      }
+
+      setMessage({
+        type: 'success',
+        text: editandoQuadraId ? 'Quadra atualizada!' : 'Quadra cadastrada!',
+      })
       limparFormQuadra()
       carregarDados()
     } catch {
       setMessage({
         type: 'error',
-        text: editandoQuadraId ? 'Erro ao atualizar quadra.' : 'Erro ao cadastrar quadra.',
+        text: editandoQuadraId
+          ? 'Erro ao atualizar quadra ou enviar foto.'
+          : 'Erro ao cadastrar quadra ou enviar foto.',
       })
+    } finally {
+      setSalvandoQuadra(false)
     }
   }
 
@@ -132,19 +169,6 @@ export function AdminPage() {
       carregarDados()
     } catch {
       setMessage({ type: 'error', text: 'Erro ao excluir quadra.' })
-    }
-  }
-
-  async function handleEnviarFoto(quadraId: string) {
-    if (!arquivoFoto) return
-    try {
-      await uploadCourtPhoto(quadraId, arquivoFoto, true)
-      setMessage({ type: 'success', text: 'Foto enviada!' })
-      setArquivoFoto(null)
-      setQuadraSelecionadaId(null)
-      carregarDados()
-    } catch {
-      setMessage({ type: 'error', text: 'Erro ao enviar foto. Verifique o bucket "fotos-quadras" no Supabase.' })
     }
   }
 
@@ -262,10 +286,7 @@ export function AdminPage() {
                   if (mostrarFormQuadra) {
                     limparFormQuadra()
                   } else {
-                    setEditandoQuadraId(null)
-                    setNomeQuadra('')
-                    setDescricaoQuadra('')
-                    setTipoEsporte('')
+                    resetCamposQuadra()
                     setMostrarFormQuadra(true)
                   }
                 }}
@@ -312,11 +333,54 @@ export function AdminPage() {
                     className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Foto da quadra</label>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
+                    <div className="w-28 h-28 rounded-lg border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
+                      {previewFotoUrl || fotoAtualUrl ? (
+                        <img
+                          src={previewFotoUrl || fotoAtualUrl || ''}
+                          alt="Pré-visualização"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs text-stone-400 px-2 text-center">Sem foto</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleSelecionarFoto(e.target.files?.[0] || null)}
+                        className="block w-full text-sm text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-800 hover:file:bg-emerald-100"
+                      />
+                      <p className="text-xs text-stone-500">
+                        {editandoQuadraId
+                          ? 'Selecione uma imagem para substituir a foto atual (opcional).'
+                          : 'Opcional. A foto aparece na listagem e na reserva.'}
+                      </p>
+                      {arquivoFoto && (
+                        <button
+                          type="button"
+                          onClick={() => handleSelecionarFoto(null)}
+                          className="text-xs text-stone-600 underline"
+                        >
+                          Remover arquivo selecionado
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <button
                   type="submit"
-                  className="bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm hover:bg-emerald-600"
+                  disabled={salvandoQuadra}
+                  className="bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm hover:bg-emerald-600 disabled:opacity-60"
                 >
-                  {editandoQuadraId ? 'Salvar alterações' : 'Cadastrar'}
+                  {salvandoQuadra
+                    ? 'Salvando...'
+                    : editandoQuadraId
+                      ? 'Salvar alterações'
+                      : 'Cadastrar'}
                 </button>
               </form>
             )}
@@ -388,23 +452,6 @@ export function AdminPage() {
                           >
                             {horariosQuadraId === quadra.id ? 'Fechar horários' : 'Dias e horários'}
                           </button>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              setQuadraSelecionadaId(quadra.id)
-                              setArquivoFoto(e.target.files?.[0] || null)
-                            }}
-                            className="text-xs max-w-full"
-                          />
-                          {quadraSelecionadaId === quadra.id && arquivoFoto && (
-                            <button
-                              onClick={() => handleEnviarFoto(quadra.id)}
-                              className="text-xs bg-emerald-700 text-white px-3 py-1 rounded hover:bg-emerald-600"
-                            >
-                              Enviar
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>

@@ -136,6 +136,14 @@ export async function uploadCourtPhoto(
 
   const { data: urlData } = supabase.storage.from('fotos-quadras').getPublicUrl(fileName)
 
+  if (principal) {
+    await supabase
+      .from('fotos_quadras')
+      .update({ principal: false })
+      .eq('quadra_id', quadraId)
+      .eq('principal', true)
+  }
+
   const { data, error } = await supabase
     .from('fotos_quadras')
     .insert({ quadra_id: quadraId, url: urlData.publicUrl, principal })
