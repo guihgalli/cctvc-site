@@ -5,6 +5,9 @@
 -- Execute no SQL Editor do Supabase após a 003_security_hardening.sql.
 -- =============================================================================
 
+-- No Supabase, pgcrypto fica no schema `extensions`.
+-- Funções SECURITY DEFINER que usam crypt/gen_salt precisam de
+-- SET search_path = public, extensions
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- -----------------------------------------------------------------------------
@@ -33,7 +36,7 @@ CREATE OR REPLACE FUNCTION fazer_login(p_codigo text, p_senha text)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_user usuarios%ROWTYPE;
@@ -111,7 +114,7 @@ CREATE OR REPLACE FUNCTION alterar_senha(
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_user usuarios%ROWTYPE;
@@ -175,7 +178,7 @@ CREATE OR REPLACE FUNCTION admin_criar_usuario(
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_row usuarios%ROWTYPE;
