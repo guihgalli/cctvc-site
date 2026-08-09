@@ -4,7 +4,8 @@ Site institucional com sistema de reserva de quadras esportivas.
 
 ## Funcionalidades
 
-- **Home simples** com link para reservas e Instagram
+- **Home** com carrossel de fotos ao vivo do Instagram `@cctvelhacentral`
+- Link para reservas e perfil do Instagram
 - **Login** com usuário (6 dígitos) e senha (3 primeiros dígitos do CPF)
 - **Reservas (usuário)**: visualizar quadras, escolher data/horário conforme disponibilidade da quadra, cancelar reservas
 - **Painel Admin**: cadastrar quadras, configurar dias/horários disponíveis, upload de fotos, ver agenda, gerenciar usuários
@@ -40,6 +41,11 @@ Copie `.env.example` para `.env` e preencha:
 ```env
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
+
+# Opcional: Instagram Graph API (mais estável em produção)
+INSTAGRAM_USERNAME=cctvelhacentral
+# INSTAGRAM_ACCESS_TOKEN=
+# INSTAGRAM_USER_ID=
 ```
 
 ### 4. Rodar localmente
@@ -49,6 +55,25 @@ npm run dev
 ```
 
 Acesse `http://localhost:5173`
+
+O endpoint `/api/instagram` já funciona no Vite (middleware local) e no Netlify (função serverless).
+
+Fluxo do feed ao vivo:
+1. **Instagram Graph API** (se `INSTAGRAM_ACCESS_TOKEN` estiver configurado) — recomendado em produção
+2. **Feed público** do `@cctvelhacentral` — usado automaticamente sem token
+3. **Fallback estático** (`public/instagram/`) — se as APIs falharem
+
+O resultado fica em cache por 15 minutos, então posts novos aparecem sozinhos após esse intervalo.
+
+#### Instagram Graph API (recomendado no Netlify)
+
+1. Conta Instagram Business/Creator vinculada a uma Página do Facebook
+2. App no [Meta for Developers](https://developers.facebook.com/) com Instagram Graph API
+3. Gere um token de longa duração e obtenha o `INSTAGRAM_USER_ID`
+4. No Netlify (**Site settings → Environment variables**), configure:
+   - `INSTAGRAM_ACCESS_TOKEN`
+   - `INSTAGRAM_USER_ID`
+   - `INSTAGRAM_USERNAME=cctvelhacentral`
 
 ### Login de teste (após executar o schema)
 
@@ -68,6 +93,7 @@ Acesse `http://localhost:5173`
 3. Configure as variáveis de ambiente em **Site settings > Environment variables**:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+   - `INSTAGRAM_ACCESS_TOKEN` / `INSTAGRAM_USER_ID` (recomendado para o carrossel ao vivo)
 4. Deploy automático — o `netlify.toml` já está configurado
 
 ### Opção B: Deploy manual
