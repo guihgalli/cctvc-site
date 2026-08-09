@@ -5,6 +5,8 @@ export interface Usuario {
   codigo_usuario: string
   cpf: string
   nome: string
+  email: string | null
+  telefone: string | null
   perfil: PerfilUsuario
   ativo: boolean
   criado_em: string

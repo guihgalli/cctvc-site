@@ -17,8 +17,13 @@ import {
   formatDate,
   formatTime,
   formatCpf,
+  formatPhone,
   cleanCpf,
+  cleanPhone,
   cpfToPassword,
+  isValidEmail,
+  isValidPhone,
+  maskPhoneInput,
   getErrorMessage,
   prepareCourtPhoto,
 } from '../lib/utils'
@@ -50,6 +55,8 @@ export function AdminPage() {
   const [codigoUsuario, setCodigoUsuario] = useState('')
   const [cpfUsuario, setCpfUsuario] = useState('')
   const [nomeUsuario, setNomeUsuario] = useState('')
+  const [emailUsuario, setEmailUsuario] = useState('')
+  const [telefoneUsuario, setTelefoneUsuario] = useState('')
   const [perfilUsuario, setPerfilUsuario] = useState<'usuario' | 'admin'>('usuario')
 
   const [filtroQuadra, setFiltroQuadra] = useState('')
@@ -222,8 +229,18 @@ export function AdminPage() {
   async function handleCriarUsuario(e: FormEvent) {
     e.preventDefault()
     const cpf = cleanCpf(cpfUsuario)
+    const telefone = cleanPhone(telefoneUsuario)
+    const email = emailUsuario.trim().toLowerCase()
     if (cpf.length !== 11) {
       setMessage({ type: 'error', text: 'CPF deve ter 11 dígitos.' })
+      return
+    }
+    if (!isValidEmail(email)) {
+      setMessage({ type: 'error', text: 'Informe um e-mail válido.' })
+      return
+    }
+    if (!isValidPhone(telefone)) {
+      setMessage({ type: 'error', text: 'Telefone deve ter 10 ou 11 dígitos (com DDD).' })
       return
     }
     try {
@@ -231,6 +248,8 @@ export function AdminPage() {
         codigo_usuario: codigoUsuario,
         cpf,
         nome: nomeUsuario,
+        email,
+        telefone,
         perfil: perfilUsuario,
       })
       setMessage({
@@ -240,6 +259,8 @@ export function AdminPage() {
       setCodigoUsuario('')
       setCpfUsuario('')
       setNomeUsuario('')
+      setEmailUsuario('')
+      setTelefoneUsuario('')
       setPerfilUsuario('usuario')
       setMostrarFormUsuario(false)
       carregarDados()
@@ -597,6 +618,28 @@ export function AdminPage() {
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium mb-1">E-mail *</label>
+                    <input
+                      type="email"
+                      value={emailUsuario}
+                      onChange={(e) => setEmailUsuario(e.target.value)}
+                      required
+                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Telefone *</label>
+                    <input
+                      type="tel"
+                      value={telefoneUsuario}
+                      onChange={(e) => setTelefoneUsuario(maskPhoneInput(e.target.value))}
+                      required
+                      inputMode="numeric"
+                      placeholder="(47) 99999-9999"
+                      className="w-full border rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium mb-1">Perfil</label>
                     <select
                       value={perfilUsuario}
@@ -627,6 +670,8 @@ export function AdminPage() {
                   <tr>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Código</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Nome</th>
+                    <th className="text-left px-4 py-3 font-medium text-stone-600">E-mail</th>
+                    <th className="text-left px-4 py-3 font-medium text-stone-600">Telefone</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">CPF</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Perfil</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Status</th>
@@ -637,6 +682,10 @@ export function AdminPage() {
                     <tr key={u.id} className="border-b last:border-0 hover:bg-stone-50">
                       <td className="px-4 py-3 font-mono">{u.codigo_usuario}</td>
                       <td className="px-4 py-3">{u.nome}</td>
+                      <td className="px-4 py-3 text-stone-500">{u.email || '—'}</td>
+                      <td className="px-4 py-3 font-mono text-stone-500">
+                        {u.telefone ? formatPhone(u.telefone) : '—'}
+                      </td>
                       <td className="px-4 py-3 font-mono text-stone-500">{formatCpf(u.cpf)}</td>
                       <td className="px-4 py-3">
                         <span
