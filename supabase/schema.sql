@@ -111,8 +111,10 @@ CREATE UNIQUE INDEX idx_reserva_sem_conflito
 
 -- -----------------------------------------------------------------------------
 -- Segurança em nível de linha (RLS)
--- Habilitado com políticas permissivas para a chave anon do app.
--- Em produção, considere restringir via Edge Functions com service role.
+-- Sem políticas permissivas: acesso a dados sensíveis só via RPCs com sessão.
+-- OBRIGATÓRIO após este script: execute também
+--   supabase/migrations/003_security_hardening.sql
+-- (e 002_storage_fotos_quadra.sql se ainda não rodou; 003 recria as policies)
 -- -----------------------------------------------------------------------------
 ALTER TABLE usuarios         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quadras          ENABLE ROW LEVEL SECURITY;
@@ -120,17 +122,8 @@ ALTER TABLE fotos_quadras    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE horarios_quadra  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reservas         ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Acesso total em usuarios"         ON usuarios         FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Acesso total em quadras"          ON quadras          FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Acesso total em fotos_quadras"    ON fotos_quadras    FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Acesso total em horarios_quadra"  ON horarios_quadra  FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Acesso total em reservas"         ON reservas         FOR ALL USING (true) WITH CHECK (true);
-
 -- -----------------------------------------------------------------------------
--- Storage (criar manualmente no Supabase Storage)
--- Bucket público: "fotos-quadra"
--- INSERT INTO storage.buckets (id, name, public) VALUES ('fotos-quadra', 'fotos-quadra', true);
--- Políticas em storage.objects para SELECT/INSERT/UPDATE/DELETE no bucket.
+-- Storage: bucket público de leitura; upload controlado na migration 003
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------

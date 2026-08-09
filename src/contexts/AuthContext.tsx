@@ -1,9 +1,27 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { cpfToPassword } from '../lib/utils'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react'
+import { isSupabaseConfigured } from '../lib/supabase'
+import {
+  fetchSession,
+  loginWithCredentials,
+  logoutSession,
+  setSessionToken,
+} from '../services/api'
 import type { AuthUser } from '../types'
 
 const STORAGE_KEY = 'cctvc_auth'
+const TOKEN_KEY = 'cctvc_session'
+
+interface StoredAuth {
+  token: string
+  user: AuthUser
+}
 
 interface AuthContextType {
   user: AuthUser | null
@@ -15,26 +33,78 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-function loadStoredUser(): AuthUser | null {
+function loadStoredAuth(): StoredAuth | null {
   try {
+    const token = localStorage.getItem(TOKEN_KEY)
     const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : null
+    if (!token || !stored) return null
+    const user = JSON.parse(stored) as AuthUser
+    if (!user?.id || !user?.perfil) return null
+    return { token, user }
   } catch {
     return null
   }
 }
 
+function persistAuth(auth: StoredAuth | null) {
+  if (auth) {
+    localStorage.setItem(TOKEN_KEY, auth.token)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(auth.user))
+    setSessionToken(auth.token)
+  } else {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(STORAGE_KEY)
+    setSessionToken(null)
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(loadStoredUser)
-  const [loading, setLoading] = useState(false)
+  const initial = loadStoredAuth()
+  const [user, setUser] = useState<AuthUser | null>(initial?.user ?? null)
+  const [loading, setLoading] = useState(Boolean(initial?.token))
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
+    if (initial?.token) {
+      setSessionToken(initial.token)
     }
-  }, [user])
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function validateSession() {
+      const stored = loadStoredAuth()
+      if (!stored) {
+        setLoading(false)
+        return
+      }
+
+      if (!isSupabaseConfigured) {
+        persistAuth(null)
+        setUser(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const session = await fetchSession(stored.token)
+        if (cancelled) return
+        persistAuth({ token: session.token, user: session.user })
+        setUser(session.user)
+      } catch {
+        if (cancelled) return
+        persistAuth(null)
+        setUser(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void validateSession()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const login = useCallback(async (userCode: string, password: string) => {
     if (!isSupabaseConfigured) {
@@ -43,42 +113,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('id, codigo_usuario, cpf, nome, perfil, ativo')
-        .eq('codigo_usuario', userCode)
-        .single()
-
-      if (error || !data) {
-        return { success: false, error: 'Usuário ou senha inválidos' }
-      }
-
-      if (!data.ativo) {
-        return { success: false, error: 'Usuário desativado. Contate o administrador.' }
-      }
-
-      const expectedPassword = cpfToPassword(data.cpf)
-      if (password !== expectedPassword) {
-        return { success: false, error: 'Usuário ou senha inválidos' }
-      }
-
-      const authUser: AuthUser = {
-        id: data.id,
-        codigo_usuario: data.codigo_usuario,
-        nome: data.nome,
-        perfil: data.perfil,
-      }
-
-      setUser(authUser)
+      const result = await loginWithCredentials(userCode, password)
+      persistAuth({ token: result.token, user: result.user })
+      setUser(result.user)
       return { success: true }
-    } catch {
-      return { success: false, error: 'Erro ao conectar. Tente novamente.' }
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Usuário ou senha inválidos'
+      return { success: false, error: message }
     } finally {
       setLoading(false)
     }
   }, [])
 
   const logout = useCallback(() => {
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (token) {
+      void logoutSession(token)
+    }
+    persistAuth(null)
     setUser(null)
   }, [])
 
