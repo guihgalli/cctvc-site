@@ -30,8 +30,11 @@ npm install
 1. Crie uma conta gratuita em [supabase.com](https://supabase.com)
 2. Crie um novo projeto
 3. No **SQL Editor**, execute o arquivo `supabase/schema.sql`
-4. Em **Storage**, crie um bucket público chamado `fotos-quadra` e permita leitura/upload anônimo (policies em `storage.objects`)
-5. Em **Settings > API**, copie a URL e a `anon key`
+4. Em seguida execute a migration de segurança: `supabase/migrations/003_security_hardening.sql` (obrigatória — sessões, RLS e RPCs)
+5. Se o banco já existia antes dos horários/storage, execute também `001_horarios_quadra.sql` e `002_storage_fotos_quadra.sql` antes da `003`
+6. Em **Settings > API**, copie a URL e a `anon key`
+
+> A chave `anon` continua no frontend, mas **CPF, usuários, reservas e escritas** só são acessíveis via RPCs com sessão válida. Upload de fotos exige ticket emitido para admin autenticado.
 
 ### 3. Variáveis de ambiente
 
@@ -100,15 +103,24 @@ src/
 └── types/          # Tipos TypeScript
 supabase/
 ├── schema.sql                 # Schema completo do banco
-└── migrations/                # Scripts incrementais (ex.: horários por quadra)
+└── migrations/                # Scripts incrementais (horários, storage, segurança)
 ```
 
 ### Banco já existente
 
-Se o projeto Supabase já foi criado antes dos horários por quadra, execute também:
+Execute na ordem, conforme o que ainda faltava:
 
-`supabase/migrations/001_horarios_quadra.sql`
-```
+1. `supabase/migrations/001_horarios_quadra.sql` (se não tiver horários por quadra)
+2. `supabase/migrations/002_storage_fotos_quadra.sql` (opcional; a 003 recria as policies de storage)
+3. `supabase/migrations/003_security_hardening.sql` (**obrigatória** para o app atual)
+
+### Segurança (resumo)
+
+- Login do sócio permanece **código (6 dígitos) + senha (3 primeiros dígitos do CPF)**
+- A senha é validada **no servidor** (RPC `fazer_login`); o CPF não é enviado ao browser no login
+- Sessão com token opaco (`sessoes`), validada em todas as mutações
+- RLS sem acesso direto a `usuarios` / `reservas`; painel admin só via RPCs com perfil admin
+- Rate limit básico de tentativas de login por código
 
 ## Cadastro de Usuários
 

@@ -1,6 +1,7 @@
 -- =============================================================================
 -- Migration: políticas de storage para o bucket "fotos-quadra"
--- Execute se o upload de fotos falhar com erro de RLS / Unauthorized
+-- NOTA: a migration 003_security_hardening.sql substitui o upload público
+-- por upload com ticket de admin. Prefira executar a 003 em produção.
 -- =============================================================================
 
 -- Garante o bucket público (idempotente)
