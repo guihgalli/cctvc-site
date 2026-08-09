@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { InstagramCarousel } from '../components/InstagramCarousel'
 import { Layout } from '../components/Layout'
 import { Logo } from '../components/Logo'
 
@@ -274,6 +275,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <InstagramCarousel />
     </Layout>
   )
 }
