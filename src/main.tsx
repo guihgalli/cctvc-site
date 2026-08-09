@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { ReservationsPage } from './pages/ReservationsPage'
+import { AccountPage } from './pages/AccountPage'
 import { AdminPage } from './pages/AdminPage'
 import './index.css'
 
@@ -21,6 +22,14 @@ createRoot(document.getElementById('root')!).render(
             element={
               <ProtectedRoute>
                 <ReservationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/conta"
+            element={
+              <ProtectedRoute>
+                <AccountPage />
               </ProtectedRoute>
             }
           />

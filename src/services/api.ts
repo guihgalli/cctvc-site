@@ -74,6 +74,23 @@ export async function logoutSession(token: string): Promise<void> {
   }
 }
 
+/** Usuário logado altera a própria senha (exige sessão válida). */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const token = requireToken()
+  await rpc(
+    'alterar_senha',
+    {
+      p_token: token,
+      p_senha_atual: currentPassword,
+      p_senha_nova: newPassword,
+    },
+    'Erro ao alterar senha.'
+  )
+}
+
 /** Catálogo público: apenas quadras ativas (RLS) */
 export async function fetchCourts(): Promise<Quadra[]> {
   const { data, error } = await supabase

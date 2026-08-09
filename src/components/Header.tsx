@@ -33,6 +33,12 @@ export function Header() {
               >
                 Reservas
               </Link>
+              <Link
+                to="/conta"
+                className="text-sm text-emerald-200 hover:text-white transition-colors"
+              >
+                Conta
+              </Link>
               {isAdmin && (
                 <Link
                   to="/admin"
