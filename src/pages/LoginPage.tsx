@@ -18,10 +18,10 @@ export function LoginPage() {
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/reservas'
 
   useEffect(() => {
-    if (user) {
+    if (!loading && user) {
       navigate(user.perfil === 'admin' ? '/admin' : '/reservas', { replace: true })
     }
-  }, [user, navigate])
+  }, [user, loading, navigate])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
