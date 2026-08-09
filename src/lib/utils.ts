@@ -40,6 +40,45 @@ export function isValidCpfLength(cpf: string): boolean {
   return cleanCpf(cpf).length === 11
 }
 
+/** Remove caracteres não numéricos do telefone */
+export function cleanPhone(phone: string): string {
+  return phone.replace(/\D/g, '')
+}
+
+/** Valida telefone BR com DDD (10 ou 11 dígitos) */
+export function isValidPhone(phone: string): boolean {
+  const digits = cleanPhone(phone)
+  return digits.length === 10 || digits.length === 11
+}
+
+/** Formata telefone para exibição: (00) 00000-0000 ou (00) 0000-0000 */
+export function formatPhone(phone: string): string {
+  const cleaned = cleanPhone(phone)
+  if (cleaned.length === 11) {
+    return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  }
+  if (cleaned.length === 10) {
+    return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+  }
+  return phone
+}
+
+/** Máscara progressiva de telefone durante digitação */
+export function maskPhoneInput(value: string): string {
+  const cleaned = cleanPhone(value).slice(0, 11)
+  if (cleaned.length <= 2) return cleaned
+  if (cleaned.length <= 6) return cleaned.replace(/(\d{2})(\d+)/, '($1) $2')
+  if (cleaned.length <= 10) {
+    return cleaned.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
+  }
+  return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+}
+
+/** Valida formato básico de e-mail */
+export function isValidEmail(email: string): boolean {
+  return /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email.trim())
+}
+
 /** Número do WhatsApp da secretaria do clube (E.164 sem +) */
 export const CLUBE_WHATSAPP_NUMBER = '5547988080903'
 

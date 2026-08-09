@@ -15,6 +15,8 @@ CREATE TABLE usuarios (
   codigo_usuario VARCHAR(6) UNIQUE NOT NULL CHECK (codigo_usuario ~ '^\d{6}$'),
   cpf           VARCHAR(11) NOT NULL,
   nome          VARCHAR(255) NOT NULL,
+  email         VARCHAR(255),
+  telefone      VARCHAR(11),
   perfil        VARCHAR(10) NOT NULL DEFAULT 'usuario' CHECK (perfil IN ('usuario', 'admin')),
   ativo         BOOLEAN NOT NULL DEFAULT true,
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -23,6 +25,8 @@ CREATE TABLE usuarios (
 COMMENT ON TABLE usuarios IS 'Sócios e administradores cadastrados no clube';
 COMMENT ON COLUMN usuarios.codigo_usuario IS 'Matrícula do sócio — 6 dígitos numéricos';
 COMMENT ON COLUMN usuarios.cpf IS 'CPF completo (11 dígitos). Senha = 3 primeiros dígitos';
+COMMENT ON COLUMN usuarios.email IS 'E-mail de contato do sócio';
+COMMENT ON COLUMN usuarios.telefone IS 'Telefone com DDD (10 ou 11 dígitos)';
 COMMENT ON COLUMN usuarios.perfil IS 'usuario = sócio comum | admin = administrador';
 
 -- -----------------------------------------------------------------------------

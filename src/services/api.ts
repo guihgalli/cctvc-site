@@ -276,6 +276,8 @@ export async function createUser(usuario: {
   codigo_usuario: string
   cpf: string
   nome: string
+  email: string
+  telefone: string
   perfil?: 'usuario' | 'admin'
 }): Promise<Usuario> {
   const token = requireToken()
@@ -286,6 +288,8 @@ export async function createUser(usuario: {
       p_codigo: usuario.codigo_usuario,
       p_cpf: usuario.cpf,
       p_nome: usuario.nome,
+      p_email: usuario.email,
+      p_telefone: usuario.telefone,
       p_perfil: usuario.perfil || 'usuario',
     },
     'Erro ao cadastrar usuário.'
@@ -294,7 +298,14 @@ export async function createUser(usuario: {
 
 export async function updateUser(
   id: string,
-  updates: Partial<{ nome: string; cpf: string; ativo: boolean; perfil: 'usuario' | 'admin' }>
+  updates: Partial<{
+    nome: string
+    cpf: string
+    ativo: boolean
+    perfil: 'usuario' | 'admin'
+    email: string
+    telefone: string
+  }>
 ): Promise<Usuario> {
   const token = requireToken()
   return rpc<Usuario>(
@@ -306,6 +317,8 @@ export async function updateUser(
       p_cpf: updates.cpf ?? null,
       p_ativo: updates.ativo ?? null,
       p_perfil: updates.perfil ?? null,
+      p_email: updates.email ?? null,
+      p_telefone: updates.telefone ?? null,
     },
     'Erro ao atualizar usuário.'
   )
