@@ -120,28 +120,33 @@ export async function deleteCourt(id: string): Promise<void> {
   if (error) throw error
 }
 
+/** Bucket de storage criado no projeto (nome singular) */
+const COURT_PHOTOS_BUCKET = 'fotos-quadra'
+
 export async function uploadCourtPhoto(
   quadraId: string,
   file: File,
   principal = false
 ): Promise<FotoQuadra> {
-  const ext = file.name.split('.').pop()
+  const ext = file.name.split('.').pop() || 'jpg'
   const fileName = `${quadraId}/${Date.now()}.${ext}`
 
   const { error: uploadError } = await supabase.storage
-    .from('fotos-quadras')
+    .from(COURT_PHOTOS_BUCKET)
     .upload(fileName, file)
 
   if (uploadError) throw uploadError
 
-  const { data: urlData } = supabase.storage.from('fotos-quadras').getPublicUrl(fileName)
+  const { data: urlData } = supabase.storage.from(COURT_PHOTOS_BUCKET).getPublicUrl(fileName)
 
   if (principal) {
-    await supabase
+    const { error: demoteError } = await supabase
       .from('fotos_quadras')
       .update({ principal: false })
       .eq('quadra_id', quadraId)
       .eq('principal', true)
+
+    if (demoteError) throw demoteError
   }
 
   const { data, error } = await supabase

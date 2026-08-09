@@ -30,7 +30,7 @@ npm install
 1. Crie uma conta gratuita em [supabase.com](https://supabase.com)
 2. Crie um novo projeto
 3. No **SQL Editor**, execute o arquivo `supabase/schema.sql`
-4. Em **Storage**, crie um bucket público chamado `fotos-quadras`
+4. Em **Storage**, crie um bucket público chamado `fotos-quadra` e permita leitura/upload anônimo (policies em `storage.objects`)
 5. Em **Settings > API**, copie a URL e a `anon key`
 
 ### 3. Variáveis de ambiente

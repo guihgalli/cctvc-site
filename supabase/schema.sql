@@ -128,8 +128,9 @@ CREATE POLICY "Acesso total em reservas"         ON reservas         FOR ALL USI
 
 -- -----------------------------------------------------------------------------
 -- Storage (criar manualmente no Supabase Storage)
--- Bucket público: "fotos-quadras"
--- INSERT INTO storage.buckets (id, name, public) VALUES ('fotos-quadras', 'fotos-quadras', true);
+-- Bucket público: "fotos-quadra"
+-- INSERT INTO storage.buckets (id, name, public) VALUES ('fotos-quadra', 'fotos-quadra', true);
+-- Políticas em storage.objects para SELECT/INSERT/UPDATE/DELETE no bucket.
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------

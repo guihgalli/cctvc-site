@@ -142,12 +142,20 @@ export function AdminPage() {
       })
       limparFormQuadra()
       carregarDados()
-    } catch {
+    } catch (err) {
+      const detalhe =
+        err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : null
       setMessage({
         type: 'error',
-        text: editandoQuadraId
-          ? 'Erro ao atualizar quadra ou enviar foto.'
-          : 'Erro ao cadastrar quadra ou enviar foto.',
+        text: detalhe
+          ? `Erro ao salvar quadra: ${detalhe}`
+          : editandoQuadraId
+            ? 'Erro ao atualizar quadra ou enviar foto.'
+            : 'Erro ao cadastrar quadra ou enviar foto.',
       })
     } finally {
       setSalvandoQuadra(false)
