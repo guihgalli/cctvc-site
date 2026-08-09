@@ -1,5 +1,6 @@
 -- =============================================================================
 -- Contato do usuário: email e telefone
+-- Depende de 004_alterar_senha (senha_hash + RPCs admin sem vazar hash)
 -- =============================================================================
 
 ALTER TABLE usuarios
@@ -10,7 +11,7 @@ COMMENT ON COLUMN usuarios.email IS 'E-mail de contato do sócio';
 COMMENT ON COLUMN usuarios.telefone IS 'Telefone com DDD (10 ou 11 dígitos)';
 
 -- -----------------------------------------------------------------------------
--- Listagem admin: inclui email e telefone
+-- Listagem admin: inclui email e telefone (sem senha_hash)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION admin_listar_usuarios(p_token text)
 RETURNS json
@@ -35,7 +36,7 @@ END;
 $$;
 
 -- -----------------------------------------------------------------------------
--- Criação: passa a exigir email e telefone
+-- Criação: exige email e telefone; mantém senha_hash inicial do CPF
 -- -----------------------------------------------------------------------------
 DROP FUNCTION IF EXISTS admin_criar_usuario(text, text, text, text, text);
 
@@ -51,7 +52,7 @@ CREATE OR REPLACE FUNCTION admin_criar_usuario(
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_row usuarios%ROWTYPE;
@@ -84,11 +85,29 @@ BEGIN
     RAISE EXCEPTION 'Perfil inválido' USING ERRCODE = 'P0001';
   END IF;
 
-  INSERT INTO usuarios (codigo_usuario, cpf, nome, email, telefone, perfil)
-  VALUES (p_codigo, v_cpf, trim(p_nome), v_email, v_telefone, COALESCE(p_perfil, 'usuario'))
+  INSERT INTO usuarios (codigo_usuario, cpf, nome, email, telefone, perfil, senha_hash)
+  VALUES (
+    p_codigo,
+    v_cpf,
+    trim(p_nome),
+    v_email,
+    v_telefone,
+    COALESCE(p_perfil, 'usuario'),
+    crypt(left(v_cpf, 3), gen_salt('bf'))
+  )
   RETURNING * INTO v_row;
 
-  RETURN row_to_json(v_row);
+  RETURN json_build_object(
+    'id', v_row.id,
+    'codigo_usuario', v_row.codigo_usuario,
+    'cpf', v_row.cpf,
+    'nome', v_row.nome,
+    'email', v_row.email,
+    'telefone', v_row.telefone,
+    'perfil', v_row.perfil,
+    'ativo', v_row.ativo,
+    'criado_em', v_row.criado_em
+  );
 EXCEPTION
   WHEN unique_violation THEN
     RAISE EXCEPTION 'Código de usuário ou CPF já cadastrado.' USING ERRCODE = 'P0001';
@@ -96,7 +115,7 @@ END;
 $$;
 
 -- -----------------------------------------------------------------------------
--- Atualização: permite alterar email e telefone
+-- Atualização: permite alterar email e telefone (sem vazar senha_hash)
 -- -----------------------------------------------------------------------------
 DROP FUNCTION IF EXISTS admin_atualizar_usuario(text, uuid, text, text, boolean, text);
 
@@ -167,9 +186,24 @@ BEGIN
     DELETE FROM sessoes WHERE usuario_id = v_row.id;
   END IF;
 
-  RETURN row_to_json(v_row);
+  RETURN json_build_object(
+    'id', v_row.id,
+    'codigo_usuario', v_row.codigo_usuario,
+    'cpf', v_row.cpf,
+    'nome', v_row.nome,
+    'email', v_row.email,
+    'telefone', v_row.telefone,
+    'perfil', v_row.perfil,
+    'ativo', v_row.ativo,
+    'criado_em', v_row.criado_em
+  );
 END;
 $$;
 
+REVOKE ALL ON FUNCTION admin_criar_usuario(text, text, text, text, text, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION admin_atualizar_usuario(text, uuid, text, text, boolean, text, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION admin_listar_usuarios(text) FROM PUBLIC;
+
 GRANT EXECUTE ON FUNCTION admin_criar_usuario(text, text, text, text, text, text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_atualizar_usuario(text, uuid, text, text, boolean, text, text, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION admin_listar_usuarios(text) TO anon, authenticated;
