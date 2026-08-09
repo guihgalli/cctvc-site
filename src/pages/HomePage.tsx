@@ -1,7 +1,14 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { InstagramCarousel } from '../components/InstagramCarousel'
 import { Layout } from '../components/Layout'
 import { Logo } from '../components/Logo'
+import {
+  CLUBE_MAPS_EMBED_URL,
+  CLUBE_MAPS_EXTERNAL_URL,
+  WHATSAPP_ASSOCIACAO_TEXT,
+  buildWhatsAppUrl,
+} from '../lib/utils'
 
 const departamentos = [
   {
@@ -52,7 +59,38 @@ const eventos = [
   },
 ]
 
+const passosAssociacao = [
+  {
+    title: 'Fale com a secretaria',
+    description:
+      'Entre em contato pelo WhatsApp ou telefone e conte se o interesse é social, esportivo ou cultural.',
+  },
+  {
+    title: 'Conheça a sede',
+    description:
+      'Agende uma visita para conhecer a estrutura, os departamentos e o dia a dia da família CCTVC.',
+  },
+  {
+    title: 'Finalize sua associação',
+    description:
+      'A secretaria orienta sobre documentação, categorias e próximos passos para você se tornar sócio.',
+  },
+]
+
+const whatsappAssociacaoUrl = buildWhatsAppUrl(WHATSAPP_ASSOCIACAO_TEXT)
+
 export function HomePage() {
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '')
+    if (!hash) return
+
+    const timer = window.setTimeout(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+
+    return () => window.clearTimeout(timer)
+  }, [])
+
   return (
     <Layout>
       <section className="home-hero relative overflow-hidden text-white">
@@ -223,7 +261,53 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white">
+      <section id="associe-se" className="bg-white scroll-mt-20">
+        <div className="max-w-5xl mx-auto px-4 py-16 md:py-20">
+          <div className="max-w-2xl mb-10 md:mb-12">
+            <p className="font-display text-emerald-800 text-sm tracking-[0.22em] uppercase mb-3">
+              Associação
+            </p>
+            <h2 className="font-display text-3xl md:text-4xl text-emerald-950 mb-4 leading-tight">
+              Como se tornar sócio
+            </h2>
+            <p className="text-stone-600 text-lg leading-relaxed">
+              Quer fazer parte do CCTVC? Fale com a secretaria — o caminho é simples e começa com uma conversa.
+            </p>
+          </div>
+
+          <ol className="grid md:grid-cols-3 gap-8 md:gap-10 mb-10">
+            {passosAssociacao.map((passo, index) => (
+              <li key={passo.title} className="home-step">
+                <p className="font-display text-emerald-700 text-sm tracking-[0.18em] uppercase mb-3">
+                  Passo {index + 1}
+                </p>
+                <h3 className="font-display text-xl text-emerald-950 mb-2">{passo.title}</h3>
+                <p className="text-stone-600 text-sm leading-relaxed">{passo.description}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <a
+              href={whatsappAssociacaoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-600 transition-colors"
+            >
+              <WhatsAppIcon />
+              Quero ser sócio no WhatsApp
+            </a>
+            <a
+              href="tel:+5547988080903"
+              className="inline-flex items-center justify-center border border-emerald-800/20 text-emerald-900 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition-colors"
+            >
+              Ligar (47) 98808-0903
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="visite" className="bg-[#f3f7f4] scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 py-16 md:py-20">
           <div className="max-w-2xl mb-10">
             <p className="font-display text-emerald-800 text-sm tracking-[0.22em] uppercase mb-3">
@@ -233,44 +317,76 @@ export function HomePage() {
               Estamos de portas abertas na Velha Central
             </h2>
             <p className="text-stone-600 text-lg leading-relaxed">
-              Quer saber como se tornar sócio ou participar de um departamento? Fale conosco.
+              Venha conhecer a sede ou fale conosco pelo WhatsApp, telefone ou Instagram.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div>
-              <h3 className="font-display text-lg text-emerald-950 mb-2">Endereço</h3>
-              <p className="text-stone-600 leading-relaxed">
-                Rua dos Caçadores, 3680
-                <br />
-                Velha Central — Blumenau/SC
-                <br />
-                CEP 89040-003
-              </p>
-            </div>
-            <div>
-              <h3 className="font-display text-lg text-emerald-950 mb-2">Contato</h3>
-              <p className="text-stone-600 leading-relaxed">
-                <a href="tel:+5547988080903" className="hover:text-emerald-900 transition-colors">
-                  (47) 98808-0903
-                </a>
-                <br />
-                <a href="tel:+554733300997" className="hover:text-emerald-900 transition-colors">
-                  (47) 3330-0997
-                </a>
-              </p>
-            </div>
-            <div>
-              <h3 className="font-display text-lg text-emerald-950 mb-2">Redes</h3>
-              <p className="text-stone-600 leading-relaxed">
+
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-12 items-start">
+            <div className="space-y-8">
+              <div>
+                <h3 className="font-display text-lg text-emerald-950 mb-2">Endereço</h3>
+                <p className="text-stone-600 leading-relaxed">
+                  Rua dos Caçadores, 3680
+                  <br />
+                  Velha Central — Blumenau/SC
+                  <br />
+                  CEP 89040-003
+                </p>
                 <a
-                  href="https://www.instagram.com/cctvelhacentral/"
+                  href={CLUBE_MAPS_EXTERNAL_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-emerald-900 transition-colors"
+                  className="inline-block mt-3 text-emerald-800 font-medium underline underline-offset-4 hover:text-emerald-950"
                 >
-                  Instagram @cctvelhacentral
+                  Abrir no Google Maps
                 </a>
-              </p>
+              </div>
+              <div>
+                <h3 className="font-display text-lg text-emerald-950 mb-2">Contato</h3>
+                <p className="text-stone-600 leading-relaxed">
+                  <a
+                    href={whatsappAssociacaoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 hover:text-emerald-900 transition-colors"
+                  >
+                    <WhatsAppIcon className="text-emerald-700" />
+                    WhatsApp (47) 98808-0903
+                  </a>
+                  <br />
+                  <a href="tel:+5547988080903" className="hover:text-emerald-900 transition-colors">
+                    (47) 98808-0903
+                  </a>
+                  <br />
+                  <a href="tel:+554733300997" className="hover:text-emerald-900 transition-colors">
+                    (47) 3330-0997
+                  </a>
+                </p>
+              </div>
+              <div>
+                <h3 className="font-display text-lg text-emerald-950 mb-2">Redes</h3>
+                <p className="text-stone-600 leading-relaxed">
+                  <a
+                    href="https://www.instagram.com/cctvelhacentral/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-emerald-900 transition-colors"
+                  >
+                    Instagram @cctvelhacentral
+                  </a>
+                </p>
+              </div>
+            </div>
+
+            <div className="home-map">
+              <iframe
+                title="Mapa do CCTVC — Rua dos Caçadores, 3680, Blumenau"
+                src={CLUBE_MAPS_EMBED_URL}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+                className="home-map__frame"
+              />
             </div>
           </div>
         </div>
@@ -278,5 +394,20 @@ export function HomePage() {
 
       <InstagramCarousel />
     </Layout>
+  )
+}
+
+function WhatsAppIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M20.52 3.48A11.86 11.86 0 0 0 12.04 0C5.5 0 .2 5.3.2 11.84c0 2.09.55 4.12 1.6 5.92L0 24l6.4-1.68a11.8 11.8 0 0 0 5.64 1.44h.01c6.54 0 11.84-5.3 11.84-11.84 0-3.16-1.23-6.13-3.37-8.44ZM12.05 21.5h-.01a9.67 9.67 0 0 1-4.93-1.35l-.35-.21-3.8 1 1.01-3.7-.23-.38a9.66 9.66 0 0 1-1.48-5.16c0-5.34 4.35-9.68 9.7-9.68 2.59 0 5.02 1.01 6.85 2.84a9.62 9.62 0 0 1 2.84 6.85c0 5.34-4.35 9.79-9.6 9.79Zm5.3-7.25c-.29-.15-1.72-.85-1.99-.94-.27-.1-.46-.15-.66.14-.19.29-.76.94-.93 1.14-.17.19-.34.22-.63.07-.29-.15-1.23-.45-2.34-1.44-.86-.77-1.44-1.72-1.61-2.01-.17-.29-.02-.45.13-.6.13-.13.29-.34.43-.51.15-.17.19-.29.29-.48.1-.19.05-.36-.02-.51-.07-.15-.66-1.59-.9-2.18-.24-.57-.48-.49-.66-.5h-.56c-.19 0-.51.07-.78.36-.27.29-1.03 1-1.03 2.45s1.05 2.84 1.2 3.04c.15.19 2.07 3.16 5.01 4.43.7.3 1.25.48 1.68.62.7.22 1.34.19 1.85.12.56-.08 1.72-.7 1.96-1.38.24-.68.24-1.26.17-1.38-.07-.12-.26-.19-.55-.34Z" />
+    </svg>
   )
 }

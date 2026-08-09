@@ -43,12 +43,32 @@ export function isValidCpfLength(cpf: string): boolean {
 /** Número do WhatsApp da secretaria do clube (E.164 sem +) */
 export const CLUBE_WHATSAPP_NUMBER = '5547988080903'
 
+/** Monta URL do WhatsApp com mensagem opcional pré-preenchida */
+export function buildWhatsAppUrl(text?: string): string {
+  if (!text) return `https://wa.me/${CLUBE_WHATSAPP_NUMBER}`
+  return `https://wa.me/${CLUBE_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+}
+
 /** Monta URL do WhatsApp solicitando login para o CPF informado */
 export function buildWhatsAppLoginRequestUrl(cpf: string): string {
   const formatted = formatCpf(cpf)
   const text = `Olá! Gostaria de solicitar meu login de acesso às reservas do clube. CPF: ${formatted}`
-  return `https://wa.me/${CLUBE_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+  return buildWhatsAppUrl(text)
 }
+
+/** Mensagem padrão para interesse em associação */
+export const WHATSAPP_ASSOCIACAO_TEXT =
+  'Olá! Gostaria de saber como me tornar sócio do CCTVC — Clube de Caça e Tiro Velha Central.'
+
+/** Endereço do clube para mapas e links externos */
+export const CLUBE_ENDERECO =
+  'Rua dos Caçadores, 3680, Velha Central, Blumenau - SC, 89040-003'
+
+export const CLUBE_MAPS_QUERY = encodeURIComponent(CLUBE_ENDERECO)
+
+export const CLUBE_MAPS_EMBED_URL = `https://maps.google.com/maps?q=${CLUBE_MAPS_QUERY}&hl=pt-BR&z=16&output=embed`
+
+export const CLUBE_MAPS_EXTERNAL_URL = `https://www.google.com/maps/search/?api=1&query=${CLUBE_MAPS_QUERY}`
 
 /** Formata hora HH:MM */
 export function formatTime(time: string): string {

@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 import { Header } from './Header'
+import { WHATSAPP_ASSOCIACAO_TEXT, buildWhatsAppUrl } from '../lib/utils'
+
+const whatsappUrl = buildWhatsAppUrl(WHATSAPP_ASSOCIACAO_TEXT)
 
 interface LayoutProps {
   children: ReactNode
@@ -28,20 +31,32 @@ export function Layout({ children, showHeader = true }: LayoutProps) {
               <br />
               Velha Central — Blumenau/SC
               <br />
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                WhatsApp (47) 98808-0903
+              </a>
+              <br />
               <a href="tel:+5547988080903" className="hover:text-white transition-colors">
                 (47) 98808-0903
               </a>
             </p>
           </div>
           <div>
-            <p className="text-emerald-50 font-medium mb-2">Redes</p>
+            <p className="text-emerald-50 font-medium mb-2">Redes e associação</p>
             <a
               href="https://www.instagram.com/cctvelhacentral/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-white transition-colors"
+              className="block hover:text-white transition-colors"
             >
               Instagram @cctvelhacentral
+            </a>
+            <a href="/#associe-se" className="block mt-2 hover:text-white transition-colors">
+              Como se tornar sócio
             </a>
           </div>
         </div>
