@@ -74,6 +74,7 @@ export interface AuthUser {
   tipo_socio: TipoSocio
   telefone: string | null
   email: string | null
+  precisa_cadastro?: boolean
   precisa_telefone?: boolean
 }
 

@@ -82,13 +82,12 @@ export function LoginPage() {
             </button>
             <ul className="mt-3 space-y-1.5 text-stone-500 text-xs leading-relaxed">
               <li>
-                <strong className="text-stone-700">Sócios:</strong> use o Google com o{' '}
-                <strong>mesmo e-mail</strong> cadastrado no clube (vinculado ao CPF na secretaria).
-                Reserva confirmada na hora.
+                <strong className="text-stone-700">Sócios:</strong> no primeiro acesso informe CPF e
+                WhatsApp; se o e-mail Google for o mesmo cadastrado no clube, o vínculo é automático.
               </li>
               <li>
-                <strong className="text-stone-700">Visitantes:</strong> e-mail não cadastrado gera
-                conta automática; reserva fica pendente até confirmação do pagamento via WhatsApp.
+                <strong className="text-stone-700">Visitantes:</strong> informe CPF e WhatsApp no
+                primeiro acesso; reservas ficam pendentes até confirmação do pagamento.
               </li>
             </ul>
           </section>

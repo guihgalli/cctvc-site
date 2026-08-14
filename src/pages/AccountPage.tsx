@@ -2,13 +2,16 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { useAuth } from '../contexts/AuthContext'
-import { changePassword, completePhoneRegistration } from '../services/api'
+import { changePassword, completeGoogleRegistration, completePhoneRegistration } from '../services/api'
 import {
   getErrorMessage,
+  isValidCpfLength,
   isValidPassword,
   isValidPhone,
+  maskCpfInput,
   maskPhoneInput,
   cleanPhone,
+  cleanCpf,
   formatPhone,
 } from '../lib/utils'
 
@@ -17,7 +20,9 @@ export function AccountPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const cadastroTelefone = searchParams.get('cadastro') === 'telefone'
+  const cadastroGoogle = searchParams.get('cadastro') === 'google'
 
+  const [cpf, setCpf] = useState('')
   const [telefone, setTelefone] = useState('')
   const [senhaAtual, setSenhaAtual] = useState('')
   const [senhaNova, setSenhaNova] = useState('')
@@ -27,7 +32,51 @@ export function AccountPage() {
   const [saving, setSaving] = useState(false)
 
   const isVisitante = user?.tipo_socio === 'nao_socio'
+  const precisaCadastro = user?.precisa_cadastro
   const precisaTelefone = user?.precisa_telefone
+
+  async function handleCadastroGoogle(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+
+    const cpfLimpo = cleanCpf(cpf)
+    const telefoneLimpo = cleanPhone(telefone)
+
+    if (!isValidCpfLength(cpfLimpo)) {
+      setError('Informe um CPF válido com 11 dígitos.')
+      return
+    }
+
+    if (!isValidPhone(telefoneLimpo)) {
+      setError('Informe um WhatsApp válido com DDD (10 ou 11 dígitos).')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const result = await completeGoogleRegistration(cpfLimpo, telefoneLimpo)
+      updateSessionToken(result.token)
+      updateUser(result.user)
+      setSuccess(
+        result.user.tipo_socio === 'nao_socio'
+          ? 'Cadastro concluído! Você já pode solicitar reservas.'
+          : 'Conta vinculada ao seu cadastro de sócio!'
+      )
+      setCpf('')
+      setTelefone('')
+      if (cadastroGoogle) {
+        setTimeout(
+          () => navigate(result.user.perfil === 'admin' ? '/admin' : '/reservas', { replace: true }),
+          1200
+        )
+      }
+    } catch (err) {
+      setError(getErrorMessage(err, 'Erro ao concluir cadastro.'))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleTelefone(e: FormEvent) {
     e.preventDefault()
@@ -107,13 +156,69 @@ export function AccountPage() {
           )}
         </div>
 
-        {(precisaTelefone || cadastroTelefone) && (
+        {(precisaCadastro || cadastroGoogle) && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+            Informe seu CPF e WhatsApp para concluir o primeiro acesso. Se você já é sócio do clube,
+            vincularemos automaticamente ao seu cadastro.
+          </div>
+        )}
+
+        {(precisaTelefone || cadastroTelefone) && !precisaCadastro && !cadastroGoogle && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
             Cadastre seu WhatsApp para receber a confirmação das reservas e concluir solicitações.
           </div>
         )}
 
-        {(isVisitante || precisaTelefone) && (
+        {(precisaCadastro || cadastroGoogle) && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-emerald-900 mb-1">Concluir cadastro</h2>
+            <p className="text-stone-500 text-sm mb-4">
+              Usamos o CPF para identificar sócios já cadastrados e o WhatsApp para confirmações.
+            </p>
+            <form onSubmit={handleCadastroGoogle} className="space-y-4">
+              <div>
+                <label htmlFor="cpf-cadastro-google" className="block text-sm font-medium text-stone-700 mb-1">
+                  CPF
+                </label>
+                <input
+                  id="cpf-cadastro-google"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={cpf}
+                  onChange={(e) => setCpf(maskCpfInput(e.target.value))}
+                  placeholder="000.000.000-00"
+                  required
+                  className="w-full border border-stone-300 rounded-lg px-4 py-3 text-center text-lg font-mono tracking-wide focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="telefone-cadastro-google" className="block text-sm font-medium text-stone-700 mb-1">
+                  WhatsApp
+                </label>
+                <input
+                  id="telefone-cadastro-google"
+                  type="tel"
+                  value={telefone}
+                  onChange={(e) => setTelefone(maskPhoneInput(e.target.value))}
+                  placeholder="(47) 99999-9999"
+                  inputMode="numeric"
+                  required
+                  className="w-full border border-stone-300 rounded-lg px-4 py-3 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold py-3 rounded-lg"
+              >
+                {saving ? 'Salvando...' : 'Concluir cadastro'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {(isVisitante || precisaTelefone) && !precisaCadastro && !cadastroGoogle && (
           <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
             <h2 className="text-lg font-semibold text-emerald-900 mb-1">WhatsApp</h2>
             <p className="text-stone-500 text-sm mb-4">
@@ -146,7 +251,7 @@ export function AccountPage() {
           </div>
         )}
 
-        {!isVisitante && (
+        {!isVisitante && !precisaCadastro && (
           <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
             <h2 className="text-lg font-semibold text-emerald-900 mb-1">Alterar senha</h2>
             <p className="text-stone-500 text-sm mb-6">

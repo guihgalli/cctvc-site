@@ -109,10 +109,10 @@ CREATE INDEX idx_reservas_quadra_data ON reservas(quadra_id, data_reserva);
 CREATE INDEX idx_reservas_usuario ON reservas(usuario_id);
 CREATE INDEX idx_usuarios_codigo ON usuarios(codigo_usuario);
 
--- Impede reservas duplicadas no mesmo horário/quadra (apenas confirmadas)
+-- Impede reservas duplicadas no mesmo horário/quadra (pendente ou confirmada)
 CREATE UNIQUE INDEX idx_reserva_sem_conflito
   ON reservas(quadra_id, data_reserva, hora_inicio)
-  WHERE status = 'confirmada';
+  WHERE status IN ('pendente', 'confirmada');
 
 -- -----------------------------------------------------------------------------
 -- Segurança em nível de linha (RLS)

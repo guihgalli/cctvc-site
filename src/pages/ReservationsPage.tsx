@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { Layout } from '../components/Layout'
+import { ReservaStatusModal } from '../components/ReservaStatusModal'
 import { useAuth } from '../contexts/AuthContext'
 import {
   fetchCourts,
@@ -96,6 +97,8 @@ export function ReservationsPage() {
   const [loading, setLoading] = useState(true)
   const [reservando, setReservando] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [reservaModal, setReservaModal] = useState<Reserva | null>(null)
+  const [modalQuadraNome, setModalQuadraNome] = useState<string | undefined>()
   const [abaAtiva, setAbaAtiva] = useState<'reservar' | 'minhas'>('reservar')
   const dateStripRef = useRef<HTMLDivElement>(null)
 
@@ -215,13 +218,8 @@ export function ReservationsPage() {
         hora_inicio: horaInicio,
         hora_fim: horaFim,
       })
-      setMessage({
-        type: 'success',
-        text:
-          reserva.status === 'pendente'
-            ? 'Solicitação enviada! Aguardando confirmação do pagamento. Você será avisado no WhatsApp.'
-            : 'Reserva confirmada com sucesso!',
-      })
+      setReservaModal(reserva)
+      setModalQuadraNome(quadraSelecionada.nome)
       await carregarReservas()
       await carregarMinhasReservas()
     } catch (err) {
@@ -238,12 +236,24 @@ export function ReservationsPage() {
     if (!confirm('Deseja cancelar esta reserva?')) return
     try {
       await cancelBooking(reservaId)
+      setReservaModal(null)
+      setModalQuadraNome(undefined)
       setMessage({ type: 'success', text: 'Reserva cancelada.' })
       await carregarMinhasReservas()
       if (quadraSelecionada && dataSelecionada) await carregarReservas()
     } catch {
       setMessage({ type: 'error', text: 'Erro ao cancelar reserva.' })
     }
+  }
+
+  function abrirModalReserva(reserva: Reserva, quadraNome?: string) {
+    setReservaModal(reserva)
+    setModalQuadraNome(quadraNome ?? reserva.quadras?.nome)
+  }
+
+  function fecharModalReserva() {
+    setReservaModal(null)
+    setModalQuadraNome(undefined)
   }
 
   const fotoPrincipal = quadraSelecionada?.fotos_quadras?.find((f) => f.principal)
@@ -447,15 +457,42 @@ export function ReservationsPage() {
 
                             {reserva ? (
                               <div
+                                role={minha ? 'button' : undefined}
+                                tabIndex={minha ? 0 : undefined}
+                                onClick={minha ? () => abrirModalReserva(reserva, quadraSelecionada?.nome) : undefined}
+                                onKeyDown={
+                                  minha
+                                    ? (e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault()
+                                          abrirModalReserva(reserva, quadraSelecionada?.nome)
+                                        }
+                                      }
+                                    : undefined
+                                }
                                 className={`flex-1 flex items-center justify-between gap-3 rounded-lg border px-4 py-2.5 ${
                                   minha
-                                    ? 'border-emerald-300 bg-emerald-50'
+                                    ? reserva.status === 'pendente'
+                                      ? 'border-amber-300 bg-amber-50 cursor-pointer hover:bg-amber-100/70'
+                                      : 'border-emerald-300 bg-emerald-50 cursor-pointer hover:bg-emerald-100/70'
                                     : 'border-stone-200 bg-stone-50'
                                 }`}
                               >
                                 <div>
-                                  <p className={`font-semibold text-sm ${minha ? 'text-emerald-800' : 'text-stone-500'}`}>
-                                    {minha ? 'Sua reserva' : 'Ocupado'}
+                                  <p
+                                    className={`font-semibold text-sm ${
+                                      minha
+                                        ? reserva.status === 'pendente'
+                                          ? 'text-amber-800'
+                                          : 'text-emerald-800'
+                                        : 'text-stone-500'
+                                    }`}
+                                  >
+                                    {minha
+                                      ? reserva.status === 'pendente'
+                                        ? 'Sua reserva (pendente)'
+                                        : 'Sua reserva'
+                                      : 'Ocupado'}
                                   </p>
                                   <p className="text-xs text-stone-400 flex items-center gap-1 mt-0.5">
                                     <LockIcon /> {slot.start} – {slot.end}
@@ -463,7 +500,10 @@ export function ReservationsPage() {
                                 </div>
                                 {minha && (
                                   <button
-                                    onClick={() => handleCancelar(reserva.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleCancelar(reserva.id)
+                                    }}
                                     className="text-stone-400 hover:text-red-600 transition-colors p-1"
                                     aria-label="Cancelar reserva"
                                   >
@@ -505,7 +545,11 @@ export function ReservationsPage() {
                   key={reserva.id}
                   className="bg-white rounded-xl p-4 border border-stone-200 flex items-center justify-between gap-4"
                 >
-                  <div>
+                  <button
+                    type="button"
+                    onClick={() => abrirModalReserva(reserva)}
+                    className="flex-1 text-left hover:opacity-80 transition-opacity"
+                  >
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-semibold text-emerald-900">{reserva.quadras?.nome}</p>
                       <StatusBadge status={reserva.status} />
@@ -514,9 +558,10 @@ export function ReservationsPage() {
                       {formatDate(reserva.data_reserva)} · {formatTime(reserva.hora_inicio)} –{' '}
                       {formatTime(reserva.hora_fim)}
                     </p>
-                  </div>
+                  </button>
                   {(reserva.status === 'confirmada' || reserva.status === 'pendente') && (
                     <button
+                      type="button"
                       onClick={() => handleCancelar(reserva.id)}
                       className="text-red-600 hover:text-red-800 text-sm font-medium shrink-0"
                     >
@@ -529,6 +574,13 @@ export function ReservationsPage() {
           </div>
         )}
       </div>
+
+      <ReservaStatusModal
+        reserva={reservaModal}
+        quadraNome={modalQuadraNome}
+        onClose={fecharModalReserva}
+        onCancel={handleCancelar}
+      />
     </Layout>
   )
 }

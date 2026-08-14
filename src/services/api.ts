@@ -92,6 +92,22 @@ export async function completePhoneRegistration(telefone: string): Promise<AuthU
   return result.user
 }
 
+export async function completeGoogleRegistration(
+  cpf: string,
+  telefone: string
+): Promise<LoginResult> {
+  const token = requireToken()
+  return rpc<LoginResult>(
+    'completar_cadastro_google',
+    {
+      p_token: token,
+      p_cpf: cpf,
+      p_telefone: telefone,
+    },
+    'Erro ao concluir cadastro.'
+  )
+}
+
 export async function fetchSession(token: string): Promise<LoginResult> {
   return rpc<LoginResult>('obter_sessao', { p_token: token }, 'Sessão inválida ou expirada')
 }

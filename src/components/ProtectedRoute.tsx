@@ -27,6 +27,10 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
     return <Navigate to="/reservas" replace />
   }
 
+  if (user.precisa_cadastro && location.pathname !== '/conta') {
+    return <Navigate to="/conta?cadastro=google" replace />
+  }
+
   if (user.precisa_telefone && location.pathname !== '/conta') {
     return <Navigate to="/conta?cadastro=telefone" replace />
   }

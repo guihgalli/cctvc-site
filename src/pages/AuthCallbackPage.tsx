@@ -32,6 +32,11 @@ export function AuthCallbackPage() {
     if (loading || error) return
     if (!user) return
 
+    if (user.precisa_cadastro) {
+      navigate('/conta?cadastro=google', { replace: true })
+      return
+    }
+
     if (user.precisa_telefone) {
       navigate('/conta?cadastro=telefone', { replace: true })
       return
