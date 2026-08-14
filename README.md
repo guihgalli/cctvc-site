@@ -39,9 +39,10 @@ npm install
 8. Execute `supabase/migrations/007_socio_google_vinculo.sql` (sócio entra com Google se e-mail/CPF cadastrados)
 9. Execute `supabase/migrations/008_reserva_pendente_bloqueia_horario.sql` (pendente também bloqueia o horário)
 10. Execute `supabase/migrations/009_google_cadastro_cpf_vinculo.sql` (primeiro Google pede CPF/telefone e vincula sócio)
-11. Se o banco já existia antes dos horários/storage, execute também `001` e `002` antes da `003`
-12. Em **Settings > API**, copie a URL e a `anon key`
-13. Em **Authentication → Providers → Google**, habilite e configure redirect URLs:
+11. Execute `supabase/migrations/010_admin_excluir_usuario.sql` (admin pode excluir usuário)
+12. Se o banco já existia antes dos horários/storage, execute também `001` e `002` antes da `003`
+13. Em **Settings > API**, copie a URL e a `anon key`
+14. Em **Authentication → Providers → Google**, habilite e configure redirect URLs:
     - `http://localhost:5173/auth/callback`
     - `https://seu-dominio.cloudflarepages.dev/auth/callback` (ou domínio customizado)
 

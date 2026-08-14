@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { Layout } from '../components/Layout'
+import { useAuth } from '../contexts/AuthContext'
 import {
   fetchAllCourts,
   createCourt,
@@ -11,6 +12,7 @@ import {
   fetchUsers,
   createUser,
   updateUser,
+  deleteUser,
   approveBooking,
   rejectBooking,
 } from '../services/api'
@@ -35,6 +37,7 @@ import type { CourtScheduleInput, Quadra, Reserva, Usuario } from '../types'
 type AbaAdmin = 'quadras' | 'agenda' | 'usuarios'
 
 export function AdminPage() {
+  const { user: adminUser } = useAuth()
   const [aba, setAba] = useState<AbaAdmin>('quadras')
   const [quadras, setQuadras] = useState<Quadra[]>([])
   const [reservas, setReservas] = useState<Reserva[]>([])
@@ -286,6 +289,33 @@ export function AdminPage() {
       carregarDados()
     } catch {
       setMessage({ type: 'error', text: 'Erro ao atualizar usuário.' })
+    }
+  }
+
+  async function handleExcluirUsuario(usuario: Usuario) {
+    if (usuario.id === adminUser?.id) {
+      setMessage({ type: 'error', text: 'Você não pode excluir sua própria conta.' })
+      return
+    }
+
+    const tipo = usuario.tipo_socio === 'socio' ? 'sócio' : 'visitante'
+    if (
+      !confirm(
+        `Excluir permanentemente ${usuario.nome} (${tipo})?\n\nAs reservas deste usuário também serão removidas.`
+      )
+    ) {
+      return
+    }
+
+    try {
+      await deleteUser(usuario.id)
+      setMessage({ type: 'success', text: 'Usuário excluído.' })
+      carregarDados()
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Erro ao excluir usuário.',
+      })
     }
   }
 
@@ -769,17 +799,19 @@ export function AdminPage() {
               </form>
             )}
 
-            <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-white rounded-xl border border-stone-200 overflow-x-auto">
+              <table className="w-full text-sm min-w-[960px]">
                 <thead className="bg-stone-50 border-b">
                   <tr>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Código</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Nome</th>
+                    <th className="text-left px-4 py-3 font-medium text-stone-600">Tipo</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">E-mail</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Telefone</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">CPF</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Perfil</th>
                     <th className="text-left px-4 py-3 font-medium text-stone-600">Status</th>
+                    <th className="text-left px-4 py-3 font-medium text-stone-600">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -787,6 +819,17 @@ export function AdminPage() {
                     <tr key={u.id} className="border-b last:border-0 hover:bg-stone-50">
                       <td className="px-4 py-3 font-mono">{u.codigo_usuario ?? '—'}</td>
                       <td className="px-4 py-3">{u.nome}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded font-medium ${
+                            u.tipo_socio === 'socio'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {u.tipo_socio === 'socio' ? 'Sócio' : 'Visitante'}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-stone-500">{u.email || '—'}</td>
                       <td className="px-4 py-3 font-mono text-stone-500">
                         {u.telefone ? formatPhone(u.telefone) : '—'}
@@ -805,6 +848,7 @@ export function AdminPage() {
                       </td>
                       <td className="px-4 py-3">
                         <button
+                          type="button"
                           onClick={() => handleAlternarUsuario(u)}
                           className={`text-xs px-2 py-1 rounded ${
                             u.ativo
@@ -813,6 +857,21 @@ export function AdminPage() {
                           }`}
                         >
                           {u.ativo ? 'Ativo' : 'Inativo'}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => handleExcluirUsuario(u)}
+                          disabled={u.id === adminUser?.id}
+                          className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={
+                            u.id === adminUser?.id
+                              ? 'Você não pode excluir sua própria conta'
+                              : 'Excluir usuário permanentemente'
+                          }
+                        >
+                          Excluir
                         </button>
                       </td>
                     </tr>

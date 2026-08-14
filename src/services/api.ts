@@ -427,3 +427,8 @@ export async function updateUser(
     'Erro ao atualizar usuário.'
   )
 }
+
+export async function deleteUser(id: string): Promise<void> {
+  const token = requireToken()
+  await rpc('admin_excluir_usuario', { p_token: token, p_id: id }, 'Erro ao excluir usuário.')
+}
