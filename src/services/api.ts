@@ -173,6 +173,7 @@ export async function createCourt(quadra: {
   descricao?: string
   tipo_esporte?: string
   expiracao_pendente_minutos?: number
+  valor_visitante?: number | null
 }): Promise<Quadra> {
   const token = requireToken()
   return rpc<Quadra>(
@@ -183,6 +184,7 @@ export async function createCourt(quadra: {
       p_descricao: quadra.descricao ?? null,
       p_tipo_esporte: quadra.tipo_esporte ?? null,
       p_expiracao_pendente_minutos: quadra.expiracao_pendente_minutos ?? 60,
+      p_valor_visitante: quadra.valor_visitante ?? null,
     },
     'Erro ao cadastrar quadra.'
   )
@@ -213,6 +215,7 @@ export async function updateCourt(
     tipo_esporte: string
     ativo: boolean
     expiracao_pendente_minutos: number
+    valor_visitante: number | null
   }>
 ): Promise<Quadra> {
   const token = requireToken()
@@ -226,6 +229,7 @@ export async function updateCourt(
       p_tipo_esporte: updates.tipo_esporte ?? null,
       p_ativo: updates.ativo ?? null,
       p_expiracao_pendente_minutos: updates.expiracao_pendente_minutos ?? null,
+      p_valor_visitante: updates.valor_visitante ?? null,
     },
     'Erro ao atualizar quadra.'
   )

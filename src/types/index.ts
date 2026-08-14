@@ -35,6 +35,8 @@ export interface Quadra {
   ativo: boolean
   /** Minutos até cancelar reserva pendente e liberar o horário (padrão: 60) */
   expiracao_pendente_minutos?: number
+  /** Valor cobrado por reserva de visitante (não-sócio), em reais */
+  valor_visitante?: number | null
   criado_em: string
   fotos_quadras?: FotoQuadra[]
   horarios_quadra?: HorarioQuadra[]

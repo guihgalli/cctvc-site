@@ -42,6 +42,7 @@ CREATE TABLE quadras (
   ativo        BOOLEAN NOT NULL DEFAULT true,
   expiracao_pendente_minutos INTEGER NOT NULL DEFAULT 60
     CHECK (expiracao_pendente_minutos BETWEEN 5 AND 10080),
+  valor_visitante NUMERIC(10, 2) CHECK (valor_visitante IS NULL OR valor_visitante >= 0),
   criado_em    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -49,6 +50,8 @@ COMMENT ON TABLE quadras IS 'Quadras esportivas do clube';
 COMMENT ON COLUMN quadras.tipo_esporte IS 'Ex.: Tênis, Futsal, Vôlei, Poliesportiva';
 COMMENT ON COLUMN quadras.expiracao_pendente_minutos IS
   'Minutos até cancelar reserva pendente (não-sócio) e liberar o horário';
+COMMENT ON COLUMN quadras.valor_visitante IS
+  'Valor cobrado por reserva de visitante (não-sócio) nesta quadra, em reais';
 
 -- -----------------------------------------------------------------------------
 -- Tabela: fotos_quadras

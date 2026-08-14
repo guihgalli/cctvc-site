@@ -112,13 +112,18 @@ export function buildWhatsAppComprovanteReservaUrl(
   quadra: string,
   dataReserva: string,
   horaInicio: string,
-  horaFim: string
+  horaFim: string,
+  valorVisitante?: number | null
 ): string {
+  const valorLinha =
+    valorVisitante != null && valorVisitante >= 0
+      ? `\nValor: ${formatMoney(valorVisitante)}`
+      : ''
   const text = `Olá! Sou ${nome.split(' ')[0]} e acabei de solicitar uma reserva no CCTVC. Segue o comprovante de pagamento PIX.
 
-📍 ${quadra}
-📅 ${formatDate(dataReserva)}
-🕐 ${formatTime(horaInicio)} às ${formatTime(horaFim)}
+Local: ${quadra}
+Data: ${formatDate(dataReserva)}
+Horário: ${formatTime(horaInicio)} às ${formatTime(horaFim)}${valorLinha}
 
 Aguardo a confirmação da reserva. Obrigado!`
   return buildWhatsAppUrl(text)
@@ -133,11 +138,11 @@ export function buildWhatsAppReservaConfirmadaUrl(
   horaInicio: string,
   horaFim: string
 ): string {
-  const text = `Olá, ${nome.split(' ')[0]}! ✅ Sua reserva no CCTVC foi *confirmada* após a confirmação do pagamento.
+  const text = `Olá, ${nome.split(' ')[0]}! Sua reserva no CCTVC foi *confirmada* após a confirmação do pagamento.
 
-📍 ${quadra}
-📅 ${formatDate(dataReserva)}
-🕐 ${formatTime(horaInicio)} às ${formatTime(horaFim)}
+Local: ${quadra}
+Data: ${formatDate(dataReserva)}
+Horário: ${formatTime(horaInicio)} às ${formatTime(horaFim)}
 
 Aguardamos você no clube!`
   return buildWhatsAppUrlToNumber(telefone, text)
@@ -167,6 +172,11 @@ export const CLUBE_LNG = -49.0951
 export const CLUBE_MAPS_EMBED_URL = `https://www.google.com/maps?q=${CLUBE_LAT},${CLUBE_LNG}&hl=pt-BR&z=16&output=embed`
 
 export const CLUBE_MAPS_EXTERNAL_URL = `https://www.google.com/maps/search/?api=1&query=${CLUBE_MAPS_QUERY}`
+
+/** Formata valor em reais para exibição */
+export function formatMoney(value: number): string {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
 
 /** Formata data/hora de expiração de reserva pendente */
 export function formatExpiracaoReserva(criadoEm: string, minutos: number): string {

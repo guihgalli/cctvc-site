@@ -6,6 +6,7 @@ import {
   formatDate,
   formatTime,
   formatExpiracaoReserva,
+  formatMoney,
 } from '../lib/utils'
 import type { Reserva } from '../types'
 
@@ -15,6 +16,7 @@ interface ReservaStatusModalProps {
   isVisitante?: boolean
   nomeUsuario?: string
   expiracaoPendenteMinutos?: number
+  valorVisitante?: number | null
   onClose: () => void
   onCancel?: (reservaId: string) => void
 }
@@ -25,6 +27,7 @@ export function ReservaStatusModal({
   isVisitante = false,
   nomeUsuario = '',
   expiracaoPendenteMinutos = 60,
+  valorVisitante = null,
   onClose,
   onCancel,
 }: ReservaStatusModalProps) {
@@ -56,6 +59,7 @@ export function ReservaStatusModal({
   const nomeQuadra = reservaAtiva.quadras?.nome || quadraNome || 'Quadra'
   const minutosExpiracao =
     reservaAtiva.quadras?.expiracao_pendente_minutos ?? expiracaoPendenteMinutos
+  const valorReserva = reservaAtiva.quadras?.valor_visitante ?? valorVisitante
   const podeCancelar = reservaAtiva.status === 'pendente' || reservaAtiva.status === 'confirmada'
   const mostrarPagamentoPix = isVisitante && reservaAtiva.status === 'pendente'
   const prazoPagamento =
@@ -112,7 +116,8 @@ export function ReservaStatusModal({
       nomeQuadra,
       reservaAtiva.data_reserva,
       reservaAtiva.hora_inicio,
-      reservaAtiva.hora_fim
+      reservaAtiva.hora_fim,
+      valorReserva
     )
     window.open(url, '_blank', 'noopener,noreferrer')
   }
@@ -181,6 +186,13 @@ export function ReservaStatusModal({
               </p>
             )}
             <p className="text-stone-600 text-sm leading-relaxed">
+              {valorReserva != null && (
+                <>
+                  Valor da reserva:{' '}
+                  <strong className="text-stone-800">{formatMoney(Number(valorReserva))}</strong>.
+                  {' '}
+                </>
+              )}
               Faça o pagamento no PIX{' '}
               <strong className="text-stone-800">{CLUBE_PIX_CNPJ}</strong> (CNPJ) e envie o
               comprovante clicando no botão abaixo para confirmar sua reserva.

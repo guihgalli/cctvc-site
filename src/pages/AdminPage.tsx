@@ -34,6 +34,7 @@ import {
   buildWhatsAppReservaConfirmadaUrl,
   formatExpiracaoMinutos,
   formatExpiracaoReserva,
+  formatMoney,
 } from '../lib/utils'
 import type { CourtScheduleInput, Quadra, Reserva, Usuario } from '../types'
 
@@ -54,6 +55,7 @@ export function AdminPage() {
   const [descricaoQuadra, setDescricaoQuadra] = useState('')
   const [tipoEsporte, setTipoEsporte] = useState('')
   const [expiracaoPendenteMinutos, setExpiracaoPendenteMinutos] = useState('60')
+  const [valorVisitante, setValorVisitante] = useState('')
   const [arquivoFoto, setArquivoFoto] = useState<File | null>(null)
   const [fotoAtualUrl, setFotoAtualUrl] = useState<string | null>(null)
   const [previewFotoUrl, setPreviewFotoUrl] = useState<string | null>(null)
@@ -110,6 +112,7 @@ export function AdminPage() {
     setDescricaoQuadra('')
     setTipoEsporte('')
     setExpiracaoPendenteMinutos('60')
+    setValorVisitante('')
     setArquivoFoto(null)
     setFotoAtualUrl(null)
     setPreviewFotoUrl(null)
@@ -135,6 +138,9 @@ export function AdminPage() {
     setDescricaoQuadra(quadra.descricao || '')
     setTipoEsporte(quadra.tipo_esporte || '')
     setExpiracaoPendenteMinutos(String(quadra.expiracao_pendente_minutos ?? 60))
+    setValorVisitante(
+      quadra.valor_visitante != null ? String(quadra.valor_visitante) : ''
+    )
     setArquivoFoto(null)
     setPreviewFotoUrl(null)
     setFotoAtualUrl(foto?.url || null)
@@ -155,6 +161,15 @@ export function AdminPage() {
       })
       return
     }
+    const valorVisitanteNum =
+      valorVisitante.trim() === '' ? null : Number(valorVisitante.replace(',', '.'))
+    if (
+      valorVisitanteNum != null &&
+      (!Number.isFinite(valorVisitanteNum) || valorVisitanteNum < 0)
+    ) {
+      setMessage({ type: 'error', text: 'Informe um valor válido para visitantes (>= 0).' })
+      return
+    }
     setSalvandoQuadra(true)
     try {
       let quadraId = editandoQuadraId
@@ -166,6 +181,7 @@ export function AdminPage() {
             descricao: descricaoQuadra || '',
             tipo_esporte: tipoEsporte || '',
             expiracao_pendente_minutos: expiracaoMinutos,
+            valor_visitante: valorVisitanteNum,
           })
         } else {
           const criada = await createCourt({
@@ -173,6 +189,7 @@ export function AdminPage() {
             descricao: descricaoQuadra || undefined,
             tipo_esporte: tipoEsporte || undefined,
             expiracao_pendente_minutos: expiracaoMinutos,
+            valor_visitante: valorVisitanteNum,
           })
           quadraId = criada.id
         }
@@ -515,6 +532,24 @@ export function AdminPage() {
                   </p>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Valor para visitantes (R$)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={valorVisitante}
+                    onChange={(e) => setValorVisitante(e.target.value)}
+                    className="w-full sm:max-w-xs border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    placeholder="Ex.: 80.00"
+                  />
+                  <p className="text-xs text-stone-500 mt-1">
+                    Valor cobrado por reserva de não-sócio nesta quadra. Exibido no modal de
+                    confirmação.
+                  </p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">Foto da quadra</label>
                   <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
                     <div className="w-28 h-28 rounded-lg border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
@@ -613,6 +648,8 @@ export function AdminPage() {
                         <p className="mt-1 text-xs text-amber-700">
                           Reserva pendente expira em{' '}
                           {formatExpiracaoMinutos(quadra.expiracao_pendente_minutos ?? 60)}
+                          {quadra.valor_visitante != null &&
+                            ` · Visitante: ${formatMoney(Number(quadra.valor_visitante))}`}
                         </p>
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <button

@@ -100,6 +100,7 @@ export function ReservationsPage() {
   const [reservaModal, setReservaModal] = useState<Reserva | null>(null)
   const [modalQuadraNome, setModalQuadraNome] = useState<string | undefined>()
   const [modalExpiracaoMinutos, setModalExpiracaoMinutos] = useState(60)
+  const [modalValorVisitante, setModalValorVisitante] = useState<number | null>(null)
   const [abaAtiva, setAbaAtiva] = useState<'reservar' | 'minhas'>('reservar')
   const dateStripRef = useRef<HTMLDivElement>(null)
 
@@ -222,6 +223,7 @@ export function ReservationsPage() {
       setReservaModal(reserva)
       setModalQuadraNome(quadraSelecionada.nome)
       setModalExpiracaoMinutos(quadraSelecionada.expiracao_pendente_minutos ?? 60)
+      setModalValorVisitante(quadraSelecionada.valor_visitante ?? null)
       await carregarReservas()
       await carregarMinhasReservas()
     } catch (err) {
@@ -252,12 +254,14 @@ export function ReservationsPage() {
     setReservaModal(reserva)
     setModalQuadraNome(quadraNome ?? reserva.quadras?.nome)
     setModalExpiracaoMinutos(reserva.quadras?.expiracao_pendente_minutos ?? 60)
+    setModalValorVisitante(reserva.quadras?.valor_visitante ?? null)
   }
 
   function fecharModalReserva() {
     setReservaModal(null)
     setModalQuadraNome(undefined)
     setModalExpiracaoMinutos(60)
+    setModalValorVisitante(null)
   }
 
   const fotoPrincipal = quadraSelecionada?.fotos_quadras?.find((f) => f.principal)
@@ -587,6 +591,7 @@ export function ReservationsPage() {
         isVisitante={!isSocio}
         nomeUsuario={user?.nome}
         expiracaoPendenteMinutos={modalExpiracaoMinutos}
+        valorVisitante={modalValorVisitante}
         onClose={fecharModalReserva}
         onCancel={handleCancelar}
       />
