@@ -1,0 +1,36 @@
+---
+description: Deploy e headers do CCTVC via Cloudflare Pages (não Netlify)
+alwaysApply: true
+---
+
+# Deploy — Cloudflare Pages
+
+Este projeto **usa Cloudflare Pages**, não Netlify.
+
+## Configuração de build
+
+- **Comando:** `npm run build`
+- **Diretório de saída:** `dist`
+- **Variáveis de ambiente** (Cloudflare Dashboard → Settings → Environment variables):
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+
+## Headers e SPA
+
+- Headers de segurança e CSP: `public/_headers` (copiado para `dist/` no build)
+- Redirect SPA (React Router): `public/_redirects` → `/* /index.html 200`
+- **Não** usar `netlify.toml` — configuração legada
+
+## CSP — iframes permitidos
+
+Ao alterar CSP, manter `frame-src` com domínios de mapas:
+
+```
+frame-src 'self' https://www.google.com https://maps.google.com https://www.openstreetmap.org;
+```
+
+Sem isso, o mapa na home exibe "Este conteúdo está bloqueado".
+
+## Domínio customizado
+
+Configurar em Cloudflare Pages → **Custom domains** e apontar DNS no Cloudflare (HTTPS automático).

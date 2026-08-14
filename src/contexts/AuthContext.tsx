@@ -10,8 +10,10 @@ import { isSupabaseConfigured } from '../lib/supabase'
 import {
   fetchSession,
   loginWithCredentials,
+  loginWithGoogleSession,
   logoutSession,
   setSessionToken,
+  startGoogleOAuth,
 } from '../services/api'
 import type { AuthUser } from '../types'
 
@@ -27,10 +29,13 @@ interface AuthContextType {
   user: AuthUser | null
   loading: boolean
   login: (userCode: string, password: string) => Promise<{ success: boolean; error?: string }>
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
+  finalizeGoogleLogin: () => Promise<{ success: boolean; error?: string }>
   logout: () => void
-  /** Substitui o token de sessão (ex.: após alterar senha). */
   updateSessionToken: (token: string) => void
+  updateUser: (user: AuthUser) => void
   isAdmin: boolean
+  isSocio: boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -121,10 +126,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true }
     } catch (err) {
       const message =
-        err instanceof Error && err.message
-          ? err.message
-          : 'Usuário ou senha inválidos'
+        err instanceof Error && err.message ? err.message : 'Usuário ou senha inválidos'
       return { success: false, error: message }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const loginWithGoogle = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      return { success: false, error: 'Sistema não configurado. Contate o administrador.' }
+    }
+
+    try {
+      await startGoogleOAuth()
+      return { success: true }
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Erro ao iniciar login com Google.',
+      }
+    }
+  }, [])
+
+  const finalizeGoogleLogin = useCallback(async () => {
+    setLoading(true)
+    try {
+      const result = await loginWithGoogleSession()
+      persistAuth({ token: result.token, user: result.user })
+      setUser(result.user)
+      return { success: true }
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Erro ao concluir login com Google.',
+      }
     } finally {
       setLoading(false)
     }
@@ -149,15 +185,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistAuth({ token, user: current.user })
   }, [])
 
+  const updateUser = useCallback((next: AuthUser) => {
+    const current = loadStoredAuth()
+    if (!current) return
+    persistAuth({ token: current.token, user: next })
+    setUser(next)
+  }, [])
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         login,
+        loginWithGoogle,
+        finalizeGoogleLogin,
         logout,
         updateSessionToken,
+        updateUser,
         isAdmin: user?.perfil === 'admin',
+        isSocio: user?.tipo_socio !== 'nao_socio',
       }}
     >
       {children}

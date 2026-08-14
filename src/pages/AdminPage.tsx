@@ -11,6 +11,8 @@ import {
   fetchUsers,
   createUser,
   updateUser,
+  approveBooking,
+  rejectBooking,
 } from '../services/api'
 import { CourtScheduleEditor, resumirHorarios } from '../components/CourtScheduleEditor'
 import {
@@ -26,6 +28,7 @@ import {
   maskPhoneInput,
   getErrorMessage,
   prepareCourtPhoto,
+  buildWhatsAppReservaConfirmadaUrl,
 } from '../lib/utils'
 import type { CourtScheduleInput, Quadra, Reserva, Usuario } from '../types'
 
@@ -61,10 +64,12 @@ export function AdminPage() {
 
   const [filtroQuadra, setFiltroQuadra] = useState('')
   const [filtroData, setFiltroData] = useState('')
+  const [filtroPendentes, setFiltroPendentes] = useState(false)
+  const [tipoSocioUsuario, setTipoSocioUsuario] = useState<'socio' | 'nao_socio'>('socio')
 
   useEffect(() => {
     carregarDados()
-  }, [aba, filtroQuadra, filtroData])
+  }, [aba, filtroQuadra, filtroData, filtroPendentes])
 
   async function carregarDados() {
     setLoading(true)
@@ -76,6 +81,7 @@ export function AdminPage() {
           await fetchAllBookings({
             courtId: filtroQuadra || undefined,
             date: filtroData || undefined,
+            apenasPendentes: filtroPendentes,
           })
         )
         if (quadras.length === 0) setQuadras(await fetchAllCourts())
@@ -251,6 +257,7 @@ export function AdminPage() {
         email,
         telefone,
         perfil: perfilUsuario,
+        tipo_socio: tipoSocioUsuario,
       })
       setMessage({
         type: 'success',
@@ -262,6 +269,7 @@ export function AdminPage() {
       setEmailUsuario('')
       setTelefoneUsuario('')
       setPerfilUsuario('usuario')
+      setTipoSocioUsuario('socio')
       setMostrarFormUsuario(false)
       carregarDados()
     } catch (err) {
@@ -278,6 +286,47 @@ export function AdminPage() {
       carregarDados()
     } catch {
       setMessage({ type: 'error', text: 'Erro ao atualizar usuário.' })
+    }
+  }
+
+  async function handleAprovarReserva(reserva: Reserva) {
+    if (!confirm('Confirmar pagamento e aprovar esta reserva?')) return
+    try {
+      const result = await approveBooking(reserva.id)
+      setMessage({ type: 'success', text: 'Reserva aprovada!' })
+
+      if (result.telefone) {
+        const url = buildWhatsAppReservaConfirmadaUrl(
+          result.telefone,
+          result.nome,
+          result.quadra,
+          reserva.data_reserva,
+          reserva.hora_inicio,
+          reserva.hora_fim
+        )
+        window.open(url, '_blank', 'noopener,noreferrer')
+      } else {
+        setMessage({
+          type: 'error',
+          text: 'Reserva aprovada, mas o usuário não tem WhatsApp cadastrado.',
+        })
+      }
+
+      carregarDados()
+    } catch (err) {
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Erro ao aprovar reserva.') })
+    }
+  }
+
+  async function handleRecusarReserva(reservaId: string) {
+    const motivo = prompt('Motivo da recusa (opcional):') ?? undefined
+    if (motivo === null) return
+    try {
+      await rejectBooking(reservaId, motivo || undefined)
+      setMessage({ type: 'success', text: 'Reserva recusada.' })
+      carregarDados()
+    } catch (err) {
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Erro ao recusar reserva.') })
     }
   }
 
@@ -535,6 +584,15 @@ export function AdminPage() {
                 onChange={(e) => setFiltroData(e.target.value)}
                 className="border rounded-lg px-3 py-2 text-sm"
               />
+              <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filtroPendentes}
+                  onChange={(e) => setFiltroPendentes(e.target.checked)}
+                  className="rounded border-stone-300"
+                />
+                Apenas pendentes (aguardando pagamento)
+              </label>
             </div>
 
             {reservas.length === 0 ? (
@@ -542,27 +600,63 @@ export function AdminPage() {
                 Nenhuma reserva encontrada.
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="bg-white rounded-xl border border-stone-200 overflow-x-auto">
+                <table className="w-full text-sm min-w-[720px]">
                   <thead className="bg-stone-50 border-b">
                     <tr>
+                      <th className="text-left px-4 py-3 font-medium text-stone-600">Status</th>
                       <th className="text-left px-4 py-3 font-medium text-stone-600">Data</th>
                       <th className="text-left px-4 py-3 font-medium text-stone-600">Horário</th>
                       <th className="text-left px-4 py-3 font-medium text-stone-600">Quadra</th>
                       <th className="text-left px-4 py-3 font-medium text-stone-600">Usuário</th>
+                      <th className="text-left px-4 py-3 font-medium text-stone-600">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reservas.map((r) => (
                       <tr key={r.id} className="border-b last:border-0 hover:bg-stone-50">
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded font-medium ${
+                              r.status === 'pendente'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {r.status === 'pendente' ? 'Pendente' : 'Confirmada'}
+                          </span>
+                        </td>
                         <td className="px-4 py-3">{formatDate(r.data_reserva)}</td>
                         <td className="px-4 py-3">
                           {formatTime(r.hora_inicio)} – {formatTime(r.hora_fim)}
                         </td>
                         <td className="px-4 py-3">{r.quadras?.nome}</td>
                         <td className="px-4 py-3">
-                          {r.usuarios?.nome}{' '}
-                          <span className="text-stone-400">({r.usuarios?.codigo_usuario})</span>
+                          <div>{r.usuarios?.nome}</div>
+                          <div className="text-stone-400 text-xs">
+                            {r.usuarios?.tipo_socio === 'nao_socio' ? 'Visitante' : 'Sócio'}
+                            {r.usuarios?.telefone && ` · ${formatPhone(r.usuarios.telefone)}`}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {r.status === 'pendente' ? (
+                            <div className="flex gap-2 flex-wrap">
+                              <button
+                                onClick={() => handleAprovarReserva(r)}
+                                className="text-xs bg-emerald-700 text-white px-2 py-1 rounded hover:bg-emerald-600"
+                              >
+                                Aprovar + WhatsApp
+                              </button>
+                              <button
+                                onClick={() => handleRecusarReserva(r.id)}
+                                className="text-xs border border-red-200 text-red-700 px-2 py-1 rounded hover:bg-red-50"
+                              >
+                                Recusar
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-stone-400 text-xs">—</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -638,6 +732,17 @@ export function AdminPage() {
                       placeholder="(47) 99999-9999"
                       className="w-full border rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Tipo</label>
+                    <select
+                      value={tipoSocioUsuario}
+                      onChange={(e) => setTipoSocioUsuario(e.target.value as 'socio' | 'nao_socio')}
+                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    >
+                      <option value="socio">Sócio (aprovação imediata)</option>
+                      <option value="nao_socio">Não-sócio (aprovação manual)</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Perfil</label>

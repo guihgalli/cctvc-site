@@ -88,6 +88,32 @@ export function buildWhatsAppUrl(text?: string): string {
   return `https://wa.me/${CLUBE_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
 }
 
+/** WhatsApp direto para um número (DDD + número, só dígitos) */
+export function buildWhatsAppUrlToNumber(phoneDigits: string, text: string): string {
+  const digits = phoneDigits.replace(/\D/g, '')
+  const withCountry = digits.startsWith('55') ? digits : `55${digits}`
+  return `https://wa.me/${withCountry}?text=${encodeURIComponent(text)}`
+}
+
+/** Mensagem de confirmação de reserva para não-sócio aprovado */
+export function buildWhatsAppReservaConfirmadaUrl(
+  telefone: string,
+  nome: string,
+  quadra: string,
+  dataReserva: string,
+  horaInicio: string,
+  horaFim: string
+): string {
+  const text = `Olá, ${nome.split(' ')[0]}! ✅ Sua reserva no CCTVC foi *confirmada* após a confirmação do pagamento.
+
+📍 ${quadra}
+📅 ${formatDate(dataReserva)}
+🕐 ${formatTime(horaInicio)} às ${formatTime(horaFim)}
+
+Aguardamos você no clube!`
+  return buildWhatsAppUrlToNumber(telefone, text)
+}
+
 /** Monta URL do WhatsApp solicitando login para o CPF informado */
 export function buildWhatsAppLoginRequestUrl(cpf: string): string {
   const formatted = formatCpf(cpf)
@@ -105,7 +131,11 @@ export const CLUBE_ENDERECO =
 
 export const CLUBE_MAPS_QUERY = encodeURIComponent(CLUBE_ENDERECO)
 
-export const CLUBE_MAPS_EMBED_URL = `https://maps.google.com/maps?q=${CLUBE_MAPS_QUERY}&hl=pt-BR&z=16&output=embed`
+/** Coordenadas aproximadas da sede — Rua dos Caçadores, 3680 */
+export const CLUBE_LAT = -26.9192
+export const CLUBE_LNG = -49.0951
+
+export const CLUBE_MAPS_EMBED_URL = `https://www.google.com/maps?q=${CLUBE_LAT},${CLUBE_LNG}&hl=pt-BR&z=16&output=embed`
 
 export const CLUBE_MAPS_EXTERNAL_URL = `https://www.google.com/maps/search/?api=1&query=${CLUBE_MAPS_QUERY}`
 

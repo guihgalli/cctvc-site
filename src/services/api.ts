@@ -1,10 +1,12 @@
 import { supabase } from '../lib/supabase'
 import type {
+  AuthUser,
   CourtScheduleInput,
   FotoQuadra,
   HorarioQuadra,
   Quadra,
   Reserva,
+  TipoSocio,
   Usuario,
 } from '../types'
 
@@ -43,12 +45,7 @@ async function rpc<T>(fn: string, args: Record<string, unknown>, fallbackError: 
 
 export interface LoginResult {
   token: string
-  user: {
-    id: string
-    codigo_usuario: string
-    nome: string
-    perfil: 'usuario' | 'admin'
-  }
+  user: AuthUser
 }
 
 export async function loginWithCredentials(
@@ -60,6 +57,39 @@ export async function loginWithCredentials(
     { p_codigo: userCode, p_senha: password },
     'Usuário ou senha inválidos'
   )
+}
+
+/** Após OAuth Google: converte sessão Supabase em token customizado do app */
+export async function loginWithGoogleSession(): Promise<LoginResult> {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError || !sessionData.session) {
+    throw new Error('Sessão Google não encontrada. Tente novamente.')
+  }
+
+  const result = await rpc<LoginResult>('fazer_login_google', {}, 'Erro ao entrar com Google.')
+
+  await supabase.auth.signOut()
+
+  return result
+}
+
+export async function startGoogleOAuth(redirectPath = '/auth/callback'): Promise<void> {
+  const redirectTo = `${window.location.origin}${redirectPath}`
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo },
+  })
+  if (error) throw error
+}
+
+export async function completePhoneRegistration(telefone: string): Promise<AuthUser> {
+  const token = requireToken()
+  const result = await rpc<{ ok: boolean; user: AuthUser }>(
+    'completar_telefone',
+    { p_token: token, p_telefone: telefone },
+    'Erro ao salvar telefone.'
+  )
+  return result.user
 }
 
 export async function fetchSession(token: string): Promise<LoginResult> {
@@ -236,6 +266,7 @@ export async function fetchBookingsByCourtAndDate(
 export async function fetchAllBookings(filters?: {
   courtId?: string
   date?: string
+  apenasPendentes?: boolean
 }): Promise<Reserva[]> {
   const token = requireToken()
   const data = await rpc<Reserva[]>(
@@ -244,10 +275,37 @@ export async function fetchAllBookings(filters?: {
       p_token: token,
       p_quadra_id: filters?.courtId || null,
       p_data: filters?.date || null,
+      p_apenas_pendentes: filters?.apenasPendentes ?? false,
     },
     'Erro ao carregar agenda.'
   )
   return data || []
+}
+
+export interface ApproveBookingResult {
+  ok: boolean
+  telefone: string | null
+  nome: string
+  quadra: string
+  reserva: Reserva
+}
+
+export async function approveBooking(reservaId: string): Promise<ApproveBookingResult> {
+  const token = requireToken()
+  return rpc<ApproveBookingResult>(
+    'admin_aprovar_reserva',
+    { p_token: token, p_reserva_id: reservaId },
+    'Erro ao aprovar reserva.'
+  )
+}
+
+export async function rejectBooking(reservaId: string, motivo?: string): Promise<void> {
+  const token = requireToken()
+  await rpc(
+    'admin_recusar_reserva',
+    { p_token: token, p_reserva_id: reservaId, p_motivo: motivo ?? null },
+    'Erro ao recusar reserva.'
+  )
 }
 
 export async function fetchUserBookings(_usuarioId: string): Promise<Reserva[]> {
@@ -305,6 +363,7 @@ export async function createUser(usuario: {
   email: string
   telefone: string
   perfil?: 'usuario' | 'admin'
+  tipo_socio?: TipoSocio
 }): Promise<Usuario> {
   const token = requireToken()
   return rpc<Usuario>(
@@ -317,6 +376,7 @@ export async function createUser(usuario: {
       p_email: usuario.email,
       p_telefone: usuario.telefone,
       p_perfil: usuario.perfil || 'usuario',
+      p_tipo_socio: usuario.tipo_socio || 'socio',
     },
     'Erro ao cadastrar usuário.'
   )
@@ -331,6 +391,7 @@ export async function updateUser(
     perfil: 'usuario' | 'admin'
     email: string
     telefone: string
+    tipo_socio: TipoSocio
   }>
 ): Promise<Usuario> {
   const token = requireToken()
@@ -345,6 +406,7 @@ export async function updateUser(
       p_perfil: updates.perfil ?? null,
       p_email: updates.email ?? null,
       p_telefone: updates.telefone ?? null,
+      p_tipo_socio: updates.tipo_socio ?? null,
     },
     'Erro ao atualizar usuário.'
   )

@@ -86,7 +86,7 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
 }
 
 export function ReservationsPage() {
-  const { user } = useAuth()
+  const { user, isSocio } = useAuth()
   const [quadras, setQuadras] = useState<Quadra[]>([])
   const [quadraSelecionada, setQuadraSelecionada] = useState<Quadra | null>(null)
   const hoje = new Date().toISOString().split('T')[0]
@@ -208,14 +208,20 @@ export function ReservationsPage() {
     setMessage(null)
 
     try {
-      await createBooking({
+      const reserva = await createBooking({
         quadra_id: quadraSelecionada.id,
         usuario_id: user.id,
         data_reserva: dataSelecionada,
         hora_inicio: horaInicio,
         hora_fim: horaFim,
       })
-      setMessage({ type: 'success', text: 'Reserva confirmada com sucesso!' })
+      setMessage({
+        type: 'success',
+        text:
+          reserva.status === 'pendente'
+            ? 'Solicitação enviada! Aguardando confirmação do pagamento. Você será avisado no WhatsApp.'
+            : 'Reserva confirmada com sucesso!',
+      })
       await carregarReservas()
       await carregarMinhasReservas()
     } catch (err) {
@@ -256,7 +262,13 @@ export function ReservationsPage() {
   return (
     <Layout>
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-emerald-900 mb-6">Reserva de Quadras</h1>
+        <h1 className="text-2xl font-bold text-emerald-900 mb-2">Reserva de Quadras</h1>
+        {!isSocio && (
+          <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm mb-6">
+            Como visitante, sua reserva ficará <strong>pendente</strong> até a secretaria confirmar o
+            pagamento. A confirmação será enviada no WhatsApp cadastrado.
+          </p>
+        )}
 
         <div className="flex gap-2 mb-6">
           <button
@@ -494,20 +506,23 @@ export function ReservationsPage() {
                   className="bg-white rounded-xl p-4 border border-stone-200 flex items-center justify-between gap-4"
                 >
                   <div>
-                    <p className="font-semibold text-emerald-900">
-                      {reserva.quadras?.nome}
-                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-emerald-900">{reserva.quadras?.nome}</p>
+                      <StatusBadge status={reserva.status} />
+                    </div>
                     <p className="text-stone-600 text-sm">
                       {formatDate(reserva.data_reserva)} · {formatTime(reserva.hora_inicio)} –{' '}
                       {formatTime(reserva.hora_fim)}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleCancelar(reserva.id)}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium shrink-0"
-                  >
-                    Cancelar
-                  </button>
+                  {(reserva.status === 'confirmada' || reserva.status === 'pendente') && (
+                    <button
+                      onClick={() => handleCancelar(reserva.id)}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium shrink-0"
+                    >
+                      Cancelar
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -515,5 +530,25 @@ export function ReservationsPage() {
         )}
       </div>
     </Layout>
+  )
+}
+
+function StatusBadge({ status }: { status: Reserva['status'] }) {
+  const styles: Record<Reserva['status'], string> = {
+    pendente: 'bg-amber-100 text-amber-800',
+    confirmada: 'bg-emerald-100 text-emerald-800',
+    recusada: 'bg-red-100 text-red-700',
+    cancelada: 'bg-stone-100 text-stone-500',
+  }
+  const labels: Record<Reserva['status'], string> = {
+    pendente: 'Pendente',
+    confirmada: 'Confirmada',
+    recusada: 'Recusada',
+    cancelada: 'Cancelada',
+  }
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded font-medium ${styles[status]}`}>
+      {labels[status]}
+    </span>
   )
 }

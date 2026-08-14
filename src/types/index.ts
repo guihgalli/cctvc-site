@@ -1,4 +1,6 @@
 export type PerfilUsuario = 'usuario' | 'admin'
+export type TipoSocio = 'socio' | 'nao_socio'
+export type StatusReserva = 'pendente' | 'confirmada' | 'recusada' | 'cancelada'
 
 export interface Usuario {
   id: string
@@ -8,6 +10,7 @@ export interface Usuario {
   email: string | null
   telefone: string | null
   perfil: PerfilUsuario
+  tipo_socio: TipoSocio
   ativo: boolean
   criado_em: string
 }
@@ -57,7 +60,7 @@ export interface Reserva {
   data_reserva: string
   hora_inicio: string
   hora_fim: string
-  status: 'confirmada' | 'cancelada'
+  status: StatusReserva
   criado_em: string
   quadras?: Quadra
   usuarios?: Usuario
@@ -65,9 +68,13 @@ export interface Reserva {
 
 export interface AuthUser {
   id: string
-  codigo_usuario: string
+  codigo_usuario: string | null
   nome: string
   perfil: PerfilUsuario
+  tipo_socio: TipoSocio
+  telefone: string | null
+  email: string | null
+  precisa_telefone?: boolean
 }
 
 export interface TimeSlot {

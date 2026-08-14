@@ -5,10 +5,11 @@ Site institucional com sistema de reserva de quadras esportivas.
 ## Funcionalidades
 
 - **Home simples** com link para reservas e Instagram
-- **Login** com usuário (6 dígitos) e senha (3 dígitos; inicial = 3 primeiros do CPF)
-- **Conta**: usuário logado pode alterar a própria senha
+- **Login sócio**: matrícula + senha **ou Google** (e-mail deve ser o mesmo cadastrado no clube, vinculado ao CPF) — reserva confirmada na hora
+- **Login visitante**: Google com e-mail não cadastrado — reserva **pendente** até admin aprovar após pagamento
+- **Conta**: sócio altera senha; visitante cadastra WhatsApp para confirmação
 - **Reservas (usuário)**: visualizar quadras, escolher data/horário conforme disponibilidade da quadra, cancelar reservas
-- **Painel Admin**: cadastrar quadras, configurar dias/horários disponíveis, upload de fotos, ver agenda, gerenciar usuários
+- **Painel Admin**: cadastrar quadras, configurar dias/horários, upload de fotos, **aprovar/recusar reservas pendentes** (WhatsApp automático na aprovação), gerenciar usuários (sócio / não-sócio)
 - Validações: não permite reservar datas/horários passados, dias fechados nem horários já ocupados
 
 ## Stack
@@ -16,7 +17,7 @@ Site institucional com sistema de reserva de quadras esportivas.
 - React + TypeScript + Vite
 - Tailwind CSS
 - Supabase (banco PostgreSQL + storage de fotos)
-- Deploy: Netlify
+- Deploy: Cloudflare Pages
 
 ## Configuração Local
 
@@ -33,8 +34,14 @@ npm install
 3. No **SQL Editor**, execute o arquivo `supabase/schema.sql`
 4. Em seguida execute a migration de segurança: `supabase/migrations/003_security_hardening.sql` (obrigatória — sessões, RLS e RPCs)
 5. Execute `supabase/migrations/004_alterar_senha.sql` (senha com hash + alteração pelo próprio usuário)
-6. Se o banco já existia antes dos horários/storage, execute também `001_horarios_quadra.sql` e `002_storage_fotos_quadra.sql` antes da `003`
-7. Em **Settings > API**, copie a URL e a `anon key`
+6. Execute `supabase/migrations/005_usuario_email_telefone.sql` (e-mail e telefone)
+7. Execute `supabase/migrations/006_google_socio_aprovacao.sql` (**obrigatória** — Google, sócio/não-sócio, aprovação de reservas)
+8. Execute `supabase/migrations/007_socio_google_vinculo.sql` (sócio entra com Google se e-mail/CPF cadastrados)
+9. Se o banco já existia antes dos horários/storage, execute também `001` e `002` antes da `003`
+10. Em **Settings > API**, copie a URL e a `anon key`
+11. Em **Authentication → Providers → Google**, habilite e configure redirect URLs:
+    - `http://localhost:5173/auth/callback`
+    - `https://seu-dominio.cloudflarepages.dev/auth/callback` (ou domínio customizado)
 
 > A chave `anon` continua no frontend, mas **CPF, usuários, reservas e escritas** só são acessíveis via RPCs com sessão válida. Upload de fotos exige ticket emitido para admin autenticado.
 
@@ -64,34 +71,34 @@ Acesse `http://localhost:5173`
 
 > Senha inicial = 3 primeiros dígitos do CPF cadastrado (12345678901 → 123). Depois o usuário pode alterar em **Conta**.
 
-## Deploy no Netlify (testes)
+## Deploy no Cloudflare Pages
 
-### Opção A: Via Git
+### Via Git (recomendado)
 
-1. Suba o projeto para um repositório GitHub
-2. Acesse [netlify.com](https://netlify.com) e conecte o repositório
-3. Configure as variáveis de ambiente em **Site settings > Environment variables**:
+1. Repositório conectado no [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**
+2. Configuração de build:
+   - **Framework preset:** None (ou Vite)
+   - **Build command:** `npm run build`
+   - **Build output directory:** `dist`
+3. Em **Settings → Environment variables**, adicione:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-4. Deploy automático — o `netlify.toml` já está configurado
+4. Deploy automático a cada push na branch principal
 
-### Opção B: Deploy manual
+Headers de segurança (CSP) e redirect SPA estão em `public/_headers` e `public/_redirects`.
+
+### Deploy manual (Wrangler CLI)
 
 ```bash
 npm run build
-npx netlify deploy --prod --dir=dist
+npx wrangler pages deploy dist --project-name=cctvc-site
 ```
 
-O Netlify fornecerá um domínio gratuito (`*.netlify.app`) para testes.
+### Domínio customizado
 
-## Domínio pago (produção)
-
-Após aprovação do cliente:
-
-1. Compre o domínio (Registro.br, GoDaddy, etc.)
-2. No Netlify: **Domain settings > Add custom domain**
-3. Configure os DNS conforme instruções do Netlify
-4. HTTPS é configurado automaticamente
+1. Em **Pages → seu projeto → Custom domains**, adicione o domínio
+2. Configure os DNS no Cloudflare (ou aponte nameservers)
+3. HTTPS é provisionado automaticamente
 
 ## Estrutura do Projeto
 

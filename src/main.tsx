@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage'
 import { ReservationsPage } from './pages/ReservationsPage'
 import { AccountPage } from './pages/AccountPage'
 import { AdminPage } from './pages/AdminPage'
+import { AuthCallbackPage } from './pages/AuthCallbackPage'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route
             path="/reservas"
             element={

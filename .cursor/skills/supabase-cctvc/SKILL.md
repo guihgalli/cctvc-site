@@ -162,5 +162,6 @@ curl -sS "$VITE_SUPABASE_URL/rest/v1/horarios_quadra?select=*&limit=5" \
 
 ## Site / deploy
 
-- Produção: `https://cctvelhacentral.netlify.app`
-- Vars de build no Netlify: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (embutidas no bundle Vite)
+- **Plataforma:** Cloudflare Pages (não usar Netlify)
+- Vars de build: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (embutidas no bundle Vite)
+- Headers/CSP: `public/_headers` | SPA: `public/_redirects`

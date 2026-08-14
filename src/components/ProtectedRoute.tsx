@@ -27,5 +27,9 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
     return <Navigate to="/reservas" replace />
   }
 
+  if (user.precisa_telefone && location.pathname !== '/conta') {
+    return <Navigate to="/conta?cadastro=telefone" replace />
+  }
+
   return <>{children}</>
 }
