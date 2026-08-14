@@ -17,6 +17,7 @@ import {
   rejectBooking,
 } from '../services/api'
 import { CourtScheduleEditor, resumirHorarios } from '../components/CourtScheduleEditor'
+import { EditUsuarioModal, type UsuarioEditForm } from '../components/EditUsuarioModal'
 import {
   formatDate,
   formatTime,
@@ -69,6 +70,8 @@ export function AdminPage() {
   const [filtroData, setFiltroData] = useState('')
   const [filtroPendentes, setFiltroPendentes] = useState(false)
   const [tipoSocioUsuario, setTipoSocioUsuario] = useState<'socio' | 'nao_socio'>('socio')
+  const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null)
+  const [salvandoUsuario, setSalvandoUsuario] = useState(false)
 
   useEffect(() => {
     carregarDados()
@@ -289,6 +292,26 @@ export function AdminPage() {
       carregarDados()
     } catch {
       setMessage({ type: 'error', text: 'Erro ao atualizar usuário.' })
+    }
+  }
+
+  async function handleSalvarUsuarioEditado(id: string, data: UsuarioEditForm) {
+    setSalvandoUsuario(true)
+    try {
+      await updateUser(id, {
+        nome: data.nome,
+        cpf: data.cpf || undefined,
+        email: data.email || undefined,
+        telefone: data.telefone || undefined,
+        perfil: data.perfil,
+        tipo_socio: data.tipo_socio,
+        ativo: data.ativo,
+      })
+      setUsuarioEditando(null)
+      setMessage({ type: 'success', text: 'Usuário atualizado.' })
+      await carregarDados()
+    } finally {
+      setSalvandoUsuario(false)
     }
   }
 
@@ -860,19 +883,28 @@ export function AdminPage() {
                         </button>
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => handleExcluirUsuario(u)}
-                          disabled={u.id === adminUser?.id}
-                          className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={
-                            u.id === adminUser?.id
-                              ? 'Você não pode excluir sua própria conta'
-                              : 'Excluir usuário permanentemente'
-                          }
-                        >
-                          Excluir
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setUsuarioEditando(u)}
+                            className="text-xs px-2 py-1 rounded bg-stone-100 text-stone-700 hover:bg-stone-200"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExcluirUsuario(u)}
+                            disabled={u.id === adminUser?.id}
+                            className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={
+                              u.id === adminUser?.id
+                                ? 'Você não pode excluir sua própria conta'
+                                : 'Excluir usuário permanentemente'
+                            }
+                          >
+                            Excluir
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -882,6 +914,14 @@ export function AdminPage() {
           </div>
         )}
       </div>
+
+      <EditUsuarioModal
+        usuario={usuarioEditando}
+        isSelf={usuarioEditando?.id === adminUser?.id}
+        saving={salvandoUsuario}
+        onClose={() => setUsuarioEditando(null)}
+        onSave={handleSalvarUsuarioEditado}
+      />
     </Layout>
   )
 }

@@ -28,12 +28,12 @@ export function LoginPage() {
     setError('')
 
     if (!isValidUserCode(userCode)) {
-      setError('O usuário deve ter exatamente 6 dígitos numéricos.')
+      setError('Matrícula deve ter 6 dígitos.')
       return
     }
 
     if (!isValidPassword(password)) {
-      setError('A senha deve ter exatamente 3 dígitos numéricos.')
+      setError('Senha deve ter 3 dígitos.')
       return
     }
 
@@ -55,117 +55,82 @@ export function LoginPage() {
 
   return (
     <Layout>
-      <div className="max-w-md mx-auto px-4 py-12">
+      <div className="max-w-sm mx-auto px-4 py-12">
         <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <Logo size="md" className="mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-emerald-900">Entrar</h1>
-            <p className="text-stone-500 text-sm mt-1">Reserva de quadras — CCTVC</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200 mb-5">
+            <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200 mb-4">
               {error}
             </div>
           )}
 
-          {/* Google — sócios e visitantes */}
-          <section className="mb-8">
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-50 text-stone-700 font-semibold py-3 rounded-lg transition-colors"
-            >
-              <GoogleIcon />
-              Entrar com Google
-            </button>
-            <ul className="mt-3 space-y-1.5 text-stone-500 text-xs leading-relaxed">
-              <li>
-                <strong className="text-stone-700">Sócios:</strong> no primeiro acesso informe CPF e
-                WhatsApp; se o e-mail Google for o mesmo cadastrado no clube, o vínculo é automático.
-              </li>
-              <li>
-                <strong className="text-stone-700">Visitantes:</strong> informe CPF e WhatsApp no
-                primeiro acesso; reservas ficam pendentes até confirmação do pagamento.
-              </li>
-            </ul>
-          </section>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-50 text-stone-700 font-semibold py-3 rounded-lg transition-colors"
+          >
+            <GoogleIcon />
+            Continuar com Google
+          </button>
 
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-stone-200" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-stone-400">ou matrícula</span>
-            </div>
-          </div>
+          <details className="mt-6 group">
+            <summary className="cursor-pointer list-none text-center text-sm text-emerald-700 hover:underline marker:content-none">
+              <span className="inline-flex items-center gap-1">
+                Sou sócio — entrar com matrícula
+                <ChevronIcon />
+              </span>
+            </summary>
 
-          {/* Sócios — matrícula + senha */}
-          <section>
-            <h2 className="text-sm font-semibold text-emerald-900 uppercase tracking-wide mb-1">
-              Sócios — matrícula e senha
-            </h2>
-            <p className="text-stone-500 text-xs mb-4">
-              Alternativa ao Google para quem prefere matrícula e senha de 3 dígitos.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="userCode" className="block text-sm font-medium text-stone-700 mb-1">
-                  Matrícula (6 dígitos)
-                </label>
-                <input
-                  id="userCode"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={userCode}
-                  onChange={(e) => setUserCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="w-full border border-stone-300 rounded-lg px-4 py-3 text-center text-xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="000000"
-                  autoComplete="username"
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-stone-700 mb-1">
-                  Senha (3 dígitos)
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={3}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                  className="w-full border border-stone-300 rounded-lg px-4 py-3 text-center text-xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="•••"
-                  autoComplete="current-password"
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="mt-4 space-y-3 pt-4 border-t border-stone-100">
+              <input
+                id="userCode"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={userCode}
+                onChange={(e) => setUserCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full border border-stone-300 rounded-lg px-4 py-3 text-center text-lg tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Matrícula (6 dígitos)"
+                autoComplete="username"
+              />
+              <input
+                id="password"
+                type="password"
+                inputMode="numeric"
+                maxLength={3}
+                value={password}
+                onChange={(e) => setPassword(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                className="w-full border border-stone-300 rounded-lg px-4 py-3 text-center text-lg tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Senha (3 dígitos)"
+                autoComplete="current-password"
+              />
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors"
               >
-                {loading ? 'Entrando...' : 'Entrar com matrícula'}
+                {loading ? 'Entrando...' : 'Entrar'}
               </button>
             </form>
+          </details>
 
+          <div className="mt-6 flex flex-col items-center gap-2 text-sm">
             <button
               type="button"
               onClick={() => setSolicitarLoginOpen(true)}
-              className="w-full mt-3 text-sm text-emerald-700 hover:underline"
+              className="text-emerald-700 hover:underline"
             >
-              Ainda não tenho cadastro — solicitar ao clube
+              Solicitar cadastro ao clube
             </button>
-          </section>
-
-          <p className="text-center mt-6">
-            <Link to="/" className="text-emerald-700 text-sm hover:underline">
-              ← Voltar ao início
+            <Link to="/" className="text-stone-500 hover:underline">
+              Voltar ao início
             </Link>
-          </p>
+          </div>
         </div>
       </div>
 
@@ -193,6 +158,24 @@ function GoogleIcon() {
         fill="#EA4335"
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
       />
+    </svg>
+  )
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className="transition-transform group-open:rotate-180"
+      aria-hidden="true"
+    >
+      <path d="M6 9l6 6 6-6" />
     </svg>
   )
 }
