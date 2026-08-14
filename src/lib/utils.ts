@@ -1,6 +1,6 @@
 /** Remove caracteres não numéricos do CPF */
-export function cleanCpf(cpf: string): string {
-  return cpf.replace(/\D/g, '')
+export function cleanCpf(cpf: string | null | undefined): string {
+  return (cpf ?? '').replace(/\D/g, '')
 }
 
 /** Extrai os 3 primeiros dígitos do CPF como senha */
@@ -20,7 +20,8 @@ export function isValidPassword(password: string): boolean {
 }
 
 /** Formata CPF para exibição: 000.000.000-00 */
-export function formatCpf(cpf: string): string {
+export function formatCpf(cpf: string | null | undefined): string {
+  if (!cpf) return '—'
   const cleaned = cleanCpf(cpf)
   if (cleaned.length !== 11) return cpf
   return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
@@ -41,8 +42,8 @@ export function isValidCpfLength(cpf: string): boolean {
 }
 
 /** Remove caracteres não numéricos do telefone */
-export function cleanPhone(phone: string): string {
-  return phone.replace(/\D/g, '')
+export function cleanPhone(phone: string | null | undefined): string {
+  return (phone ?? '').replace(/\D/g, '')
 }
 
 /** Valida telefone BR com DDD (10 ou 11 dígitos) */

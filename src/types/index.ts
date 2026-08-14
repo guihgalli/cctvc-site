@@ -4,8 +4,8 @@ export type StatusReserva = 'pendente' | 'confirmada' | 'recusada' | 'cancelada'
 
 export interface Usuario {
   id: string
-  codigo_usuario: string
-  cpf: string
+  codigo_usuario: string | null
+  cpf: string | null
   nome: string
   email: string | null
   telefone: string | null

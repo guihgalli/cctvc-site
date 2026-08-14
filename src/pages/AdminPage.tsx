@@ -785,7 +785,7 @@ export function AdminPage() {
                 <tbody>
                   {usuarios.map((u) => (
                     <tr key={u.id} className="border-b last:border-0 hover:bg-stone-50">
-                      <td className="px-4 py-3 font-mono">{u.codigo_usuario}</td>
+                      <td className="px-4 py-3 font-mono">{u.codigo_usuario ?? '—'}</td>
                       <td className="px-4 py-3">{u.nome}</td>
                       <td className="px-4 py-3 text-stone-500">{u.email || '—'}</td>
                       <td className="px-4 py-3 font-mono text-stone-500">
