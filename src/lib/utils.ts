@@ -270,6 +270,15 @@ export function generateTimeSlotsFromRange(
   return slots
 }
 
+/** Data local de hoje no formato ISO (YYYY-MM-DD) */
+export function todayIsoDate(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 /** Verifica se data/hora é no passado */
 export function isPastDateTime(date: string, time: string): boolean {
   const now = new Date()
@@ -339,8 +348,8 @@ export function isToday(date: string): boolean {
 /** Gera uma sequência de datas ISO (YYYY-MM-DD) a partir de hoje */
 export function generateDateRange(days: number): string[] {
   const dates: string[] = []
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
+  const [y0, m0, d0] = todayIsoDate().split('-').map(Number)
+  const start = new Date(y0, m0 - 1, d0)
   for (let i = 0; i < days; i++) {
     const d = new Date(start)
     d.setDate(start.getDate() + i)

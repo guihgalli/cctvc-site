@@ -16,6 +16,7 @@ import {
   DEFAULT_SLOT_START,
   generateDateRange,
   generateTimeSlotsFromRange,
+  todayIsoDate,
   getWeekdayIndex,
   getWeekdayShort,
   getMonthShort,
@@ -90,8 +91,7 @@ export function ReservationsPage() {
   const { user, isSocio } = useAuth()
   const [quadras, setQuadras] = useState<Quadra[]>([])
   const [quadraSelecionada, setQuadraSelecionada] = useState<Quadra | null>(null)
-  const hoje = new Date().toISOString().split('T')[0]
-  const [dataSelecionada, setDataSelecionada] = useState(hoje)
+  const [dataSelecionada, setDataSelecionada] = useState(todayIsoDate)
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [minhasReservas, setMinhasReservas] = useState<Reserva[]>([])
   const [loading, setLoading] = useState(true)
