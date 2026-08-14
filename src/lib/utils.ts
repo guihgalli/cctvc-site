@@ -83,6 +83,16 @@ export function isValidEmail(email: string): boolean {
 /** Número do WhatsApp da secretaria do clube (E.164 sem +) */
 export const CLUBE_WHATSAPP_NUMBER = '5547988080903'
 
+/** Chave PIX (CNPJ) do clube para pagamento de reservas de visitantes */
+export const CLUBE_PIX_CNPJ = '82651480000115'
+
+/** Formata CNPJ para exibição: 00.000.000/0000-00 */
+export function formatCnpj(cnpj: string): string {
+  const cleaned = cnpj.replace(/\D/g, '')
+  if (cleaned.length !== 14) return cnpj
+  return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+}
+
 /** Monta URL do WhatsApp com mensagem opcional pré-preenchida */
 export function buildWhatsAppUrl(text?: string): string {
   if (!text) return `https://wa.me/${CLUBE_WHATSAPP_NUMBER}`
@@ -94,6 +104,24 @@ export function buildWhatsAppUrlToNumber(phoneDigits: string, text: string): str
   const digits = phoneDigits.replace(/\D/g, '')
   const withCountry = digits.startsWith('55') ? digits : `55${digits}`
   return `https://wa.me/${withCountry}?text=${encodeURIComponent(text)}`
+}
+
+/** Monta URL do WhatsApp para envio de comprovante de pagamento (visitante) */
+export function buildWhatsAppComprovanteReservaUrl(
+  nome: string,
+  quadra: string,
+  dataReserva: string,
+  horaInicio: string,
+  horaFim: string
+): string {
+  const text = `Olá! Sou ${nome.split(' ')[0]} e acabei de solicitar uma reserva no CCTVC. Segue o comprovante de pagamento PIX.
+
+📍 ${quadra}
+📅 ${formatDate(dataReserva)}
+🕐 ${formatTime(horaInicio)} às ${formatTime(horaFim)}
+
+Aguardo a confirmação da reserva. Obrigado!`
+  return buildWhatsAppUrl(text)
 }
 
 /** Mensagem de confirmação de reserva para não-sócio aprovado */
@@ -139,6 +167,30 @@ export const CLUBE_LNG = -49.0951
 export const CLUBE_MAPS_EMBED_URL = `https://www.google.com/maps?q=${CLUBE_LAT},${CLUBE_LNG}&hl=pt-BR&z=16&output=embed`
 
 export const CLUBE_MAPS_EXTERNAL_URL = `https://www.google.com/maps/search/?api=1&query=${CLUBE_MAPS_QUERY}`
+
+/** Formata data/hora de expiração de reserva pendente */
+export function formatExpiracaoReserva(criadoEm: string, minutos: number): string {
+  const expira = new Date(new Date(criadoEm).getTime() + minutos * 60_000)
+  return expira.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+/** Rótulo amigável para minutos de expiração */
+export function formatExpiracaoMinutos(minutos: number): string {
+  if (minutos < 60) return `${minutos} min`
+  if (minutos % 60 === 0) {
+    const horas = minutos / 60
+    return horas === 1 ? '1 hora' : `${horas} horas`
+  }
+  const horas = Math.floor(minutos / 60)
+  const resto = minutos % 60
+  return `${horas}h ${resto}min`
+}
 
 /** Formata hora HH:MM */
 export function formatTime(time: string): string {

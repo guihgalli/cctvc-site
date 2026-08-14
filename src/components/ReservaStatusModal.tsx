@@ -1,10 +1,20 @@
-import { useEffect } from 'react'
-import { formatDate, formatTime } from '../lib/utils'
+import { useEffect, useState } from 'react'
+import {
+  buildWhatsAppComprovanteReservaUrl,
+  CLUBE_PIX_CNPJ,
+  formatCnpj,
+  formatDate,
+  formatTime,
+  formatExpiracaoReserva,
+} from '../lib/utils'
 import type { Reserva } from '../types'
 
 interface ReservaStatusModalProps {
   reserva: Reserva | null
   quadraNome?: string
+  isVisitante?: boolean
+  nomeUsuario?: string
+  expiracaoPendenteMinutos?: number
   onClose: () => void
   onCancel?: (reservaId: string) => void
 }
@@ -12,11 +22,18 @@ interface ReservaStatusModalProps {
 export function ReservaStatusModal({
   reserva,
   quadraNome,
+  isVisitante = false,
+  nomeUsuario = '',
+  expiracaoPendenteMinutos = 60,
   onClose,
   onCancel,
 }: ReservaStatusModalProps) {
+  const [pixCopiado, setPixCopiado] = useState(false)
+
   useEffect(() => {
     if (!reserva) return
+
+    setPixCopiado(false)
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -35,14 +52,23 @@ export function ReservaStatusModal({
 
   if (!reserva) return null
 
-  const nomeQuadra = reserva.quadras?.nome || quadraNome || 'Quadra'
-  const podeCancelar = reserva.status === 'pendente' || reserva.status === 'confirmada'
+  const reservaAtiva = reserva
+  const nomeQuadra = reservaAtiva.quadras?.nome || quadraNome || 'Quadra'
+  const minutosExpiracao =
+    reservaAtiva.quadras?.expiracao_pendente_minutos ?? expiracaoPendenteMinutos
+  const podeCancelar = reservaAtiva.status === 'pendente' || reservaAtiva.status === 'confirmada'
+  const mostrarPagamentoPix = isVisitante && reservaAtiva.status === 'pendente'
+  const prazoPagamento =
+    reservaAtiva.status === 'pendente'
+      ? formatExpiracaoReserva(reservaAtiva.criado_em, minutosExpiracao)
+      : null
 
   const config = {
     pendente: {
       titulo: 'Reserva pendente',
-      descricao:
-        'Sua solicitação foi enviada e aguarda confirmação do pagamento. A secretaria entrará em contato pelo WhatsApp cadastrado.',
+      descricao: mostrarPagamentoPix
+        ? null
+        : 'Sua solicitação foi enviada e aguarda confirmação do pagamento. A secretaria entrará em contato pelo WhatsApp cadastrado.',
       badge: 'Pendente',
       badgeClass: 'bg-amber-100 text-amber-800',
       iconClass: 'bg-amber-100 text-amber-700',
@@ -68,7 +94,28 @@ export function ReservaStatusModal({
       badgeClass: 'bg-stone-100 text-stone-500',
       iconClass: 'bg-stone-100 text-stone-500',
     },
-  }[reserva.status]
+  }[reservaAtiva.status]
+
+  async function copiarChavePix() {
+    try {
+      await navigator.clipboard.writeText(CLUBE_PIX_CNPJ)
+      setPixCopiado(true)
+      window.setTimeout(() => setPixCopiado(false), 2000)
+    } catch {
+      /* fallback silencioso — usuário pode selecionar manualmente */
+    }
+  }
+
+  function enviarComprovanteWhatsApp() {
+    const url = buildWhatsAppComprovanteReservaUrl(
+      nomeUsuario || 'Visitante',
+      nomeQuadra,
+      reservaAtiva.data_reserva,
+      reservaAtiva.hora_inicio,
+      reservaAtiva.hora_fim
+    )
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
   return (
     <div
@@ -90,9 +137,9 @@ export function ReservaStatusModal({
             <div
               className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center ${config.iconClass}`}
             >
-              {reserva.status === 'pendente' ? (
+              {reservaAtiva.status === 'pendente' ? (
                 <ClockIcon />
-              ) : reserva.status === 'confirmada' ? (
+              ) : reservaAtiva.status === 'confirmada' ? (
                 <CheckIcon />
               ) : (
                 <InfoIcon />
@@ -120,18 +167,70 @@ export function ReservaStatusModal({
         <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 mb-4">
           <p className="font-semibold text-stone-800">{nomeQuadra}</p>
           <p className="text-stone-600 text-sm mt-1">
-            {formatDate(reserva.data_reserva)} · {formatTime(reserva.hora_inicio)} –{' '}
-            {formatTime(reserva.hora_fim)}
+            {formatDate(reservaAtiva.data_reserva)} · {formatTime(reservaAtiva.hora_inicio)} –{' '}
+            {formatTime(reservaAtiva.hora_fim)}
           </p>
         </div>
 
-        <p className="text-stone-600 text-sm leading-relaxed">{config.descricao}</p>
+        {mostrarPagamentoPix ? (
+          <div className="space-y-4">
+            {prazoPagamento && (
+              <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
+                Prazo para pagamento: até <strong>{prazoPagamento}</strong>. Após esse horário, a
+                reserva expira e o horário é liberado.
+              </p>
+            )}
+            <p className="text-stone-600 text-sm leading-relaxed">
+              Faça o pagamento no PIX{' '}
+              <strong className="text-stone-800">{CLUBE_PIX_CNPJ}</strong> (CNPJ) e envie o
+              comprovante clicando no botão abaixo para confirmar sua reserva.
+            </p>
+
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-xs font-medium text-emerald-800 uppercase tracking-wide mb-1">
+                Chave PIX (CNPJ)
+              </p>
+              <div className="flex items-center gap-2">
+                <p className="font-mono text-sm text-emerald-900 flex-1 break-all">
+                  {formatCnpj(CLUBE_PIX_CNPJ)}
+                </p>
+                <button
+                  type="button"
+                  onClick={copiarChavePix}
+                  className="shrink-0 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-emerald-800 text-xs font-medium hover:bg-emerald-100 transition-colors"
+                >
+                  {pixCopiado ? 'Copiado!' : 'Copiar'}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={enviarComprovanteWhatsApp}
+              className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-lg transition-colors"
+            >
+              <WhatsAppIcon />
+              Enviar comprovante no WhatsApp
+            </button>
+          </div>
+        ) : (
+          <>
+            {prazoPagamento && reservaAtiva.status === 'pendente' && (
+              <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm mb-4">
+                Prazo para confirmação: até <strong>{prazoPagamento}</strong>.
+              </p>
+            )}
+            {config.descricao && (
+              <p className="text-stone-600 text-sm leading-relaxed">{config.descricao}</p>
+            )}
+          </>
+        )}
 
         <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
           {podeCancelar && onCancel && (
             <button
               type="button"
-              onClick={() => onCancel(reserva.id)}
+              onClick={() => onCancel(reservaAtiva.id)}
               className="w-full sm:w-auto px-4 py-3 rounded-lg border border-red-200 text-red-700 font-medium hover:bg-red-50 transition-colors"
             >
               Cancelar reserva
@@ -172,6 +271,14 @@ function InfoIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 10v6M12 7h.01" />
+    </svg>
+  )
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20.52 3.48A11.86 11.86 0 0 0 12.04 0C5.5 0 .2 5.3.2 11.84c0 2.09.55 4.12 1.6 5.92L0 24l6.4-1.68a11.8 11.8 0 0 0 5.64 1.44h.01c6.54 0 11.84-5.3 11.84-11.84 0-3.16-1.23-6.13-3.37-8.44ZM12.05 21.5h-.01a9.67 9.67 0 0 1-4.93-1.35l-.35-.21-3.8 1 1.01-3.7-.23-.38a9.66 9.66 0 0 1-1.48-5.16c0-5.34 4.35-9.68 9.7-9.68 2.59 0 5.02 1.01 6.85 2.84a9.62 9.62 0 0 1 2.84 6.85c0 5.34-4.35 9.79-9.6 9.79Zm5.3-7.25c-.29-.15-1.72-.85-1.99-.94-.27-.1-.46-.15-.66.14-.19.29-.76.94-.93 1.14-.17.19-.34.22-.63.07-.29-.15-1.23-.45-2.34-1.44-.86-.77-1.44-1.72-1.61-2.01-.17-.29-.02-.45.13-.6.13-.13.29-.34.43-.51.15-.17.19-.29.29-.48.1-.19.05-.36-.02-.51-.07-.15-.66-1.59-.9-2.18-.24-.57-.48-.49-.66-.5h-.56c-.19 0-.51.07-.78.36-.27.29-1.03 1-1.03 2.45s1.05 2.84 1.2 3.04c.15.19 2.07 3.16 5.01 4.43.7.3 1.25.48 1.68.62.7.22 1.34.19 1.85.12.56-.08 1.72-.7 1.96-1.38.24-.68.24-1.26.17-1.38-.07-.12-.26-.19-.55-.34Z" />
     </svg>
   )
 }

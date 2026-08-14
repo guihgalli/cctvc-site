@@ -99,6 +99,7 @@ export function ReservationsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [reservaModal, setReservaModal] = useState<Reserva | null>(null)
   const [modalQuadraNome, setModalQuadraNome] = useState<string | undefined>()
+  const [modalExpiracaoMinutos, setModalExpiracaoMinutos] = useState(60)
   const [abaAtiva, setAbaAtiva] = useState<'reservar' | 'minhas'>('reservar')
   const dateStripRef = useRef<HTMLDivElement>(null)
 
@@ -220,6 +221,7 @@ export function ReservationsPage() {
       })
       setReservaModal(reserva)
       setModalQuadraNome(quadraSelecionada.nome)
+      setModalExpiracaoMinutos(quadraSelecionada.expiracao_pendente_minutos ?? 60)
       await carregarReservas()
       await carregarMinhasReservas()
     } catch (err) {
@@ -249,11 +251,13 @@ export function ReservationsPage() {
   function abrirModalReserva(reserva: Reserva, quadraNome?: string) {
     setReservaModal(reserva)
     setModalQuadraNome(quadraNome ?? reserva.quadras?.nome)
+    setModalExpiracaoMinutos(reserva.quadras?.expiracao_pendente_minutos ?? 60)
   }
 
   function fecharModalReserva() {
     setReservaModal(null)
     setModalQuadraNome(undefined)
+    setModalExpiracaoMinutos(60)
   }
 
   const fotoPrincipal = quadraSelecionada?.fotos_quadras?.find((f) => f.principal)
@@ -276,7 +280,9 @@ export function ReservationsPage() {
         {!isSocio && (
           <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm mb-6">
             Como visitante, sua reserva ficará <strong>pendente</strong> até a secretaria confirmar o
-            pagamento. A confirmação será enviada no WhatsApp cadastrado.
+            pagamento. Se não houver confirmação dentro do prazo configurado na quadra, a reserva
+            expira automaticamente e o horário é liberado. A confirmação será enviada no WhatsApp
+            cadastrado.
           </p>
         )}
 
@@ -578,6 +584,9 @@ export function ReservationsPage() {
       <ReservaStatusModal
         reserva={reservaModal}
         quadraNome={modalQuadraNome}
+        isVisitante={!isSocio}
+        nomeUsuario={user?.nome}
+        expiracaoPendenteMinutos={modalExpiracaoMinutos}
         onClose={fecharModalReserva}
         onCancel={handleCancelar}
       />

@@ -33,6 +33,8 @@ export interface Quadra {
   descricao: string | null
   tipo_esporte: string | null
   ativo: boolean
+  /** Minutos até cancelar reserva pendente e liberar o horário (padrão: 60) */
+  expiracao_pendente_minutos?: number
   criado_em: string
   fotos_quadras?: FotoQuadra[]
   horarios_quadra?: HorarioQuadra[]

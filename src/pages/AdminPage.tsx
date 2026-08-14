@@ -32,6 +32,8 @@ import {
   getErrorMessage,
   prepareCourtPhoto,
   buildWhatsAppReservaConfirmadaUrl,
+  formatExpiracaoMinutos,
+  formatExpiracaoReserva,
 } from '../lib/utils'
 import type { CourtScheduleInput, Quadra, Reserva, Usuario } from '../types'
 
@@ -51,6 +53,7 @@ export function AdminPage() {
   const [nomeQuadra, setNomeQuadra] = useState('')
   const [descricaoQuadra, setDescricaoQuadra] = useState('')
   const [tipoEsporte, setTipoEsporte] = useState('')
+  const [expiracaoPendenteMinutos, setExpiracaoPendenteMinutos] = useState('60')
   const [arquivoFoto, setArquivoFoto] = useState<File | null>(null)
   const [fotoAtualUrl, setFotoAtualUrl] = useState<string | null>(null)
   const [previewFotoUrl, setPreviewFotoUrl] = useState<string | null>(null)
@@ -106,6 +109,7 @@ export function AdminPage() {
     setNomeQuadra('')
     setDescricaoQuadra('')
     setTipoEsporte('')
+    setExpiracaoPendenteMinutos('60')
     setArquivoFoto(null)
     setFotoAtualUrl(null)
     setPreviewFotoUrl(null)
@@ -130,6 +134,7 @@ export function AdminPage() {
     setNomeQuadra(quadra.nome)
     setDescricaoQuadra(quadra.descricao || '')
     setTipoEsporte(quadra.tipo_esporte || '')
+    setExpiracaoPendenteMinutos(String(quadra.expiracao_pendente_minutos ?? 60))
     setArquivoFoto(null)
     setPreviewFotoUrl(null)
     setFotoAtualUrl(foto?.url || null)
@@ -140,9 +145,17 @@ export function AdminPage() {
 
   async function handleSalvarQuadra(e: FormEvent) {
     e.preventDefault()
-    setSalvandoQuadra(true)
     setMessage(null)
     const editando = Boolean(editandoQuadraId)
+    const expiracaoMinutos = Number(expiracaoPendenteMinutos)
+    if (!Number.isInteger(expiracaoMinutos) || expiracaoMinutos < 5 || expiracaoMinutos > 10080) {
+      setMessage({
+        type: 'error',
+        text: 'Expiração de reserva pendente deve ser entre 5 minutos e 7 dias (10080 min).',
+      })
+      return
+    }
+    setSalvandoQuadra(true)
     try {
       let quadraId = editandoQuadraId
 
@@ -152,12 +165,14 @@ export function AdminPage() {
             nome: nomeQuadra,
             descricao: descricaoQuadra || '',
             tipo_esporte: tipoEsporte || '',
+            expiracao_pendente_minutos: expiracaoMinutos,
           })
         } else {
           const criada = await createCourt({
             nome: nomeQuadra,
             descricao: descricaoQuadra || undefined,
             tipo_esporte: tipoEsporte || undefined,
+            expiracao_pendente_minutos: expiracaoMinutos,
           })
           quadraId = criada.id
         }
@@ -481,6 +496,25 @@ export function AdminPage() {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Expiração de reserva pendente (minutos)
+                  </label>
+                  <input
+                    type="number"
+                    min={5}
+                    max={10080}
+                    step={5}
+                    value={expiracaoPendenteMinutos}
+                    onChange={(e) => setExpiracaoPendenteMinutos(e.target.value)}
+                    className="w-full sm:max-w-xs border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  <p className="text-xs text-stone-500 mt-1">
+                    Reservas de visitantes não confirmadas são canceladas após{' '}
+                    {formatExpiracaoMinutos(Number(expiracaoPendenteMinutos) || 60)} e o horário
+                    volta a ficar disponível.
+                  </p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">Foto da quadra</label>
                   <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
                     <div className="w-28 h-28 rounded-lg border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
@@ -575,6 +609,10 @@ export function AdminPage() {
                         </div>
                         <p className="mt-2 text-xs text-stone-500 line-clamp-2">
                           {resumirHorarios(quadra.horarios_quadra)}
+                        </p>
+                        <p className="mt-1 text-xs text-amber-700">
+                          Reserva pendente expira em{' '}
+                          {formatExpiracaoMinutos(quadra.expiracao_pendente_minutos ?? 60)}
                         </p>
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <button
@@ -690,6 +728,15 @@ export function AdminPage() {
                             {r.usuarios?.tipo_socio === 'nao_socio' ? 'Visitante' : 'Sócio'}
                             {r.usuarios?.telefone && ` · ${formatPhone(r.usuarios.telefone)}`}
                           </div>
+                          {r.status === 'pendente' && r.criado_em && (
+                            <div className="text-amber-700 text-xs mt-1">
+                              Expira em{' '}
+                              {formatExpiracaoReserva(
+                                r.criado_em,
+                                r.quadras?.expiracao_pendente_minutos ?? 60
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           {r.status === 'pendente' ? (

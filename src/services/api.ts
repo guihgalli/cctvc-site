@@ -172,6 +172,7 @@ export async function createCourt(quadra: {
   nome: string
   descricao?: string
   tipo_esporte?: string
+  expiracao_pendente_minutos?: number
 }): Promise<Quadra> {
   const token = requireToken()
   return rpc<Quadra>(
@@ -181,6 +182,7 @@ export async function createCourt(quadra: {
       p_nome: quadra.nome,
       p_descricao: quadra.descricao ?? null,
       p_tipo_esporte: quadra.tipo_esporte ?? null,
+      p_expiracao_pendente_minutos: quadra.expiracao_pendente_minutos ?? 60,
     },
     'Erro ao cadastrar quadra.'
   )
@@ -205,7 +207,13 @@ export async function replaceCourtSchedules(
 
 export async function updateCourt(
   id: string,
-  updates: Partial<{ nome: string; descricao: string; tipo_esporte: string; ativo: boolean }>
+  updates: Partial<{
+    nome: string
+    descricao: string
+    tipo_esporte: string
+    ativo: boolean
+    expiracao_pendente_minutos: number
+  }>
 ): Promise<Quadra> {
   const token = requireToken()
   return rpc<Quadra>(
@@ -217,6 +225,7 @@ export async function updateCourt(
       p_descricao: updates.descricao ?? null,
       p_tipo_esporte: updates.tipo_esporte ?? null,
       p_ativo: updates.ativo ?? null,
+      p_expiracao_pendente_minutos: updates.expiracao_pendente_minutos ?? null,
     },
     'Erro ao atualizar quadra.'
   )
