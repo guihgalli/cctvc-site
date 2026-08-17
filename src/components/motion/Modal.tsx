@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 
 interface ModalProps {
@@ -107,12 +108,13 @@ export function Modal({
     .filter(Boolean)
     .join(' ')
 
-  return (
+  return createPortal(
     <div className="motion-modal" role="dialog" aria-modal="true" aria-labelledby={labelledBy}>
       <button type="button" className={backdropClass} aria-label="Fechar" onClick={onClose} />
       <div ref={panelRef} className={panelClass}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
