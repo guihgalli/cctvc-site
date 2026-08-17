@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Header } from './Header'
+import { PageTransition } from './motion/PageTransition'
 import { WHATSAPP_ASSOCIACAO_TEXT, buildWhatsAppUrl } from '../lib/utils'
 
 const whatsappUrl = buildWhatsAppUrl(WHATSAPP_ASSOCIACAO_TEXT)
@@ -13,7 +14,9 @@ export function Layout({ children, showHeader = true }: LayoutProps) {
   return (
     <div className="min-h-screen bg-[#f8faf8] flex flex-col">
       {showHeader && <Header />}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        <PageTransition>{children}</PageTransition>
+      </main>
       <footer className="bg-emerald-950 text-emerald-200">
         <div className="max-w-5xl mx-auto px-4 py-8 grid gap-6 md:grid-cols-[1.2fr_1fr_1fr] text-sm">
           <div>

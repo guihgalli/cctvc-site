@@ -89,7 +89,7 @@ export function CourtScheduleEditor({ horarios, saving = false, onSave, onCancel
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-50 p-3 space-y-3"
+      className="w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-50 p-3 space-y-3 motion-page-enter"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-stone-700">Dias e horários disponíveis</p>
@@ -150,14 +150,22 @@ export function CourtScheduleEditor({ horarios, saving = false, onSave, onCancel
         <button
           type="submit"
           disabled={saving}
-          className="text-xs bg-emerald-700 text-white px-3 py-1.5 rounded hover:bg-emerald-600 disabled:opacity-60"
+          className="motion-btn motion-btn--primary motion-btn--sm"
+          aria-busy={saving || undefined}
         >
-          {saving ? 'Salvando...' : 'Salvar horários'}
+          {saving ? (
+            <>
+              <span className="motion-spinner motion-spinner--btn" />
+              Salvando...
+            </>
+          ) : (
+            'Salvar horários'
+          )}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="text-xs border border-stone-300 text-stone-600 px-3 py-1.5 rounded hover:bg-white"
+          className="motion-btn motion-btn--ghost motion-btn--sm"
         >
           Fechar
         </button>

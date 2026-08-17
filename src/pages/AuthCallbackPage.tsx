@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { Logo } from '../components/Logo'
+import { FeedbackMessage } from '../components/motion/FeedbackMessage'
 import { useAuth } from '../contexts/AuthContext'
 
 export function AuthCallbackPage() {
@@ -48,16 +49,19 @@ export function AuthCallbackPage() {
   return (
     <Layout>
       <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <Logo size="md" className="mx-auto mb-6" />
+        <Logo size="md" className="mx-auto mb-6 home-fade-up" />
         {error ? (
-          <>
-            <p className="text-red-700 mb-4">{error}</p>
-            <a href="/login" className="text-emerald-700 font-medium hover:underline">
+          <div className="space-y-4 motion-page-enter">
+            <FeedbackMessage type="error">{error}</FeedbackMessage>
+            <a href="/login" className="inline-block text-emerald-700 font-medium hover:underline motion-cta">
               Voltar ao login
             </a>
-          </>
+          </div>
         ) : (
-          <p className="text-emerald-800">Concluindo login com Google...</p>
+          <div className="flex flex-col items-center gap-4 motion-page-enter" aria-busy="true">
+            <div className="motion-spinner motion-spinner--lg" aria-hidden="true" />
+            <p className="text-emerald-800">Concluindo login com Google...</p>
+          </div>
         )}
       </div>
     </Layout>

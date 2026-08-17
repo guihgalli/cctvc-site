@@ -9,6 +9,8 @@ import {
   formatMoney,
 } from '../lib/utils'
 import type { Reserva } from '../types'
+import { Modal } from './motion/Modal'
+import { Button } from './motion/Button'
 
 interface ReservaStatusModalProps {
   reserva: Reserva | null
@@ -35,23 +37,8 @@ export function ReservaStatusModal({
 
   useEffect(() => {
     if (!reserva) return
-
     setPixCopiado(false)
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [reserva, onClose])
+  }, [reserva])
 
   if (!reserva) return null
 
@@ -106,7 +93,7 @@ export function ReservaStatusModal({
       setPixCopiado(true)
       window.setTimeout(() => setPixCopiado(false), 2000)
     } catch {
-      /* fallback silencioso — usuário pode selecionar manualmente */
+      /* fallback silencioso */
     }
   }
 
@@ -123,141 +110,129 @@ export function ReservaStatusModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="reserva-status-title"
-    >
-      <button
-        type="button"
-        className="absolute inset-0 bg-stone-900/50"
-        aria-label="Fechar"
-        onClick={onClose}
-      />
-
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div className="flex items-start gap-3">
-            <div
-              className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center ${config.iconClass}`}
-            >
-              {reservaAtiva.status === 'pendente' ? (
-                <ClockIcon />
-              ) : reservaAtiva.status === 'confirmada' ? (
-                <CheckIcon />
-              ) : (
-                <InfoIcon />
-              )}
-            </div>
-            <div>
-              <h2 id="reserva-status-title" className="text-xl font-bold text-emerald-900">
-                {config.titulo}
-              </h2>
-              <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded font-medium ${config.badgeClass}`}>
-                {config.badge}
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-stone-400 hover:text-stone-600 text-2xl leading-none px-1"
-            aria-label="Fechar modal"
+    <Modal open={!!reserva} onClose={onClose} labelledBy="reserva-status-title">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="flex items-start gap-3">
+          <div
+            className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center ${config.iconClass}`}
           >
-            ×
-          </button>
-        </div>
-
-        <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 mb-4">
-          <p className="font-semibold text-stone-800">{nomeQuadra}</p>
-          <p className="text-stone-600 text-sm mt-1">
-            {formatDate(reservaAtiva.data_reserva)} · {formatTime(reservaAtiva.hora_inicio)} –{' '}
-            {formatTime(reservaAtiva.hora_fim)}
-          </p>
-        </div>
-
-        {mostrarPagamentoPix ? (
-          <div className="space-y-4">
-            {prazoPagamento && (
-              <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
-                Prazo para pagamento: até <strong>{prazoPagamento}</strong>. Após esse horário, a
-                reserva expira e o horário é liberado.
-              </p>
+            {reservaAtiva.status === 'pendente' ? (
+              <ClockIcon />
+            ) : reservaAtiva.status === 'confirmada' ? (
+              <CheckIcon />
+            ) : (
+              <InfoIcon />
             )}
-            <p className="text-stone-600 text-sm leading-relaxed">
-              {valorReserva != null && (
-                <>
-                  Valor da reserva:{' '}
-                  <strong className="text-stone-800">{formatMoney(Number(valorReserva))}</strong>.
-                  {' '}
-                </>
-              )}
-              Faça o pagamento no PIX{' '}
-              <strong className="text-stone-800">{CLUBE_PIX_CNPJ}</strong> (CNPJ) e envie o
-              comprovante clicando no botão abaixo para confirmar sua reserva.
-            </p>
-
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <p className="text-xs font-medium text-emerald-800 uppercase tracking-wide mb-1">
-                Chave PIX (CNPJ)
-              </p>
-              <div className="flex items-center gap-2">
-                <p className="font-mono text-sm text-emerald-900 flex-1 break-all">
-                  {formatCnpj(CLUBE_PIX_CNPJ)}
-                </p>
-                <button
-                  type="button"
-                  onClick={copiarChavePix}
-                  className="shrink-0 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-emerald-800 text-xs font-medium hover:bg-emerald-100 transition-colors"
-                >
-                  {pixCopiado ? 'Copiado!' : 'Copiar'}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={enviarComprovanteWhatsApp}
-              className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              <WhatsAppIcon />
-              Enviar comprovante no WhatsApp
-            </button>
           </div>
-        ) : (
-          <>
-            {prazoPagamento && reservaAtiva.status === 'pendente' && (
-              <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm mb-4">
-                Prazo para confirmação: até <strong>{prazoPagamento}</strong>.
-              </p>
-            )}
-            {config.descricao && (
-              <p className="text-stone-600 text-sm leading-relaxed">{config.descricao}</p>
-            )}
-          </>
-        )}
-
-        <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
-          {podeCancelar && onCancel && (
-            <button
-              type="button"
-              onClick={() => onCancel(reservaAtiva.id)}
-              className="w-full sm:w-auto px-4 py-3 rounded-lg border border-red-200 text-red-700 font-medium hover:bg-red-50 transition-colors"
-            >
-              Cancelar reserva
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold py-3 rounded-lg transition-colors"
-          >
-            Entendi
-          </button>
+          <div>
+            <h2 id="reserva-status-title" className="text-xl font-bold text-emerald-900">
+              {config.titulo}
+            </h2>
+            <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded font-medium ${config.badgeClass}`}>
+              {config.badge}
+            </span>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-stone-400 hover:text-stone-600 text-2xl leading-none px-1 motion-cta"
+          aria-label="Fechar modal"
+        >
+          ×
+        </button>
       </div>
-    </div>
+
+      <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 mb-4">
+        <p className="font-semibold text-stone-800">{nomeQuadra}</p>
+        <p className="text-stone-600 text-sm mt-1">
+          {formatDate(reservaAtiva.data_reserva)} · {formatTime(reservaAtiva.hora_inicio)} –{' '}
+          {formatTime(reservaAtiva.hora_fim)}
+        </p>
+      </div>
+
+      {mostrarPagamentoPix ? (
+        <div className="space-y-4">
+          {prazoPagamento && (
+            <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm motion-feedback--enter">
+              Prazo para pagamento: até <strong>{prazoPagamento}</strong>. Após esse horário, a
+              reserva expira e o horário é liberado.
+            </p>
+          )}
+          <p className="text-stone-600 text-sm leading-relaxed">
+            {valorReserva != null && (
+              <>
+                Valor da reserva:{' '}
+                <strong className="text-stone-800">{formatMoney(Number(valorReserva))}</strong>.{' '}
+              </>
+            )}
+            Faça o pagamento no PIX{' '}
+            <strong className="text-stone-800">{CLUBE_PIX_CNPJ}</strong> (CNPJ) e envie o
+            comprovante clicando no botão abaixo para confirmar sua reserva.
+          </p>
+
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p className="text-xs font-medium text-emerald-800 uppercase tracking-wide mb-1">
+              Chave PIX (CNPJ)
+            </p>
+            <div className="flex items-center gap-2">
+              <p className="font-mono text-sm text-emerald-900 flex-1 break-all">
+                {formatCnpj(CLUBE_PIX_CNPJ)}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={copiarChavePix}
+                className="shrink-0 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+              >
+                {pixCopiado ? (
+                  <span key="copied" className="motion-icon-swap">Copiado!</span>
+                ) : (
+                  <span key="copy">Copiar</span>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <Button
+            variant="whatsapp"
+            size="lg"
+            className="w-full"
+            onClick={enviarComprovanteWhatsApp}
+          >
+            <WhatsAppIcon />
+            Enviar comprovante no WhatsApp
+          </Button>
+        </div>
+      ) : (
+        <>
+          {prazoPagamento && reservaAtiva.status === 'pendente' && (
+            <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm mb-4">
+              Prazo para confirmação: até <strong>{prazoPagamento}</strong>.
+            </p>
+          )}
+          {config.descricao && (
+            <p className="text-stone-600 text-sm leading-relaxed">{config.descricao}</p>
+          )}
+        </>
+      )}
+
+      <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+        {podeCancelar && onCancel && (
+          <Button
+            variant="danger"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => onCancel(reservaAtiva.id)}
+          >
+            Cancelar reserva
+          </Button>
+        )}
+        <Button variant="primary" size="lg" className="w-full flex-1" onClick={onClose}>
+          Entendi
+        </Button>
+      </div>
+    </Modal>
   )
 }
 

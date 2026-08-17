@@ -8,6 +8,9 @@ import {
   maskPhoneInput,
 } from '../lib/utils'
 import type { TipoSocio, Usuario } from '../types'
+import { Modal } from './motion/Modal'
+import { Button } from './motion/Button'
+import { FeedbackMessage } from './motion/FeedbackMessage'
 
 export interface UsuarioEditForm {
   nome: string
@@ -54,21 +57,7 @@ export function EditUsuarioModal({
     setTipoSocio(usuario.tipo_socio)
     setAtivo(usuario.ativo)
     setError('')
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [usuario, onClose])
+  }, [usuario])
 
   if (!usuario) return null
 
@@ -123,147 +112,128 @@ export function EditUsuarioModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edit-usuario-title"
-    >
-      <button
-        type="button"
-        className="absolute inset-0 bg-stone-900/50"
-        aria-label="Fechar"
-        onClick={onClose}
-      />
+    <Modal open={!!usuario} onClose={onClose} labelledBy="edit-usuario-title" maxWidth="lg">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 id="edit-usuario-title" className="text-xl font-bold text-emerald-900">
+            Editar usuário
+          </h2>
+          <p className="text-stone-500 text-sm mt-1">
+            Matrícula: {usuarioAtual.codigo_usuario ?? '—'}
+            {isSelf && ' · você não pode alterar seu perfil ou status aqui'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-stone-400 hover:text-stone-600 text-2xl leading-none px-1 motion-cta"
+          aria-label="Fechar modal"
+        >
+          ×
+        </button>
+      </div>
 
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div>
-            <h2 id="edit-usuario-title" className="text-xl font-bold text-emerald-900">
-              Editar usuário
-            </h2>
-            <p className="text-stone-500 text-sm mt-1">
-              Matrícula: {usuarioAtual.codigo_usuario ?? '—'}
-              {isSelf && ' · você não pode alterar seu perfil ou status aqui'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-stone-400 hover:text-stone-600 text-2xl leading-none px-1"
-            aria-label="Fechar modal"
-          >
-            ×
-          </button>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">Nome *</label>
+          <input
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            required
+            className="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow duration-200"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Nome *</label>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              CPF {tipoSocio === 'socio' ? '*' : '(opcional)'}
+            </label>
             <input
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value.replace(/\D/g, '').slice(0, 11))}
+              required={tipoSocio === 'socio'}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow duration-200"
             />
           </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                CPF {tipoSocio === 'socio' ? '*' : '(opcional)'}
-              </label>
-              <input
-                value={cpf}
-                onChange={(e) => setCpf(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                required={tipoSocio === 'socio'}
-                className="w-full border border-stone-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Telefone</label>
-              <input
-                type="tel"
-                value={telefone}
-                onChange={(e) => setTelefone(maskPhoneInput(e.target.value))}
-                inputMode="numeric"
-                placeholder="(47) 99999-9999"
-                className="w-full border border-stone-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
-              />
-            </div>
-          </div>
-
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">E-mail</label>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Telefone</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+              type="tel"
+              value={telefone}
+              onChange={(e) => setTelefone(maskPhoneInput(e.target.value))}
+              inputMode="numeric"
+              placeholder="(47) 99999-9999"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow duration-200"
             />
           </div>
+        </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Tipo</label>
-              <select
-                value={tipoSocio}
-                onChange={(e) => setTipoSocio(e.target.value as TipoSocio)}
-                className="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-              >
-                <option value="socio">Sócio</option>
-                <option value="nao_socio">Visitante</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Perfil</label>
-              <select
-                value={perfil}
-                onChange={(e) => setPerfil(e.target.value as 'usuario' | 'admin')}
-                disabled={isSelf}
-                className="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-stone-100"
-              >
-                <option value="usuario">Usuário</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">E-mail</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow duration-200"
+          />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Tipo</label>
+            <select
+              value={tipoSocio}
+              onChange={(e) => setTipoSocio(e.target.value as TipoSocio)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow duration-200"
+            >
+              <option value="socio">Sócio</option>
+              <option value="nao_socio">Visitante</option>
+            </select>
           </div>
-
-          <label className="flex items-center gap-2 text-sm text-stone-700">
-            <input
-              type="checkbox"
-              checked={ativo}
-              onChange={(e) => setAtivo(e.target.checked)}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Perfil</label>
+            <select
+              value={perfil}
+              onChange={(e) => setPerfil(e.target.value as 'usuario' | 'admin')}
               disabled={isSelf}
-              className="rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
-            />
-            Usuário ativo
-          </label>
-
-          {error && (
-            <div className="text-sm px-4 py-3 rounded-lg border bg-red-50 text-red-700 border-red-200">
-              {error}
-            </div>
-          )}
-
-          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full sm:w-auto px-4 py-3 rounded-lg border border-stone-300 text-stone-700 font-medium hover:bg-stone-50"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-stone-100 transition-shadow duration-200"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full flex-1 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold py-3 rounded-lg"
-            >
-              {saving ? 'Salvando...' : 'Salvar alterações'}
-            </button>
+              <option value="usuario">Usuário</option>
+              <option value="admin">Administrador</option>
+            </select>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm text-stone-700">
+          <input
+            type="checkbox"
+            checked={ativo}
+            onChange={(e) => setAtivo(e.target.checked)}
+            disabled={isSelf}
+            className="rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+          />
+          Usuário ativo
+        </label>
+
+        {error && <FeedbackMessage type="error">{error}</FeedbackMessage>}
+
+        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
+          <Button variant="ghost" size="lg" className="w-full sm:w-auto" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="w-full flex-1"
+            loading={saving}
+            loadingText="Salvando..."
+          >
+            Salvar alterações
+          </Button>
+        </div>
+      </form>
+    </Modal>
   )
 }

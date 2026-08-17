@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { InstagramCarousel } from '../components/InstagramCarousel'
 import { Layout } from '../components/Layout'
@@ -109,7 +109,7 @@ export function HomePage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center home-fade-up home-fade-up--delay-4">
             <Link
               to="/login"
-              className="bg-white text-emerald-950 px-8 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition-colors"
+              className="motion-cta bg-white text-emerald-950 px-8 py-3 rounded-lg font-semibold hover:bg-emerald-50"
             >
               Reservar quadra
             </Link>
@@ -117,7 +117,7 @@ export function HomePage() {
               href="https://www.instagram.com/cctvelhacentral/"
               target="_blank"
               rel="noopener noreferrer"
-              className="border border-emerald-300/80 text-emerald-50 px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors"
+              className="motion-cta border border-emerald-300/80 text-emerald-50 px-8 py-3 rounded-lg font-semibold hover:bg-white/10"
             >
               Seguir no Instagram
             </a>
@@ -144,7 +144,7 @@ export function HomePage() {
               convivência em um ambiente familiar.
             </p>
           </div>
-          <div className="home-stat-panel">
+          <div className="home-stat-panel motion-page-enter">
             <div>
               <p className="font-display text-4xl md:text-5xl text-emerald-950">1900</p>
               <p className="text-stone-600 mt-1">Fundação em 1º de maio</p>
@@ -177,8 +177,12 @@ export function HomePage() {
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
-            {departamentos.map((item) => (
-              <article key={item.title} className="home-feature">
+            {departamentos.map((item, index) => (
+              <article
+                key={item.title}
+                className="home-feature motion-stagger-item"
+                style={{ '--stagger-index': index } as CSSProperties}
+              >
                 <h3 className="font-display text-xl text-emerald-950 mb-2">{item.title}</h3>
                 <p className="text-stone-600 text-sm leading-relaxed">{item.description}</p>
               </article>
@@ -217,7 +221,7 @@ export function HomePage() {
             </p>
             <Link
               to="/login"
-              className="inline-flex bg-emerald-400 text-emerald-950 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-300 transition-colors"
+              className="motion-cta inline-flex bg-emerald-400 text-emerald-950 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-300"
             >
               Acessar reservas
             </Link>
@@ -239,8 +243,12 @@ export function HomePage() {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 md:gap-10">
-            {eventos.map((evento) => (
-              <article key={evento.title} className="home-event">
+            {eventos.map((evento, index) => (
+              <article
+                key={evento.title}
+                className="home-event motion-stagger-item"
+                style={{ '--stagger-index': index } as CSSProperties}
+              >
                 <h3 className="font-display text-xl text-emerald-950 mb-2">{evento.title}</h3>
                 <p className="text-stone-600 text-sm leading-relaxed">{evento.description}</p>
               </article>
@@ -277,7 +285,11 @@ export function HomePage() {
 
           <ol className="grid md:grid-cols-3 gap-8 md:gap-10 mb-10">
             {passosAssociacao.map((passo, index) => (
-              <li key={passo.title} className="home-step">
+              <li
+                key={passo.title}
+                className="home-step motion-stagger-item"
+                style={{ '--stagger-index': index } as CSSProperties}
+              >
                 <p className="font-display text-emerald-700 text-sm tracking-[0.18em] uppercase mb-3">
                   Passo {index + 1}
                 </p>
@@ -292,14 +304,14 @@ export function HomePage() {
               href={whatsappAssociacaoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-600 transition-colors"
+              className="motion-cta inline-flex items-center justify-center gap-2 bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-600"
             >
               <WhatsAppIcon />
               Quero ser sócio no WhatsApp
             </a>
             <a
               href="tel:+5547988080903"
-              className="inline-flex items-center justify-center border border-emerald-800/20 text-emerald-900 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition-colors"
+              className="motion-cta inline-flex items-center justify-center border border-emerald-800/20 text-emerald-900 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50"
             >
               Ligar (47) 98808-0903
             </a>
@@ -378,7 +390,7 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="home-map">
+            <div className="home-map motion-page-enter">
               <iframe
                 title="Mapa do CCTVC — Rua dos Caçadores, 3680, Blumenau"
                 src={CLUBE_MAPS_EMBED_URL}

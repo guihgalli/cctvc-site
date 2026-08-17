@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { PageLoadingSkeleton } from './motion/Skeleton'
 import type { ReactNode } from 'react'
 
 interface ProtectedRouteProps {
@@ -12,11 +13,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
   const location = useLocation()
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[40vh] text-stone-500 text-sm">
-        Verificando sessão...
-      </div>
-    )
+    return <PageLoadingSkeleton />
   }
 
   if (!user) {

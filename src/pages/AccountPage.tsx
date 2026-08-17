@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { useAuth } from '../contexts/AuthContext'
+import { FeedbackMessage } from '../components/motion/FeedbackMessage'
+import { Button } from '../components/motion/Button'
 import { changePassword, completeGoogleRegistration, completePhoneRegistration } from '../services/api'
 import {
   getErrorMessage,
@@ -157,20 +159,20 @@ export function AccountPage() {
         </div>
 
         {(precisaCadastro || cadastroGoogle) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+          <div className="motion-feedback motion-feedback--info motion-feedback--enter">
             Informe seu CPF e WhatsApp para concluir o primeiro acesso. Se você já é sócio do clube,
             vincularemos automaticamente ao seu cadastro.
           </div>
         )}
 
         {(precisaTelefone || cadastroTelefone) && !precisaCadastro && !cadastroGoogle && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+          <div className="motion-feedback motion-feedback--info motion-feedback--enter">
             Cadastre seu WhatsApp para receber a confirmação das reservas e concluir solicitações.
           </div>
         )}
 
         {(precisaCadastro || cadastroGoogle) && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+          <div className="motion-card shadow-lg p-6 sm:p-8">
             <h2 className="text-lg font-semibold text-emerald-900 mb-1">Concluir cadastro</h2>
             <p className="text-stone-500 text-sm mb-4">
               Usamos o CPF para identificar sócios já cadastrados e o WhatsApp para confirmações.
@@ -207,19 +209,22 @@ export function AccountPage() {
                   className="w-full border border-stone-300 rounded-lg px-4 py-3 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
               </div>
-              <button
+              <Button
                 type="submit"
-                disabled={saving}
-                className="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold py-3 rounded-lg"
+                variant="primary"
+                size="lg"
+                className="w-full"
+                loading={saving}
+                loadingText="Salvando..."
               >
-                {saving ? 'Salvando...' : 'Concluir cadastro'}
-              </button>
+                Concluir cadastro
+              </Button>
             </form>
           </div>
         )}
 
         {(isVisitante || precisaTelefone) && !precisaCadastro && !cadastroGoogle && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+          <div className="motion-card shadow-lg p-6 sm:p-8">
             <h2 className="text-lg font-semibold text-emerald-900 mb-1">WhatsApp</h2>
             <p className="text-stone-500 text-sm mb-4">
               Usado para confirmar reservas após o pagamento.
@@ -240,19 +245,22 @@ export function AccountPage() {
                 required
                 className="w-full border border-stone-300 rounded-lg px-4 py-3 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
               />
-              <button
+              <Button
                 type="submit"
-                disabled={saving}
-                className="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold py-3 rounded-lg"
+                variant="primary"
+                size="lg"
+                className="w-full"
+                loading={saving}
+                loadingText="Salvando..."
               >
-                {saving ? 'Salvando...' : 'Salvar WhatsApp'}
-              </button>
+                Salvar WhatsApp
+              </Button>
             </form>
           </div>
         )}
 
         {!isVisitante && !precisaCadastro && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+          <div className="motion-card shadow-lg p-6 sm:p-8">
             <h2 className="text-lg font-semibold text-emerald-900 mb-1">Alterar senha</h2>
             <p className="text-stone-500 text-sm mb-6">
               A senha tem exatamente 3 dígitos numéricos.
@@ -288,27 +296,31 @@ export function AccountPage() {
                 required
                 className="w-full border rounded-lg px-4 py-3 text-center text-xl font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
               />
-              <button
+              <Button
                 type="submit"
-                disabled={saving}
-                className="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold py-3 rounded-lg"
+                variant="primary"
+                size="lg"
+                className="w-full"
+                loading={saving}
+                loadingText="Salvando..."
               >
-                {saving ? 'Salvando...' : 'Salvar nova senha'}
-              </button>
+                Salvar nova senha
+              </Button>
             </form>
           </div>
         )}
 
         {(error || success) && (
-          <div
-            className={`text-sm px-4 py-3 rounded-lg border ${
-              error
-                ? 'bg-red-50 text-red-700 border-red-200'
-                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-            }`}
+          <FeedbackMessage
+            type={error ? 'error' : 'success'}
+            autoHideMs={success ? 5000 : 0}
+            onDismiss={() => {
+              setError('')
+              setSuccess('')
+            }}
           >
             {error || success}
-          </div>
+          </FeedbackMessage>
         )}
       </div>
     </Layout>

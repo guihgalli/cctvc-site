@@ -1,6 +1,10 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, type CSSProperties } from 'react'
 import { Layout } from '../components/Layout'
 import { ReservaStatusModal } from '../components/ReservaStatusModal'
+import { FeedbackMessage } from '../components/motion/FeedbackMessage'
+import { TabPanel } from '../components/motion/TabPanel'
+import { LazyImage } from '../components/motion/LazyImage'
+import { ReservationsPageSkeleton, Skeleton } from '../components/motion/Skeleton'
 import { useAuth } from '../contexts/AuthContext'
 import {
   fetchCourts,
@@ -95,6 +99,7 @@ export function ReservationsPage() {
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [minhasReservas, setMinhasReservas] = useState<Reserva[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingHorarios, setLoadingHorarios] = useState(false)
   const [reservando, setReservando] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [reservaModal, setReservaModal] = useState<Reserva | null>(null)
@@ -157,11 +162,14 @@ export function ReservationsPage() {
 
   async function carregarReservas() {
     if (!quadraSelecionada || !dataSelecionada) return
+    setLoadingHorarios(true)
     try {
       const data = await fetchBookingsByCourtAndDate(quadraSelecionada.id, dataSelecionada)
       setReservas(data)
     } catch {
       setMessage({ type: 'error', text: 'Erro ao carregar horários.' })
+    } finally {
+      setLoadingHorarios(false)
     }
   }
 
@@ -270,9 +278,7 @@ export function ReservationsPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center py-32">
-          <div className="text-emerald-700">Carregando...</div>
-        </div>
+        <ReservationsPageSkeleton />
       </Layout>
     )
   }
@@ -290,44 +296,39 @@ export function ReservationsPage() {
           </p>
         )}
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6" role="tablist" aria-label="Seções de reserva">
           <button
+            role="tab"
+            aria-selected={abaAtiva === 'reservar'}
             onClick={() => setAbaAtiva('reservar')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              abaAtiva === 'reservar'
-                ? 'bg-emerald-700 text-white'
-                : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
-            }`}
+            className={`motion-tab ${abaAtiva === 'reservar' ? 'motion-tab--active' : 'motion-tab--inactive'}`}
           >
             Nova Reserva
           </button>
           <button
+            role="tab"
+            aria-selected={abaAtiva === 'minhas'}
             onClick={() => setAbaAtiva('minhas')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              abaAtiva === 'minhas'
-                ? 'bg-emerald-700 text-white'
-                : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
-            }`}
+            className={`motion-tab ${abaAtiva === 'minhas' ? 'motion-tab--active' : 'motion-tab--inactive'}`}
           >
             Minhas Reservas ({minhasReservas.length})
           </button>
         </div>
 
         {message && (
-          <div
-            className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-              message.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}
+          <FeedbackMessage
+            type={message.type === 'success' ? 'success' : 'error'}
+            className="mb-4"
+            onDismiss={() => setMessage(null)}
+            autoHideMs={message.type === 'success' ? 5000 : 0}
           >
             {message.text}
-          </div>
+          </FeedbackMessage>
         )}
 
-        {abaAtiva === 'reservar' ? (
-          quadras.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center text-stone-500">
+        <TabPanel active={abaAtiva === 'reservar'} id="panel-reservar">
+          {quadras.length === 0 ? (
+            <div className="motion-card p-8 text-center text-stone-500">
               Nenhuma quadra disponível no momento.
             </div>
           ) : (
@@ -338,10 +339,10 @@ export function ReservationsPage() {
                   <button
                     key={quadra.id}
                     onClick={() => setQuadraSelecionada(quadra)}
-                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap motion-tab ${
                       quadraSelecionada?.id === quadra.id
-                        ? 'bg-emerald-700 text-white'
-                        : 'bg-white text-stone-600 border border-stone-200 hover:border-emerald-300'
+                        ? 'motion-tab--active'
+                        : 'motion-tab--inactive'
                     }`}
                   >
                     {quadra.nome}
@@ -350,12 +351,13 @@ export function ReservationsPage() {
               </div>
 
               {quadraSelecionada && (fotoPrincipal || quadraSelecionada.descricao) && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 motion-page-enter">
                   {fotoPrincipal && (
-                    <img
+                    <LazyImage
                       src={fotoPrincipal.url}
                       alt={quadraSelecionada.nome}
-                      className="w-14 h-14 object-cover rounded-lg shrink-0"
+                      className="w-14 h-14 rounded-lg shrink-0"
+                      loading="eager"
                     />
                   )}
                   {quadraSelecionada.descricao && (
@@ -368,7 +370,7 @@ export function ReservationsPage() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => rolarDatas('left')}
-                  className="shrink-0 p-2 rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-600"
+                  className="shrink-0 p-2 rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-600 motion-cta"
                   aria-label="Ver dias anteriores"
                 >
                   <ChevronIcon direction="left" />
@@ -384,7 +386,7 @@ export function ReservationsPage() {
                       <button
                         key={data}
                         onClick={() => setDataSelecionada(data)}
-                        className={`shrink-0 w-[76px] flex flex-col items-center gap-0.5 rounded-2xl py-3 transition-colors ${
+                        className={`shrink-0 w-[76px] flex flex-col items-center gap-0.5 rounded-2xl py-3 motion-cta transition-colors ${
                           selecionada
                             ? 'bg-emerald-700 text-white'
                             : disponivel
@@ -413,7 +415,7 @@ export function ReservationsPage() {
                 </div>
                 <button
                   onClick={() => rolarDatas('right')}
-                  className="shrink-0 p-2 rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-600"
+                  className="shrink-0 p-2 rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-600 motion-cta"
                   aria-label="Ver próximos dias"
                 >
                   <ChevronIcon direction="right" />
@@ -445,15 +447,24 @@ export function ReservationsPage() {
                   </div>
 
                   {!janelaDia ? (
-                    <div className="bg-white rounded-xl border border-stone-200 p-8 text-center text-stone-500">
+                    <div className="motion-card border border-stone-200 p-8 text-center text-stone-500">
                       Quadra fechada neste dia.
                     </div>
                   ) : horarios.length === 0 ? (
-                    <div className="bg-white rounded-xl border border-stone-200 p-8 text-center text-stone-500">
+                    <div className="motion-card border border-stone-200 p-8 text-center text-stone-500">
                       Nenhum horário disponível para esta configuração.
                     </div>
+                  ) : loadingHorarios ? (
+                    <div className="motion-card border border-stone-200 divide-y divide-stone-100 overflow-hidden" aria-busy="true">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+                          <Skeleton variant="text" width="48px" height="20px" />
+                          <Skeleton variant="rounded" className="flex-1 h-11" />
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100 overflow-hidden">
+                    <div className="motion-card border border-stone-200 divide-y divide-stone-100 overflow-hidden">
                       {horarios.map((slot) => {
                         const reserva = horarioOcupado(slot.start)
                         const disponivel = horarioDisponivel(slot.start)
@@ -525,13 +536,22 @@ export function ReservationsPage() {
                               <button
                                 disabled={!disponivel || reservando}
                                 onClick={() => handleReservar(slot.start, slot.end)}
-                                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
+                                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-2.5 text-sm font-medium motion-cta transition-colors ${
                                   disponivel
                                     ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400'
                                     : 'border-stone-200 text-stone-300 cursor-not-allowed'
                                 }`}
                               >
-                                <PlusIcon /> Reservar horário
+                                {reservando ? (
+                                  <>
+                                    <span className="motion-spinner motion-spinner--btn border-emerald-300 border-t-emerald-700" />
+                                    Reservando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <PlusIcon /> Reservar horário
+                                  </>
+                                )}
                               </button>
                             )}
                           </div>
@@ -542,18 +562,21 @@ export function ReservationsPage() {
                 </div>
               )}
             </div>
-          )
-        ) : (
+          )}
+        </TabPanel>
+
+        <TabPanel active={abaAtiva === 'minhas'} id="panel-minhas">
           <div className="space-y-3">
             {minhasReservas.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center text-stone-500">
+              <div className="motion-card p-8 text-center text-stone-500">
                 Você não tem reservas futuras.
               </div>
             ) : (
-              minhasReservas.map((reserva) => (
+              minhasReservas.map((reserva, index) => (
                 <div
                   key={reserva.id}
-                  className="bg-white rounded-xl p-4 border border-stone-200 flex items-center justify-between gap-4"
+                  className="motion-card p-4 border border-stone-200 flex items-center justify-between gap-4 motion-stagger-item"
+                  style={{ '--stagger-index': index } as CSSProperties}
                 >
                   <button
                     type="button"
@@ -582,7 +605,7 @@ export function ReservationsPage() {
               ))
             )}
           </div>
-        )}
+        </TabPanel>
       </div>
 
       <ReservaStatusModal

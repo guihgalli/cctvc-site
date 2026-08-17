@@ -1,6 +1,11 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent, type CSSProperties } from 'react'
 import { Layout } from '../components/Layout'
 import { useAuth } from '../contexts/AuthContext'
+import { FeedbackMessage } from '../components/motion/FeedbackMessage'
+import { TabPanel } from '../components/motion/TabPanel'
+import { Button } from '../components/motion/Button'
+import { LazyImage } from '../components/motion/LazyImage'
+import { AdminPageSkeleton } from '../components/motion/Skeleton'
 import {
   fetchAllCourts,
   createCourt,
@@ -426,16 +431,14 @@ export function AdminPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-emerald-900 mb-6">Painel Administrativo</h1>
 
-        <div className="flex gap-2 mb-6 flex-wrap">
+        <div className="flex gap-2 mb-6 flex-wrap" role="tablist">
           {abas.map((t) => (
             <button
               key={t.id}
+              role="tab"
+              aria-selected={aba === t.id}
               onClick={() => setAba(t.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                aba === t.id
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
-              }`}
+              className={`motion-tab ${aba === t.id ? 'motion-tab--active' : 'motion-tab--inactive'}`}
             >
               {t.label}
             </button>
@@ -443,20 +446,21 @@ export function AdminPage() {
         </div>
 
         {message && (
-          <div
-            className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-              message.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}
+          <FeedbackMessage
+            type={message.type === 'success' ? 'success' : 'error'}
+            className="mb-4"
+            onDismiss={() => setMessage(null)}
+            autoHideMs={message.type === 'success' ? 5000 : 0}
           >
             {message.text}
-          </div>
+          </FeedbackMessage>
         )}
 
         {loading ? (
-          <div className="text-center py-16 text-emerald-700">Carregando...</div>
-        ) : aba === 'quadras' ? (
+          <AdminPageSkeleton />
+        ) : (
+          <>
+        <TabPanel active={aba === 'quadras'}>
           <div>
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-stone-700">Quadras Cadastradas</h2>
@@ -478,7 +482,7 @@ export function AdminPage() {
             {mostrarFormQuadra && (
               <form
                 onSubmit={handleSalvarQuadra}
-                className="bg-white rounded-xl p-6 border border-stone-200 mb-6 space-y-4"
+                className="motion-card border border-stone-200 p-6 mb-6 space-y-4 motion-page-enter"
               >
                 <h3 className="font-medium text-stone-700">
                   {editandoQuadraId ? 'Editar Quadra' : 'Nova Quadra'}
@@ -591,30 +595,40 @@ export function AdminPage() {
                 <button
                   type="submit"
                   disabled={salvandoQuadra}
-                  className="bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm hover:bg-emerald-600 disabled:opacity-60"
+                  className="motion-btn motion-btn--primary motion-btn--md"
                 >
-                  {salvandoQuadra
-                    ? 'Salvando...'
-                    : editandoQuadraId
-                      ? 'Salvar alterações'
-                      : 'Cadastrar'}
+                  {salvandoQuadra ? (
+                    <>
+                      <span className="motion-spinner motion-spinner--btn" />
+                      Salvando...
+                    </>
+                  ) : editandoQuadraId ? (
+                    'Salvar alterações'
+                  ) : (
+                    'Cadastrar'
+                  )}
                 </button>
               </form>
             )}
 
             <div className="space-y-4">
-              {quadras.map((quadra) => {
+              {quadras.map((quadra, index) => {
                 const foto = quadra.fotos_quadras?.find((f) => f.principal) || quadra.fotos_quadras?.[0]
                 return (
                   <div
                     key={quadra.id}
-                    className={`bg-white rounded-xl border p-4 space-y-3 min-w-0 overflow-hidden ${
+                    className={`motion-card border p-4 space-y-3 min-w-0 overflow-hidden motion-stagger-item ${
                       quadra.ativo ? 'border-stone-200' : 'border-stone-200 opacity-60'
                     }`}
+                    style={{ '--stagger-index': index } as CSSProperties}
                   >
                     <div className="flex gap-4 items-start min-w-0">
                       {foto ? (
-                        <img src={foto.url} alt={quadra.nome} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg shrink-0" />
+                        <LazyImage
+                          src={foto.url}
+                          alt={quadra.nome}
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg shrink-0"
+                        />
                       ) : (
                         <div className="w-20 h-20 sm:w-24 sm:h-24 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400 text-xs shrink-0">
                           Sem foto
@@ -691,7 +705,9 @@ export function AdminPage() {
               })}
             </div>
           </div>
-        ) : aba === 'agenda' ? (
+        </TabPanel>
+
+        <TabPanel active={aba === 'agenda'}>
           <div>
             <div className="flex gap-4 mb-4 flex-wrap">
               <select
@@ -724,11 +740,11 @@ export function AdminPage() {
             </div>
 
             {reservas.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center text-stone-500">
+              <div className="motion-card p-8 text-center text-stone-500">
                 Nenhuma reserva encontrada.
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-stone-200 overflow-x-auto">
+              <div className="motion-card border border-stone-200 overflow-x-auto">
                 <table className="w-full text-sm min-w-[720px]">
                   <thead className="bg-stone-50 border-b">
                     <tr>
@@ -802,7 +818,9 @@ export function AdminPage() {
               </div>
             )}
           </div>
-        ) : (
+        </TabPanel>
+
+        <TabPanel active={aba === 'usuarios'}>
           <div>
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-stone-700">Usuários Cadastrados</h2>
@@ -817,7 +835,7 @@ export function AdminPage() {
             {mostrarFormUsuario && (
               <form
                 onSubmit={handleCriarUsuario}
-                className="bg-white rounded-xl p-6 border border-stone-200 mb-6 space-y-4"
+                className="motion-card border border-stone-200 p-6 mb-6 space-y-4 motion-page-enter"
               >
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
@@ -897,16 +915,13 @@ export function AdminPage() {
                   A senha inicial será os 3 primeiros dígitos do CPF. O sócio pode alterá-la depois
                   em Conta.
                 </p>
-                <button
-                  type="submit"
-                  className="bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm hover:bg-emerald-600"
-                >
+                <Button type="submit" variant="primary">
                   Cadastrar
-                </button>
+                </Button>
               </form>
             )}
 
-            <div className="bg-white rounded-xl border border-stone-200 overflow-x-auto">
+            <div className="motion-card border border-stone-200 overflow-x-auto">
               <table className="w-full text-sm min-w-[960px]">
                 <thead className="bg-stone-50 border-b">
                   <tr>
@@ -996,6 +1011,8 @@ export function AdminPage() {
               </table>
             </div>
           </div>
+        </TabPanel>
+          </>
         )}
       </div>
 

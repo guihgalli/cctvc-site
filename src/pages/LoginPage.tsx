@@ -3,6 +3,9 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { Logo } from '../components/Logo'
 import { SolicitarLoginModal } from '../components/SolicitarLoginModal'
+import { FeedbackMessage } from '../components/motion/FeedbackMessage'
+import { Button } from '../components/motion/Button'
+import { PageLoadingSkeleton } from '../components/motion/Skeleton'
 import { useAuth } from '../contexts/AuthContext'
 import { isValidUserCode, isValidPassword } from '../lib/utils'
 
@@ -53,30 +56,40 @@ export function LoginPage() {
     }
   }
 
+  if (loading && !user) {
+    return (
+      <Layout>
+        <PageLoadingSkeleton />
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
       <div className="max-w-sm mx-auto px-4 py-12">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="motion-card shadow-lg p-8">
           <div className="text-center mb-6">
             <Logo size="md" className="mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-emerald-900">Entrar</h1>
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200 mb-4">
+            <FeedbackMessage type="error" className="mb-4">
               {error}
-            </div>
+            </FeedbackMessage>
           )}
 
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="lg"
+            className="w-full border-stone-300"
             onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-50 text-stone-700 font-semibold py-3 rounded-lg transition-colors"
+            loading={loading}
+            loadingText="Conectando..."
           >
             <GoogleIcon />
             Continuar com Google
-          </button>
+          </Button>
 
           <details className="mt-6 group">
             <summary className="cursor-pointer list-none text-center text-sm text-emerald-700 hover:underline marker:content-none">
@@ -109,13 +122,16 @@ export function LoginPage() {
                 placeholder="Senha (3 dígitos)"
                 autoComplete="current-password"
               />
-              <button
+              <Button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors"
+                variant="primary"
+                size="lg"
+                className="w-full"
+                loading={loading}
+                loadingText="Entrando..."
               >
-                {loading ? 'Entrando...' : 'Entrar'}
-              </button>
+                Entrar
+              </Button>
             </form>
           </details>
 

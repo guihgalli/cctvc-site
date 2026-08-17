@@ -3,6 +3,8 @@ import {
   INSTAGRAM_PROFILE_URL,
   instagramPosts,
 } from '../data/instagramPosts'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
+import { LazyImage } from './motion/LazyImage'
 
 const AUTO_ADVANCE_MS = 4500
 
@@ -104,7 +106,7 @@ export function InstagramCarousel() {
             href={INSTAGRAM_PROFILE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex self-start md:self-auto border border-emerald-800/20 text-emerald-950 px-5 py-2.5 rounded-lg font-semibold hover:bg-emerald-950 hover:text-white transition-colors"
+            className="motion-cta inline-flex self-start md:self-auto border border-emerald-800/20 text-emerald-950 px-5 py-2.5 rounded-lg font-semibold hover:bg-emerald-950 hover:text-white transition-colors"
           >
             Ver perfil
           </a>
@@ -125,11 +127,10 @@ export function InstagramCarousel() {
                   className="home-instagram__link group"
                   aria-label={`Abrir publicação no Instagram: ${post.alt}`}
                 >
-                  <img
+                  <LazyImage
                     src={post.src}
                     alt={post.alt}
                     loading={index < 3 ? 'eager' : 'lazy'}
-                    decoding="async"
                     className="home-instagram__image"
                   />
                   <span className="home-instagram__overlay" aria-hidden="true">
@@ -175,18 +176,4 @@ export function InstagramCarousel() {
       </div>
     </section>
   )
-}
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false)
-
-  useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const update = () => setReduced(media.matches)
-    update()
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [])
-
-  return reduced
 }
