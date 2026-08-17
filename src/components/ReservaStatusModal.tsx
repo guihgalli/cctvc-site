@@ -6,6 +6,7 @@ import {
   formatDate,
   formatTime,
   formatExpiracaoReserva,
+  formatExpiracaoRestante,
   formatMoney,
 } from '../lib/utils'
 import type { Reserva } from '../types'
@@ -34,10 +35,18 @@ export function ReservaStatusModal({
   onCancel,
 }: ReservaStatusModalProps) {
   const [pixCopiado, setPixCopiado] = useState(false)
+  const [agora, setAgora] = useState(() => Date.now())
 
   useEffect(() => {
     if (!reserva) return
     setPixCopiado(false)
+    setAgora(Date.now())
+  }, [reserva])
+
+  useEffect(() => {
+    if (!reserva || reserva.status !== 'pendente') return
+    const interval = window.setInterval(() => setAgora(Date.now()), 30_000)
+    return () => window.clearInterval(interval)
   }, [reserva])
 
   if (!reserva) return null
@@ -52,6 +61,10 @@ export function ReservaStatusModal({
   const prazoPagamento =
     reservaAtiva.status === 'pendente'
       ? formatExpiracaoReserva(reservaAtiva.criado_em, minutosExpiracao)
+      : null
+  const tempoRestante =
+    reservaAtiva.status === 'pendente'
+      ? formatExpiracaoRestante(reservaAtiva.criado_em, minutosExpiracao, agora)
       : null
 
   const config = {
@@ -110,7 +123,7 @@ export function ReservaStatusModal({
   }
 
   return (
-    <Modal open={!!reserva} onClose={onClose} labelledBy="reserva-status-title">
+    <Modal open={!!reserva} onClose={onClose} labelledBy="reserva-status-title" initialFocus>
       <div className="flex items-start justify-between gap-4 mb-5">
         <div className="flex items-start gap-3">
           <div
@@ -155,8 +168,14 @@ export function ReservaStatusModal({
         <div className="space-y-4">
           {prazoPagamento && (
             <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm motion-feedback--enter">
-              Prazo para pagamento: até <strong>{prazoPagamento}</strong>. Após esse horário, a
-              reserva expira e o horário é liberado.
+              Prazo para pagamento: até <strong>{prazoPagamento}</strong>
+              {tempoRestante && tempoRestante !== 'Expirada' && (
+                <> · <strong>{tempoRestante} restantes</strong></>
+              )}
+              {tempoRestante === 'Expirada' && (
+                <> · <strong>prazo expirado</strong></>
+              )}
+              . Após esse horário, a reserva expira e o horário é liberado.
             </p>
           )}
           <p className="text-stone-600 text-sm leading-relaxed">
@@ -208,7 +227,11 @@ export function ReservaStatusModal({
         <>
           {prazoPagamento && reservaAtiva.status === 'pendente' && (
             <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm mb-4">
-              Prazo para confirmação: até <strong>{prazoPagamento}</strong>.
+              Prazo para confirmação: até <strong>{prazoPagamento}</strong>
+              {tempoRestante && tempoRestante !== 'Expirada' && (
+                <> · <strong>{tempoRestante} restantes</strong></>
+              )}
+              .
             </p>
           )}
           {config.descricao && (

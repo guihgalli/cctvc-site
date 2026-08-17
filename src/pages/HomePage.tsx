@@ -1,14 +1,20 @@
 import { useEffect, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { InstagramCarousel } from '../components/InstagramCarousel'
 import { Layout } from '../components/Layout'
 import { Logo } from '../components/Logo'
+import { useAuth } from '../contexts/AuthContext'
+import { INSTAGRAM_PROFILE_URL } from '../data/instagramPosts'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import {
   CLUBE_MAPS_EMBED_URL,
   CLUBE_MAPS_EXTERNAL_URL,
   WHATSAPP_ASSOCIACAO_TEXT,
   buildWhatsAppUrl,
 } from '../lib/utils'
+
+const CLUBE_FOUNDATION_YEAR = 1900
+const HISTORY_PHOTO = '/instagram/03-DWPViKcCFVY.jpg'
 
 const departamentos = [
   {
@@ -33,7 +39,9 @@ const departamentos = [
   },
   {
     title: 'Quadras esportivas',
-    description: 'Reserve tênis, futsal, vôlei e outras quadras online, com agenda em tempo real para sócios.',
+    description:
+      'Reserve tênis, futsal, vôlei e outras quadras online. Sócios confirmam na hora; visitantes entram com Google.',
+    linkToReservas: true,
   },
 ]
 
@@ -78,25 +86,37 @@ const passosAssociacao = [
 ]
 
 const whatsappAssociacaoUrl = buildWhatsAppUrl(WHATSAPP_ASSOCIACAO_TEXT)
+const anosTradicao = new Date().getFullYear() - CLUBE_FOUNDATION_YEAR
 
 export function HomePage() {
+  const { user } = useAuth()
+  const location = useLocation()
+  const reduceMotion = usePrefersReducedMotion()
+
+  const reservasPath = user ? '/reservas' : '/login'
+  const reservasLabel = user ? 'Ir para reservas' : 'Reservar quadra'
+  const reservasPanelLabel = user ? 'Minhas reservas' : 'Acessar reservas'
+
   useEffect(() => {
-    const hash = window.location.hash.replace('#', '')
+    const hash = location.hash.replace('#', '')
     if (!hash) return
 
     const timer = window.setTimeout(() => {
-      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      document.getElementById(hash)?.scrollIntoView({
+        behavior: reduceMotion ? 'auto' : 'smooth',
+        block: 'start',
+      })
     }, 80)
 
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [location.hash, reduceMotion])
 
   return (
     <Layout>
       <section className="home-hero relative overflow-hidden text-white">
         <div className="home-hero__pattern" aria-hidden="true" />
         <div className="relative max-w-5xl mx-auto px-4 py-20 md:py-28 text-center">
-          <Logo size="lg" className="mx-auto mb-6 drop-shadow-xl home-fade-up" />
+          <Logo size="lg" className="mx-auto mb-6 drop-shadow-xl home-fade-up home-fade-up--logo" />
           <p className="font-display text-emerald-100/90 text-sm md:text-base tracking-[0.28em] uppercase mb-4 home-fade-up home-fade-up--delay-1">
             CCTVC
           </p>
@@ -108,18 +128,16 @@ export function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center home-fade-up home-fade-up--delay-4">
             <Link
-              to="/login"
+              to={reservasPath}
               className="motion-cta bg-white text-emerald-950 px-8 py-3 rounded-lg font-semibold hover:bg-emerald-50"
             >
-              Reservar quadra
+              {reservasLabel}
             </Link>
             <a
-              href="https://www.instagram.com/cctvelhacentral/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#associe-se"
               className="motion-cta border border-emerald-300/80 text-emerald-50 px-8 py-3 rounded-lg font-semibold hover:bg-white/10"
             >
-              Seguir no Instagram
+              Quero ser sócio
             </a>
           </div>
         </div>
@@ -144,26 +162,38 @@ export function HomePage() {
               convivência em um ambiente familiar.
             </p>
           </div>
-          <div className="home-stat-panel motion-page-enter">
-            <div>
-              <p className="font-display text-4xl md:text-5xl text-emerald-950">1900</p>
-              <p className="text-stone-600 mt-1">Fundação em 1º de maio</p>
+          <div className="space-y-6">
+            <div className="home-history-photo motion-page-enter">
+              <img
+                src={HISTORY_PHOTO}
+                alt="Momentos de tradição e convivência no CCTVC"
+                loading="lazy"
+                className="home-history-photo__image"
+              />
             </div>
-            <div className="home-stat-panel__divider" />
-            <div>
-              <p className="font-display text-4xl md:text-5xl text-emerald-950">+125</p>
-              <p className="text-stone-600 mt-1">Anos de tradição em Blumenau</p>
-            </div>
-            <div className="home-stat-panel__divider" />
-            <div>
-              <p className="font-display text-4xl md:text-5xl text-emerald-950">1 família</p>
-              <p className="text-stone-600 mt-1">Esporte, folclore e lazer juntos</p>
+            <div className="home-stat-panel motion-page-enter">
+              <div>
+                <p className="font-display text-4xl md:text-5xl text-emerald-950">{CLUBE_FOUNDATION_YEAR}</p>
+                <p className="text-stone-600 mt-1">Fundação em 1º de maio</p>
+              </div>
+              <div className="home-stat-panel__divider" />
+              <div>
+                <p className="font-display text-4xl md:text-5xl text-emerald-950">+{anosTradicao}</p>
+                <p className="text-stone-600 mt-1">Anos de tradição em Blumenau</p>
+              </div>
+              <div className="home-stat-panel__divider" />
+              <div>
+                <p className="font-display text-4xl md:text-5xl text-emerald-950">1 família</p>
+                <p className="text-stone-600 mt-1">Esporte, folclore e lazer juntos</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-white">
+      <InstagramCarousel />
+
+      <section id="departamentos" className="bg-white scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 py-16 md:py-20">
           <div className="max-w-2xl mb-10 md:mb-12">
             <p className="font-display text-emerald-800 text-sm tracking-[0.22em] uppercase mb-3">
@@ -177,16 +207,37 @@ export function HomePage() {
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
-            {departamentos.map((item, index) => (
-              <article
-                key={item.title}
-                className="home-feature motion-stagger-item"
-                style={{ '--stagger-index': index } as CSSProperties}
-              >
-                <h3 className="font-display text-xl text-emerald-950 mb-2">{item.title}</h3>
-                <p className="text-stone-600 text-sm leading-relaxed">{item.description}</p>
-              </article>
-            ))}
+            {departamentos.map((item, index) => {
+              const content = (
+                <>
+                  <h3 className="font-display text-xl text-emerald-950 mb-2">{item.title}</h3>
+                  <p className="text-stone-600 text-sm leading-relaxed">{item.description}</p>
+                </>
+              )
+
+              if (item.linkToReservas) {
+                return (
+                  <Link
+                    key={item.title}
+                    to={reservasPath}
+                    className="home-feature home-feature--link motion-stagger-item"
+                    style={{ '--stagger-index': index } as CSSProperties}
+                  >
+                    {content}
+                  </Link>
+                )
+              }
+
+              return (
+                <article
+                  key={item.title}
+                  className="home-feature motion-stagger-item"
+                  style={{ '--stagger-index': index } as CSSProperties}
+                >
+                  {content}
+                </article>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -216,14 +267,14 @@ export function HomePage() {
           <div className="home-reserve-panel">
             <h3 className="font-display text-2xl text-white mb-3">Reserve sua quadra</h3>
             <p className="text-emerald-100/80 mb-6 leading-relaxed">
-              Sócios cadastrados acessam a agenda online, escolhem data e horário e garantem a reserva com
-              poucos cliques.
+              Sócios e visitantes acessam a agenda online, escolhem data e horário e garantem a reserva com
+              poucos cliques. Visitantes: a reserva fica pendente até a secretaria confirmar após o pagamento.
             </p>
             <Link
-              to="/login"
+              to={reservasPath}
               className="motion-cta inline-flex bg-emerald-400 text-emerald-950 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-300"
             >
-              Acessar reservas
+              {reservasPanelLabel}
             </Link>
           </div>
         </div>
@@ -257,7 +308,7 @@ export function HomePage() {
           <p className="mt-10 text-stone-600">
             Acompanhe a agenda completa no Instagram{' '}
             <a
-              href="https://www.instagram.com/cctvelhacentral/"
+              href={INSTAGRAM_PROFILE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-emerald-800 font-medium underline underline-offset-4 hover:text-emerald-950"
@@ -379,7 +430,7 @@ export function HomePage() {
                 <h3 className="font-display text-lg text-emerald-950 mb-2">Redes</h3>
                 <p className="text-stone-600 leading-relaxed">
                   <a
-                    href="https://www.instagram.com/cctvelhacentral/"
+                    href={INSTAGRAM_PROFILE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-emerald-900 transition-colors"
@@ -403,8 +454,6 @@ export function HomePage() {
           </div>
         </div>
       </section>
-
-      <InstagramCarousel />
     </Layout>
   )
 }

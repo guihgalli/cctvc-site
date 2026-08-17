@@ -1,4 +1,5 @@
-import { useState, useEffect, type FormEvent, type CSSProperties } from 'react'
+import { useState, useEffect, useCallback, type FormEvent, type CSSProperties } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { useAuth } from '../contexts/AuthContext'
 import { FeedbackMessage } from '../components/motion/FeedbackMessage'
@@ -6,6 +7,8 @@ import { TabPanel } from '../components/motion/TabPanel'
 import { Button } from '../components/motion/Button'
 import { LazyImage } from '../components/motion/LazyImage'
 import { AdminPageSkeleton } from '../components/motion/Skeleton'
+import { ConfirmDialog } from '../components/motion/ConfirmDialog'
+import { Modal } from '../components/motion/Modal'
 import {
   fetchAllCourts,
   createCourt,
@@ -41,13 +44,43 @@ import {
   formatExpiracaoReserva,
   formatMoney,
 } from '../lib/utils'
-import type { CourtScheduleInput, Quadra, Reserva, Usuario } from '../types'
+import { adminTabPath, parseAdminTab, type AdminTab } from '../lib/authRoutes'
+import type { CourtScheduleInput, Quadra, Reserva, StatusReserva, Usuario } from '../types'
 
-type AbaAdmin = 'quadras' | 'agenda' | 'usuarios'
+type AbaAdmin = AdminTab
+
+type ConfirmAction =
+  | { kind: 'deleteCourt'; quadra: Quadra }
+  | { kind: 'deleteUser'; usuario: Usuario }
+  | { kind: 'approve'; reserva: Reserva }
+  | null
+
+const STATUS_RESERVA_LABEL: Record<StatusReserva, string> = {
+  pendente: 'Pendente',
+  confirmada: 'Confirmada',
+  recusada: 'Recusada',
+  cancelada: 'Cancelada',
+}
+
+function statusReservaClass(status: StatusReserva): string {
+  switch (status) {
+    case 'pendente':
+      return 'bg-amber-100 text-amber-800'
+    case 'confirmada':
+      return 'bg-emerald-100 text-emerald-800'
+    case 'recusada':
+      return 'bg-red-100 text-red-700'
+    case 'cancelada':
+      return 'bg-stone-100 text-stone-600'
+  }
+}
 
 export function AdminPage() {
   const { user: adminUser } = useAuth()
+  const navigate = useNavigate()
+  const { aba: abaParam } = useParams<{ aba?: string }>()
   const [aba, setAba] = useState<AbaAdmin>('quadras')
+  const [abaInicializada, setAbaInicializada] = useState(false)
   const [quadras, setQuadras] = useState<Quadra[]>([])
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -83,9 +116,81 @@ export function AdminPage() {
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null)
   const [salvandoUsuario, setSalvandoUsuario] = useState(false)
 
+  const [filtroStatus, setFiltroStatus] = useState<'' | StatusReserva>('')
+  const [resumo, setResumo] = useState({
+    pendentes: 0,
+    quadrasInativas: 0,
+    totalQuadras: 0,
+    totalUsuarios: 0,
+  })
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
+  const [rejectReservaId, setRejectReservaId] = useState<string | null>(null)
+  const [rejectMotivo, setRejectMotivo] = useState('')
+  const [rejectLoading, setRejectLoading] = useState(false)
+
+  const atualizarResumo = useCallback(async () => {
+    try {
+      const [pendentes, courts, users] = await Promise.all([
+        fetchAllBookings({ apenasPendentes: true }),
+        fetchAllCourts(),
+        fetchUsers(),
+      ])
+      setResumo({
+        pendentes: pendentes.length,
+        quadrasInativas: courts.filter((q) => !q.ativo).length,
+        totalQuadras: courts.length,
+        totalUsuarios: users.length,
+      })
+    } catch {
+      /* resumo opcional */
+    }
+  }, [])
+
   useEffect(() => {
+    const parsed = parseAdminTab(abaParam)
+    if (parsed) {
+      setAba(parsed)
+      setAbaInicializada(true)
+      return
+    }
+    if (abaParam) {
+      navigate('/admin', { replace: true })
+    }
+  }, [abaParam, navigate])
+
+  useEffect(() => {
+    if (abaParam || abaInicializada) return
+
+    let cancelled = false
+    async function definirAbaInicial() {
+      try {
+        const pendentes = await fetchAllBookings({ apenasPendentes: true })
+        if (cancelled) return
+        const defaultTab: AbaAdmin = pendentes.length > 0 ? 'agenda' : 'quadras'
+        setAba(defaultTab)
+        navigate(adminTabPath(defaultTab), { replace: true })
+      } catch {
+        if (!cancelled) setAba('quadras')
+      } finally {
+        if (!cancelled) setAbaInicializada(true)
+      }
+    }
+
+    void definirAbaInicial()
+    return () => {
+      cancelled = true
+    }
+  }, [abaParam, abaInicializada, navigate])
+
+  useEffect(() => {
+    void atualizarResumo()
+  }, [atualizarResumo])
+
+  useEffect(() => {
+    if (!abaInicializada && !abaParam) return
     carregarDados()
-  }, [aba, filtroQuadra, filtroData, filtroPendentes])
+  }, [aba, filtroQuadra, filtroData, filtroPendentes, abaInicializada, abaParam])
 
   async function carregarDados() {
     setLoading(true)
@@ -108,7 +213,13 @@ export function AdminPage() {
       setMessage({ type: 'error', text: 'Erro ao carregar dados.' })
     } finally {
       setLoading(false)
+      void atualizarResumo()
     }
+  }
+
+  function irParaAba(tab: AbaAdmin) {
+    setAba(tab)
+    navigate(adminTabPath(tab))
   }
 
   function resetCamposQuadra() {
@@ -234,22 +345,61 @@ export function AdminPage() {
     }
   }
 
-  async function handleExcluirQuadra(quadra: Quadra) {
-    if (
-      !confirm(
-        `Excluir a quadra "${quadra.nome}"? Esta ação remove também as fotos e reservas vinculadas.`
-      )
-    ) {
-      return
-    }
+  async function executarConfirmacao() {
+    if (!confirmAction) return
+    setConfirmLoading(true)
     try {
-      await deleteCourt(quadra.id)
-      setMessage({ type: 'success', text: 'Quadra excluída!' })
-      if (editandoQuadraId === quadra.id) limparFormQuadra()
-      carregarDados()
-    } catch {
-      setMessage({ type: 'error', text: 'Erro ao excluir quadra.' })
+      if (confirmAction.kind === 'deleteCourt') {
+        const { quadra } = confirmAction
+        await deleteCourt(quadra.id)
+        setMessage({ type: 'success', text: 'Quadra excluída!' })
+        if (editandoQuadraId === quadra.id) limparFormQuadra()
+        await carregarDados()
+      } else if (confirmAction.kind === 'deleteUser') {
+        await deleteUser(confirmAction.usuario.id)
+        setMessage({ type: 'success', text: 'Usuário excluído.' })
+        await carregarDados()
+      } else if (confirmAction.kind === 'approve') {
+        const { reserva } = confirmAction
+        const result = await approveBooking(reserva.id)
+        setMessage({ type: 'success', text: 'Reserva aprovada!' })
+        if (result.telefone) {
+          const url = buildWhatsAppReservaConfirmadaUrl(
+            result.telefone,
+            result.nome,
+            result.quadra,
+            reserva.data_reserva,
+            reserva.hora_inicio,
+            reserva.hora_fim
+          )
+          window.open(url, '_blank', 'noopener,noreferrer')
+        } else {
+          setMessage({
+            type: 'error',
+            text: 'Reserva aprovada, mas o usuário não tem WhatsApp cadastrado.',
+          })
+        }
+        await carregarDados()
+      }
+      setConfirmAction(null)
+    } catch (err) {
+      if (confirmAction.kind === 'deleteUser') {
+        setMessage({
+          type: 'error',
+          text: err instanceof Error ? err.message : 'Erro ao excluir usuário.',
+        })
+      } else if (confirmAction.kind === 'approve') {
+        setMessage({ type: 'error', text: getErrorMessage(err, 'Erro ao aprovar reserva.') })
+      } else {
+        setMessage({ type: 'error', text: 'Erro ao excluir quadra.' })
+      }
+    } finally {
+      setConfirmLoading(false)
     }
+  }
+
+  function handleExcluirQuadra(quadra: Quadra) {
+    setConfirmAction({ kind: 'deleteCourt', quadra })
   }
 
   async function handleAlternarQuadra(quadra: Quadra) {
@@ -352,73 +502,79 @@ export function AdminPage() {
     }
   }
 
-  async function handleExcluirUsuario(usuario: Usuario) {
+  function handleExcluirUsuario(usuario: Usuario) {
     if (usuario.id === adminUser?.id) {
       setMessage({ type: 'error', text: 'Você não pode excluir sua própria conta.' })
       return
     }
-
-    const tipo = usuario.tipo_socio === 'socio' ? 'sócio' : 'visitante'
-    if (
-      !confirm(
-        `Excluir permanentemente ${usuario.nome} (${tipo})?\n\nAs reservas deste usuário também serão removidas.`
-      )
-    ) {
-      return
-    }
-
-    try {
-      await deleteUser(usuario.id)
-      setMessage({ type: 'success', text: 'Usuário excluído.' })
-      carregarDados()
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err instanceof Error ? err.message : 'Erro ao excluir usuário.',
-      })
-    }
+    setConfirmAction({ kind: 'deleteUser', usuario })
   }
 
-  async function handleAprovarReserva(reserva: Reserva) {
-    if (!confirm('Confirmar pagamento e aprovar esta reserva?')) return
-    try {
-      const result = await approveBooking(reserva.id)
-      setMessage({ type: 'success', text: 'Reserva aprovada!' })
-
-      if (result.telefone) {
-        const url = buildWhatsAppReservaConfirmadaUrl(
-          result.telefone,
-          result.nome,
-          result.quadra,
-          reserva.data_reserva,
-          reserva.hora_inicio,
-          reserva.hora_fim
-        )
-        window.open(url, '_blank', 'noopener,noreferrer')
-      } else {
-        setMessage({
-          type: 'error',
-          text: 'Reserva aprovada, mas o usuário não tem WhatsApp cadastrado.',
-        })
-      }
-
-      carregarDados()
-    } catch (err) {
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Erro ao aprovar reserva.') })
-    }
+  function handleAprovarReserva(reserva: Reserva) {
+    setConfirmAction({ kind: 'approve', reserva })
   }
 
-  async function handleRecusarReserva(reservaId: string) {
-    const motivo = prompt('Motivo da recusa (opcional):') ?? undefined
-    if (motivo === null) return
+  function abrirRecusaReserva(reservaId: string) {
+    setRejectMotivo('')
+    setRejectReservaId(reservaId)
+  }
+
+  async function confirmarRecusaReserva() {
+    if (!rejectReservaId) return
+    setRejectLoading(true)
     try {
-      await rejectBooking(reservaId, motivo || undefined)
+      await rejectBooking(rejectReservaId, rejectMotivo.trim() || undefined)
       setMessage({ type: 'success', text: 'Reserva recusada.' })
-      carregarDados()
+      setRejectReservaId(null)
+      await carregarDados()
     } catch (err) {
       setMessage({ type: 'error', text: getErrorMessage(err, 'Erro ao recusar reserva.') })
+    } finally {
+      setRejectLoading(false)
     }
   }
+
+  function confirmDialogProps(): {
+    title: string
+    message: string
+    confirmLabel: string
+    confirmVariant: 'primary' | 'danger'
+    loadingText: string
+  } | null {
+    if (!confirmAction) return null
+    if (confirmAction.kind === 'deleteCourt') {
+      return {
+        title: 'Excluir quadra',
+        message: `Excluir a quadra "${confirmAction.quadra.nome}"? Esta ação remove também as fotos e reservas vinculadas.`,
+        confirmLabel: 'Excluir quadra',
+        confirmVariant: 'danger',
+        loadingText: 'Excluindo...',
+      }
+    }
+    if (confirmAction.kind === 'deleteUser') {
+      const tipo = confirmAction.usuario.tipo_socio === 'socio' ? 'sócio' : 'visitante'
+      return {
+        title: 'Excluir usuário',
+        message: `Excluir permanentemente ${confirmAction.usuario.nome} (${tipo})? As reservas deste usuário também serão removidas.`,
+        confirmLabel: 'Excluir usuário',
+        confirmVariant: 'danger',
+        loadingText: 'Excluindo...',
+      }
+    }
+    return {
+      title: 'Aprovar reserva',
+      message: 'Confirmar pagamento e aprovar esta reserva? Um link de WhatsApp será aberto para avisar o usuário.',
+      confirmLabel: 'Aprovar + WhatsApp',
+      confirmVariant: 'primary',
+      loadingText: 'Aprovando...',
+    }
+  }
+
+  const reservasFiltradas = filtroStatus
+    ? reservas.filter((r) => r.status === filtroStatus)
+    : reservas
+
+  const dialogProps = confirmDialogProps()
 
   const abas: { id: AbaAdmin; label: string }[] = [
     { id: 'quadras', label: 'Quadras' },
@@ -429,7 +585,45 @@ export function AdminPage() {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-emerald-900 mb-6">Painel Administrativo</h1>
+        <h1 className="text-2xl font-bold text-emerald-900 mb-2">Painel Administrativo</h1>
+        <p className="text-stone-500 text-sm mb-6">
+          Gerencie quadras, aprove reservas e administre usuários do clube.
+        </p>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => irParaAba('agenda')}
+            className="motion-card border border-stone-200 p-4 text-left hover:border-amber-300 transition-colors"
+          >
+            <p className="text-2xl font-bold text-amber-700">{resumo.pendentes}</p>
+            <p className="text-xs text-stone-500 mt-1">Reservas pendentes</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => irParaAba('quadras')}
+            className="motion-card border border-stone-200 p-4 text-left hover:border-emerald-300 transition-colors"
+          >
+            <p className="text-2xl font-bold text-emerald-800">{resumo.totalQuadras}</p>
+            <p className="text-xs text-stone-500 mt-1">Quadras cadastradas</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => irParaAba('quadras')}
+            className="motion-card border border-stone-200 p-4 text-left hover:border-stone-400 transition-colors"
+          >
+            <p className="text-2xl font-bold text-stone-700">{resumo.quadrasInativas}</p>
+            <p className="text-xs text-stone-500 mt-1">Quadras inativas</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => irParaAba('usuarios')}
+            className="motion-card border border-stone-200 p-4 text-left hover:border-purple-300 transition-colors"
+          >
+            <p className="text-2xl font-bold text-purple-700">{resumo.totalUsuarios}</p>
+            <p className="text-xs text-stone-500 mt-1">Usuários cadastrados</p>
+          </button>
+        </div>
 
         <div className="flex gap-2 mb-6 flex-wrap" role="tablist">
           {abas.map((t) => (
@@ -437,10 +631,15 @@ export function AdminPage() {
               key={t.id}
               role="tab"
               aria-selected={aba === t.id}
-              onClick={() => setAba(t.id)}
+              onClick={() => irParaAba(t.id)}
               className={`motion-tab ${aba === t.id ? 'motion-tab--active' : 'motion-tab--inactive'}`}
             >
               {t.label}
+              {t.id === 'agenda' && resumo.pendentes > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-amber-500 text-white text-xs font-bold">
+                  {resumo.pendentes}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -732,90 +931,157 @@ export function AdminPage() {
                 <input
                   type="checkbox"
                   checked={filtroPendentes}
-                  onChange={(e) => setFiltroPendentes(e.target.checked)}
+                  onChange={(e) => {
+                    setFiltroPendentes(e.target.checked)
+                    if (e.target.checked) setFiltroStatus('')
+                  }}
                   className="rounded border-stone-300"
                 />
                 Apenas pendentes (aguardando pagamento)
               </label>
+              {!filtroPendentes && (
+                <select
+                  value={filtroStatus}
+                  onChange={(e) => setFiltroStatus(e.target.value as '' | StatusReserva)}
+                  className="border rounded-lg px-3 py-2 text-sm"
+                >
+                  <option value="">Todos os status</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="confirmada">Confirmada</option>
+                  <option value="recusada">Recusada</option>
+                  <option value="cancelada">Cancelada</option>
+                </select>
+              )}
             </div>
 
-            {reservas.length === 0 ? (
+            {reservasFiltradas.length === 0 ? (
               <div className="motion-card p-8 text-center text-stone-500">
                 Nenhuma reserva encontrada.
               </div>
             ) : (
-              <div className="motion-card border border-stone-200 overflow-x-auto">
-                <table className="w-full text-sm min-w-[720px]">
-                  <thead className="bg-stone-50 border-b">
-                    <tr>
-                      <th className="text-left px-4 py-3 font-medium text-stone-600">Status</th>
-                      <th className="text-left px-4 py-3 font-medium text-stone-600">Data</th>
-                      <th className="text-left px-4 py-3 font-medium text-stone-600">Horário</th>
-                      <th className="text-left px-4 py-3 font-medium text-stone-600">Quadra</th>
-                      <th className="text-left px-4 py-3 font-medium text-stone-600">Usuário</th>
-                      <th className="text-left px-4 py-3 font-medium text-stone-600">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reservas.map((r) => (
-                      <tr key={r.id} className="border-b last:border-0 hover:bg-stone-50">
-                        <td className="px-4 py-3">
-                          <span
-                            className={`text-xs px-2 py-0.5 rounded font-medium ${
-                              r.status === 'pendente'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-emerald-100 text-emerald-800'
-                            }`}
-                          >
-                            {r.status === 'pendente' ? 'Pendente' : 'Confirmada'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">{formatDate(r.data_reserva)}</td>
-                        <td className="px-4 py-3">
+              <>
+                <div className="md:hidden space-y-3">
+                  {reservasFiltradas.map((r) => (
+                    <div key={r.id} className="motion-card border border-stone-200 p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded font-medium ${statusReservaClass(r.status)}`}
+                        >
+                          {STATUS_RESERVA_LABEL[r.status]}
+                        </span>
+                        <span className="text-xs text-stone-500">{formatDate(r.data_reserva)}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-emerald-900">{r.quadras?.nome}</p>
+                        <p className="text-sm text-stone-600">
                           {formatTime(r.hora_inicio)} – {formatTime(r.hora_fim)}
-                        </td>
-                        <td className="px-4 py-3">{r.quadras?.nome}</td>
-                        <td className="px-4 py-3">
-                          <div>{r.usuarios?.nome}</div>
-                          <div className="text-stone-400 text-xs">
-                            {r.usuarios?.tipo_socio === 'nao_socio' ? 'Visitante' : 'Sócio'}
-                            {r.usuarios?.telefone && ` · ${formatPhone(r.usuarios.telefone)}`}
-                          </div>
-                          {r.status === 'pendente' && r.criado_em && (
-                            <div className="text-amber-700 text-xs mt-1">
-                              Expira em{' '}
-                              {formatExpiracaoReserva(
-                                r.criado_em,
-                                r.quadras?.expiracao_pendente_minutos ?? 60
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          {r.status === 'pendente' ? (
-                            <div className="flex gap-2 flex-wrap">
-                              <button
-                                onClick={() => handleAprovarReserva(r)}
-                                className="text-xs bg-emerald-700 text-white px-2 py-1 rounded hover:bg-emerald-600"
-                              >
-                                Aprovar + WhatsApp
-                              </button>
-                              <button
-                                onClick={() => handleRecusarReserva(r.id)}
-                                className="text-xs border border-red-200 text-red-700 px-2 py-1 rounded hover:bg-red-50"
-                              >
-                                Recusar
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-stone-400 text-xs">—</span>
-                          )}
-                        </td>
+                        </p>
+                      </div>
+                      <div className="text-sm">
+                        <p>{r.usuarios?.nome}</p>
+                        <p className="text-stone-400 text-xs">
+                          {r.usuarios?.tipo_socio === 'nao_socio' ? 'Visitante' : 'Sócio'}
+                          {r.usuarios?.telefone && ` · ${formatPhone(r.usuarios.telefone)}`}
+                        </p>
+                        {r.status === 'pendente' && r.criado_em && (
+                          <p className="text-amber-700 text-xs mt-1">
+                            Expira em{' '}
+                            {formatExpiracaoReserva(
+                              r.criado_em,
+                              r.quadras?.expiracao_pendente_minutos ?? 60
+                            )}
+                          </p>
+                        )}
+                      </div>
+                      {r.status === 'pendente' && (
+                        <div className="flex gap-2 flex-wrap pt-1">
+                          <button
+                            onClick={() => handleAprovarReserva(r)}
+                            className="text-xs bg-emerald-700 text-white px-3 py-1.5 rounded hover:bg-emerald-600"
+                          >
+                            Aprovar + WhatsApp
+                          </button>
+                          <button
+                            onClick={() => abrirRecusaReserva(r.id)}
+                            className="text-xs border border-red-200 text-red-700 px-3 py-1.5 rounded hover:bg-red-50"
+                          >
+                            Recusar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden md:block motion-card border border-stone-200 overflow-x-auto">
+                  <table className="w-full text-sm min-w-[720px]">
+                    <thead className="bg-stone-50 border-b">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-medium text-stone-600">Status</th>
+                        <th className="text-left px-4 py-3 font-medium text-stone-600">Data</th>
+                        <th className="text-left px-4 py-3 font-medium text-stone-600">Horário</th>
+                        <th className="text-left px-4 py-3 font-medium text-stone-600">Quadra</th>
+                        <th className="text-left px-4 py-3 font-medium text-stone-600">Usuário</th>
+                        <th className="text-left px-4 py-3 font-medium text-stone-600">Ações</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {reservasFiltradas.map((r) => (
+                        <tr key={r.id} className="border-b last:border-0 hover:bg-stone-50">
+                          <td className="px-4 py-3">
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded font-medium ${statusReservaClass(r.status)}`}
+                            >
+                              {STATUS_RESERVA_LABEL[r.status]}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">{formatDate(r.data_reserva)}</td>
+                          <td className="px-4 py-3">
+                            {formatTime(r.hora_inicio)} – {formatTime(r.hora_fim)}
+                          </td>
+                          <td className="px-4 py-3">{r.quadras?.nome}</td>
+                          <td className="px-4 py-3">
+                            <div>{r.usuarios?.nome}</div>
+                            <div className="text-stone-400 text-xs">
+                              {r.usuarios?.tipo_socio === 'nao_socio' ? 'Visitante' : 'Sócio'}
+                              {r.usuarios?.telefone && ` · ${formatPhone(r.usuarios.telefone)}`}
+                            </div>
+                            {r.status === 'pendente' && r.criado_em && (
+                              <div className="text-amber-700 text-xs mt-1">
+                                Expira em{' '}
+                                {formatExpiracaoReserva(
+                                  r.criado_em,
+                                  r.quadras?.expiracao_pendente_minutos ?? 60
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {r.status === 'pendente' ? (
+                              <div className="flex gap-2 flex-wrap">
+                                <button
+                                  onClick={() => handleAprovarReserva(r)}
+                                  className="text-xs bg-emerald-700 text-white px-2 py-1 rounded hover:bg-emerald-600"
+                                >
+                                  Aprovar + WhatsApp
+                                </button>
+                                <button
+                                  onClick={() => abrirRecusaReserva(r.id)}
+                                  className="text-xs border border-red-200 text-red-700 px-2 py-1 rounded hover:bg-red-50"
+                                >
+                                  Recusar
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-stone-400 text-xs">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </TabPanel>
@@ -1015,6 +1281,63 @@ export function AdminPage() {
           </>
         )}
       </div>
+
+      {dialogProps && (
+        <ConfirmDialog
+          open={Boolean(confirmAction)}
+          title={dialogProps.title}
+          message={dialogProps.message}
+          confirmLabel={dialogProps.confirmLabel}
+          confirmVariant={dialogProps.confirmVariant}
+          loading={confirmLoading}
+          loadingText={dialogProps.loadingText}
+          onConfirm={executarConfirmacao}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+
+      <Modal
+        open={Boolean(rejectReservaId)}
+        onClose={() => setRejectReservaId(null)}
+        labelledBy="reject-booking-title"
+        initialFocus
+        maxWidth="sm"
+      >
+        <h2 id="reject-booking-title" className="text-lg font-bold text-emerald-900 mb-2">
+          Recusar reserva
+        </h2>
+        <p className="text-stone-600 text-sm leading-relaxed mb-4">
+          Informe um motivo opcional para a recusa. O usuário não será notificado automaticamente.
+        </p>
+        <textarea
+          value={rejectMotivo}
+          onChange={(e) => setRejectMotivo(e.target.value)}
+          rows={3}
+          placeholder="Motivo da recusa (opcional)"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none mb-4"
+        />
+        <div className="flex flex-col-reverse sm:flex-row gap-3">
+          <Button
+            variant="ghost"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => setRejectReservaId(null)}
+            disabled={rejectLoading}
+          >
+            Voltar
+          </Button>
+          <Button
+            variant="danger"
+            size="lg"
+            className="w-full flex-1"
+            loading={rejectLoading}
+            loadingText="Recusando..."
+            onClick={confirmarRecusaReserva}
+          >
+            Recusar reserva
+          </Button>
+        </div>
+      </Modal>
 
       <EditUsuarioModal
         usuario={usuarioEditando}

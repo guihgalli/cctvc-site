@@ -178,16 +178,90 @@ export function formatMoney(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+const BRAZIL_TZ = 'America/Sao_Paulo'
+
+/** Partes de data/hora no fuso de São Paulo (alinhado ao backend) */
+function getBrazilDateParts(date = new Date()): {
+  year: number
+  month: number
+  day: number
+  hour: number
+  minute: number
+} {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BRAZIL_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const parts = formatter.formatToParts(date)
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0)
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour'),
+    minute: get('minute'),
+  }
+}
+
+function brazilIsoDate(date = new Date()): string {
+  const { year, month, day } = getBrazilDateParts(date)
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/** Timestamp UTC em que a reserva pendente expira */
+export function getExpiracaoReservaTimestamp(criadoEm: string, minutos: number): number {
+  return new Date(criadoEm).getTime() + minutos * 60_000
+}
+
 /** Formata data/hora de expiração de reserva pendente */
 export function formatExpiracaoReserva(criadoEm: string, minutos: number): string {
-  const expira = new Date(new Date(criadoEm).getTime() + minutos * 60_000)
+  const expira = new Date(getExpiracaoReservaTimestamp(criadoEm, minutos))
   return expira.toLocaleString('pt-BR', {
+    timeZone: BRAZIL_TZ,
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+/** Tempo restante até expiração (ex.: "45 min", "Expirada") */
+export function formatExpiracaoRestante(
+  criadoEm: string,
+  minutos: number,
+  now = Date.now()
+): string {
+  const diff = getExpiracaoReservaTimestamp(criadoEm, minutos) - now
+  if (diff <= 0) return 'Expirada'
+  const mins = Math.ceil(diff / 60_000)
+  if (mins < 60) return `${mins} min`
+  const hours = Math.floor(mins / 60)
+  const rest = mins % 60
+  if (rest === 0) return hours === 1 ? '1 hora' : `${hours} horas`
+  return `${hours}h ${rest}min`
+}
+
+/** Mensagem amigável para erros ao criar reserva (inclui conflito de horário) */
+export function getBookingErrorMessage(err: unknown): string {
+  const msg = getErrorMessage(err, 'Erro ao fazer reserva.')
+  const lower = msg.toLowerCase()
+  if (
+    lower.includes('conflito') ||
+    lower.includes('duplicate') ||
+    lower.includes('idx_reserva') ||
+    lower.includes('já está') ||
+    lower.includes('ocupad') ||
+    lower.includes('unique')
+  ) {
+    return 'Este horário acabou de ser reservado. Atualizamos a grade — escolha outro horário.'
+  }
+  return msg
 }
 
 /** Rótulo amigável para minutos de expiração */
@@ -332,31 +406,25 @@ export function generateTimeSlotsFromRange(
   return slots
 }
 
-/** Data local de hoje no formato ISO (YYYY-MM-DD) */
+/** Data de hoje no fuso de São Paulo (YYYY-MM-DD) */
 export function todayIsoDate(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return brazilIsoDate()
 }
 
-/** Verifica se data/hora é no passado */
+/** Verifica se data/hora é no passado (fuso de São Paulo) */
 export function isPastDateTime(date: string, time: string): boolean {
-  const now = new Date()
-  const [year, month, day] = date.split('-').map(Number)
-  const [hours, minutes] = time.split(':').map(Number)
-  const slotDate = new Date(year, month - 1, day, hours, minutes)
-  return slotDate <= now
+  const hoje = todayIsoDate()
+  if (date < hoje) return true
+  if (date > hoje) return false
+  const { hour, minute } = getBrazilDateParts()
+  const agoraMinutos = hour * 60 + minute
+  const [slotHour, slotMinute] = formatTime(time).split(':').map(Number)
+  return slotHour * 60 + slotMinute <= agoraMinutos
 }
 
-/** Verifica se data é anterior a hoje */
+/** Verifica se data é anterior a hoje (fuso de São Paulo) */
 export function isPastDate(date: string): boolean {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const [year, month, day] = date.split('-').map(Number)
-  const checkDate = new Date(year, month - 1, day)
-  return checkDate < today
+  return date < todayIsoDate()
 }
 
 /** Formata data para exibição */
@@ -396,15 +464,9 @@ export function getDayNumber(date: string): number {
   return parseIsoDate(date).getDate()
 }
 
-/** Verifica se a data corresponde ao dia de hoje */
+/** Verifica se a data corresponde ao dia de hoje (fuso de São Paulo) */
 export function isToday(date: string): boolean {
-  const today = new Date()
-  const d = parseIsoDate(date)
-  return (
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate()
-  )
+  return date === todayIsoDate()
 }
 
 /** Gera uma sequência de datas ISO (YYYY-MM-DD) a partir de hoje */

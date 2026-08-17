@@ -16,6 +16,7 @@ import {
   cleanCpf,
   formatPhone,
 } from '../lib/utils'
+import { getPostLoginPath } from '../lib/authRoutes'
 
 export function AccountPage() {
   const { user, updateSessionToken, updateUser } = useAuth()
@@ -69,7 +70,7 @@ export function AccountPage() {
       setTelefone('')
       if (cadastroGoogle) {
         setTimeout(
-          () => navigate(result.user.perfil === 'admin' ? '/admin' : '/reservas', { replace: true }),
+          () => navigate(getPostLoginPath(result.user), { replace: true }),
           1200
         )
       }
@@ -97,7 +98,10 @@ export function AccountPage() {
       setSuccess('WhatsApp cadastrado! Agora você pode solicitar reservas.')
       setTelefone('')
       if (cadastroTelefone) {
-        setTimeout(() => navigate('/reservas', { replace: true }), 1200)
+        setTimeout(
+          () => navigate(getPostLoginPath({ ...updated, precisa_telefone: false }), { replace: true }),
+          1200
+        )
       }
     } catch (err) {
       setError(getErrorMessage(err, 'Erro ao salvar telefone.'))

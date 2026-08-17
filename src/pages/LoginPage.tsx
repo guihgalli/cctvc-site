@@ -7,6 +7,7 @@ import { Button } from '../components/motion/Button'
 import { PageLoadingSkeleton } from '../components/motion/Skeleton'
 import { useAuth } from '../contexts/AuthContext'
 import { isValidUserCode, isValidPassword } from '../lib/utils'
+import { getPostLoginPath } from '../lib/authRoutes'
 
 type LoginMode = 'google' | 'socio'
 
@@ -43,7 +44,7 @@ export function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(user.perfil === 'admin' ? '/admin' : '/reservas', { replace: true })
+      navigate(getPostLoginPath(user), { replace: true })
     }
   }, [user, loading, navigate])
 
@@ -67,7 +68,9 @@ export function LoginPage() {
     }
 
     const result = await login(userCode, password)
-    if (result.success) {
+    if (result.success && result.user) {
+      navigate(getPostLoginPath(result.user, from), { replace: true })
+    } else if (result.success) {
       navigate(from, { replace: true })
     } else {
       setError(result.error || 'Erro ao fazer login.')

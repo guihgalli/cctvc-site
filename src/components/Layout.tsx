@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Header } from './Header'
 import { PageTransition } from './motion/PageTransition'
+import { INSTAGRAM_PROFILE_URL } from '../data/instagramPosts'
 import { WHATSAPP_ASSOCIACAO_TEXT, buildWhatsAppUrl } from '../lib/utils'
 
 const whatsappUrl = buildWhatsAppUrl(WHATSAPP_ASSOCIACAO_TEXT)
@@ -13,8 +14,11 @@ interface LayoutProps {
 export function Layout({ children, showHeader = true }: LayoutProps) {
   return (
     <div className="min-h-screen bg-[#f8faf8] flex flex-col">
+      <a href="#conteudo-principal" className="skip-link">
+        Ir para o conteúdo
+      </a>
       {showHeader && <Header />}
-      <main className="flex-1">
+      <main id="conteudo-principal" className="flex-1">
         <PageTransition>{children}</PageTransition>
       </main>
       <footer className="bg-emerald-950 text-emerald-200">
@@ -46,12 +50,16 @@ export function Layout({ children, showHeader = true }: LayoutProps) {
               <a href="tel:+5547988080903" className="hover:text-white transition-colors">
                 (47) 98808-0903
               </a>
+              <br />
+              <a href="tel:+554733300997" className="hover:text-white transition-colors">
+                (47) 3330-0997
+              </a>
             </p>
           </div>
           <div>
             <p className="text-emerald-50 font-medium mb-2">Redes e associação</p>
             <a
-              href="https://www.instagram.com/cctvelhacentral/"
+              href={INSTAGRAM_PROFILE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="block hover:text-white transition-colors"

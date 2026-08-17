@@ -4,9 +4,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { PageLoadingSkeleton } from './components/motion/Skeleton'
+import { HomePage } from './pages/HomePage'
 import './index.css'
 
-const HomePage = lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })))
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })))
 const ReservationsPage = lazy(() =>
   import('./pages/ReservationsPage').then((m) => ({ default: m.ReservationsPage }))
@@ -52,7 +52,7 @@ createRoot(document.getElementById('root')!).render(
               }
             />
             <Route
-              path="/admin"
+              path="/admin/:aba?"
               element={
                 <ProtectedRoute adminOnly>
                   <AdminPage />

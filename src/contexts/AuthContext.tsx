@@ -28,7 +28,7 @@ interface StoredAuth {
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
-  login: (userCode: string, password: string) => Promise<{ success: boolean; error?: string }>
+  login: (userCode: string, password: string) => Promise<{ success: boolean; error?: string; user?: AuthUser }>
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
   finalizeGoogleLogin: () => Promise<{ success: boolean; error?: string }>
   logout: () => void
@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await loginWithCredentials(userCode, password)
       persistAuth({ token: result.token, user: result.user })
       setUser(result.user)
-      return { success: true }
+      return { success: true, user: result.user }
     } catch (err) {
       const message =
         err instanceof Error && err.message ? err.message : 'Usuário ou senha inválidos'

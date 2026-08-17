@@ -4,6 +4,7 @@ import { Layout } from '../components/Layout'
 import { Logo } from '../components/Logo'
 import { FeedbackMessage } from '../components/motion/FeedbackMessage'
 import { useAuth } from '../contexts/AuthContext'
+import { getPostLoginPath } from '../lib/authRoutes'
 
 export function AuthCallbackPage() {
   const { finalizeGoogleLogin, user, loading } = useAuth()
@@ -43,7 +44,7 @@ export function AuthCallbackPage() {
       return
     }
 
-    navigate(user.perfil === 'admin' ? '/admin' : '/reservas', { replace: true })
+    navigate(getPostLoginPath(user), { replace: true })
   }, [user, loading, error, navigate])
 
   return (
