@@ -14,7 +14,7 @@ type LoginMode = 'google' | 'socio'
 const benefits = [
   {
     title: 'Reserve quadras online',
-    description: 'Tênis, futsal, vôlei e mais — escolha horário e confirme em segundos.',
+    description: 'Beach Tennis, vôlei e mais — escolha horário e confirme em segundos.',
     icon: CalendarIcon,
   },
   {
