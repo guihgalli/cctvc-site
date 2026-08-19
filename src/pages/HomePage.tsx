@@ -40,7 +40,7 @@ const departamentos = [
   {
     title: 'Quadras esportivas',
     description:
-      'Reserve beach tennis, vôlei, futebol e outras quadras esportivas.',
+      'Reserve beach tennis, vôlei e futebol society.',
     linkToReservas: true,
   },
 ]
