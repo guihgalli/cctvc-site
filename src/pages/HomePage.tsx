@@ -183,7 +183,7 @@ export function HomePage() {
               </div>
               <div className="home-stat-panel__divider" />
               <div>
-                <p className="font-display text-4xl md:text-5xl text-emerald-950"> família</p>
+                <p className="font-display text-4xl md:text-5xl text-emerald-950">Uma família</p>
                 <p className="text-stone-600 mt-1">Esporte, folclore e lazer juntos</p>
               </div>
             </div>
