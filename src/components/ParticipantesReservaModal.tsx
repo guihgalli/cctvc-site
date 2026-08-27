@@ -79,11 +79,15 @@ export function ParticipantesReservaModal({
   useEffect(() => {
     if (!open) return
 
+    const termo = busca.trim()
+    let cancelled = false
+
     const timer = window.setTimeout(async () => {
       setCarregando(true)
       try {
-        const data = await searchParticipantesReserva(busca.trim())
-        if (busca.trim().length < 2) {
+        const data = await searchParticipantesReserva(termo)
+        if (cancelled) return
+        if (termo.length < 2) {
           setDependentes(data)
           setResultadosBusca([])
         } else {
@@ -91,14 +95,19 @@ export function ParticipantesReservaModal({
           setResultadosBusca(data)
         }
       } catch {
-        setDependentes([])
-        setResultadosBusca([])
+        if (!cancelled) {
+          setDependentes([])
+          setResultadosBusca([])
+        }
       } finally {
-        setCarregando(false)
+        if (!cancelled) setCarregando(false)
       }
-    }, busca.trim().length >= 2 ? 300 : 0)
+    }, termo.length >= 2 ? 300 : 0)
 
-    return () => window.clearTimeout(timer)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [busca, open])
 
   const toggleParticipante = useCallback((usuario: ParticipanteResumo) => {

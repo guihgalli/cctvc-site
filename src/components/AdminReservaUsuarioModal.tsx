@@ -62,22 +62,29 @@ export function AdminReservaUsuarioModal({
   useEffect(() => {
     if (!open || busca.trim().length < 2) {
       setResultados([])
+      setBuscando(false)
       return
     }
+
+    const termo = busca.trim()
+    let cancelled = false
 
     const timer = window.setTimeout(async () => {
       setBuscando(true)
       try {
-        const data = await adminSearchUsers(busca.trim())
-        setResultados(data)
+        const data = await adminSearchUsers(termo)
+        if (!cancelled) setResultados(data)
       } catch {
-        setResultados([])
+        if (!cancelled) setResultados([])
       } finally {
-        setBuscando(false)
+        if (!cancelled) setBuscando(false)
       }
     }, 300)
 
-    return () => window.clearTimeout(timer)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [busca, open])
 
   const selecionarReservante = useCallback((usuario: UsuarioResumo) => {
