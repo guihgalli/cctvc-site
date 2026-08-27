@@ -708,7 +708,7 @@ export function AdminPage() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className={`mx-auto px-4 py-8 ${aba === 'usuarios' ? 'max-w-[1600px]' : 'max-w-6xl'}`}>
         <h1 className="text-2xl font-bold text-emerald-900 mb-2">Painel Administrativo</h1>
         <p className="text-stone-500 text-sm mb-6">
           Gerencie quadras, aprove reservas e administre usuários do clube.

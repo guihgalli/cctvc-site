@@ -19,11 +19,17 @@ import { formatTitularVinculo, labelCategoriaSocio, resolveTitularUsuario } from
 import type { CamposPlanilhaUsuario } from '../../lib/usuarioPlanilha'
 import { labelCategoriaClube } from '../../lib/usuarioPlanilha'
 import { formatCpf, formatDate, formatPhone, maskPhoneInput } from '../../lib/utils'
+import { exportUsuariosExcel } from '../../lib/exportUsuariosExcel'
 import type { Usuario } from '../../types'
 import { UsuarioPlanilhaFields, resumoCamposPlanilha } from './UsuarioPlanilhaFields'
 
 const BTN_ACAO =
   'text-sm min-h-9 px-3 py-1.5 rounded inline-flex items-center justify-center'
+
+const TH_STICKY = 'sticky top-0 z-20 bg-stone-50'
+const TD_STICKY_RIGHT =
+  'sticky right-0 z-[5] bg-white group-hover:bg-stone-50 shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.12)]'
+const TH_STICKY_RIGHT = `${TH_STICKY} shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.08)]`
 
 interface CampoErros {
   cpf?: string
@@ -75,7 +81,7 @@ function SortHeader({
   const ativo = sort.col === col
   const seta = ativo ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''
   return (
-    <th className="text-left px-4 py-3 font-medium text-stone-600">
+    <th className={`text-left px-3 py-3 font-medium text-stone-600 whitespace-nowrap ${TH_STICKY}`}>
       <button
         type="button"
         onClick={() => onSort(col)}
@@ -110,6 +116,57 @@ function UsuarioBadges({ u }: { u: Usuario }) {
       >
         {u.perfil === 'admin' ? 'Admin' : 'Usuário'}
       </span>
+    </div>
+  )
+}
+
+function UsuarioAcoesCelula({
+  u,
+  adminUserId,
+  onToggleStatus,
+  onEditar,
+  onExcluir,
+}: {
+  u: Usuario
+  adminUserId: string | undefined
+  onToggleStatus: (usuario: Usuario) => void
+  onEditar: (usuario: Usuario) => void
+  onExcluir: (usuario: Usuario) => void
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 min-w-[9.5rem]">
+      <button
+        type="button"
+        onClick={() => onToggleStatus(u)}
+        className={`${BTN_ACAO} w-full ${
+          u.ativo ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+        }`}
+        aria-label={u.ativo ? `Desativar ${u.nome}` : `Ativar ${u.nome}`}
+      >
+        {u.ativo ? 'Ativo' : 'Inativo'}
+      </button>
+      <div className="flex gap-1.5">
+        <button
+          type="button"
+          onClick={() => onEditar(u)}
+          className={`${BTN_ACAO} flex-1 bg-stone-100 text-stone-700 hover:bg-stone-200`}
+        >
+          Editar
+        </button>
+        <button
+          type="button"
+          onClick={() => onExcluir(u)}
+          disabled={u.id === adminUserId}
+          className={`${BTN_ACAO} flex-1 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed`}
+          title={
+            u.id === adminUserId
+              ? 'Você não pode excluir sua própria conta'
+              : 'Excluir usuário permanentemente'
+          }
+        >
+          Excluir
+        </button>
+      </div>
     </div>
   )
 }
@@ -295,13 +352,25 @@ export function AdminUsuariosSection({
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setMostrarFormUsuario(!mostrarFormUsuario)}
-          className="bg-emerald-700 text-white px-4 py-2 min-h-11 rounded-lg text-sm hover:bg-emerald-600 self-start sm:self-auto"
-        >
-          {mostrarFormUsuario ? 'Cancelar' : '+ Novo Usuário'}
-        </button>
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          {!listaVazia && (
+            <button
+              type="button"
+              onClick={() => exportUsuariosExcel(usuariosFiltrados)}
+              className="border border-emerald-700 text-emerald-800 px-4 py-2 min-h-11 rounded-lg text-sm hover:bg-emerald-50"
+              title={`Exportar ${totalFiltrados} usuário(s) filtrados para Excel`}
+            >
+              Exportar Excel
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setMostrarFormUsuario(!mostrarFormUsuario)}
+            className="bg-emerald-700 text-white px-4 py-2 min-h-11 rounded-lg text-sm hover:bg-emerald-600"
+          >
+            {mostrarFormUsuario ? 'Cancelar' : '+ Novo Usuário'}
+          </button>
+        </div>
       </div>
 
       {pendentesAprovacao > 0 && (
@@ -612,50 +681,81 @@ export function AdminUsuariosSection({
             })}
           </div>
 
-          <div className="motion-card border border-stone-200 overflow-x-auto hidden md:block">
-            <div className="max-h-[70vh] overflow-y-auto">
-              <table className="w-full text-sm min-w-[1280px]">
-                <thead className="bg-stone-50 border-b sticky top-0 z-10 shadow-sm">
+          <p className="text-xs text-stone-400 mb-2 hidden md:block">
+            Ações fixas à direita. Role horizontalmente para ver e-mail, telefone e CPF.
+          </p>
+
+          <div className="motion-card border border-stone-200 hidden md:flex md:flex-col min-h-[520px] max-h-[calc(100vh-11rem)]">
+            <div className="flex-1 overflow-auto overscroll-contain">
+              <table className="w-full text-sm border-collapse min-w-[1100px]">
+                <thead className="border-b">
                   <tr>
                     <SortHeader col="codigo" sort={sort} onSort={alterarOrdenacao}>
                       Usuário
                     </SortHeader>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Matrícula</th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Matrícula
+                    </th>
                     <SortHeader col="nome" sort={sort} onSort={alterarOrdenacao}>
                       Nome
                     </SortHeader>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Tipo</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Categoria</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Admissão</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Nascimento</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Parentesco</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Sexo</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">E-mail</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Telefone</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">CPF</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Perfil</th>
-                    <SortHeader col="status" sort={sort} onSort={alterarOrdenacao}>
-                      Status
-                    </SortHeader>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Ações</th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Tipo
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Categoria
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Admissão
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Nascimento
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Parentesco
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Sexo
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      E-mail
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Telefone
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      CPF
+                    </th>
+                    <th className={`text-left px-3 py-3 font-medium text-stone-600 ${TH_STICKY}`}>
+                      Perfil
+                    </th>
+                    <th
+                      className={`text-left px-3 py-3 font-medium text-stone-600 min-w-[10.5rem] ${TH_STICKY_RIGHT}`}
+                    >
+                      Ações
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {usuariosPagina.map((u) => {
                     const vinculo = titularLabel(u)
                     return (
-                      <tr key={u.id} className="border-b last:border-0 hover:bg-stone-50">
-                        <td className="px-4 py-3 font-mono">{u.codigo_usuario ?? '—'}</td>
-                        <td className="px-4 py-3 font-mono text-stone-600">{u.matricula ?? '—'}</td>
-                        <td className="px-4 py-3">
-                          <div className="line-clamp-2">{u.nome}</div>
+                      <tr key={u.id} className="group border-b last:border-0 hover:bg-stone-50">
+                        <td className="px-3 py-2.5 font-mono whitespace-nowrap">
+                          {u.codigo_usuario ?? '—'}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-stone-600 whitespace-nowrap">
+                          {u.matricula ?? '—'}
+                        </td>
+                        <td className="px-3 py-2.5 min-w-[12rem] max-w-[16rem]">
+                          <div className="line-clamp-2 font-medium text-stone-800">{u.nome}</div>
                           {vinculo && (
                             <div className="text-xs text-stone-500 mt-0.5 line-clamp-2">
                               Dependente de {vinculo}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2.5 whitespace-nowrap">
                           <span
                             className={`text-xs px-2 py-0.5 rounded font-medium ${
                               u.tipo_socio === 'socio'
@@ -668,32 +768,32 @@ export function AdminUsuariosSection({
                               : 'Visitante'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-stone-600 text-xs">
+                        <td className="px-3 py-2.5 text-stone-600 text-xs whitespace-nowrap">
                           {labelCategoriaClube(u.categoria_clube)}
                         </td>
-                        <td className="px-4 py-3 text-stone-500 whitespace-nowrap text-xs">
+                        <td className="px-3 py-2.5 text-stone-500 whitespace-nowrap text-xs">
                           {u.data_admissao ? formatDate(u.data_admissao) : '—'}
                         </td>
-                        <td className="px-4 py-3 text-stone-500 whitespace-nowrap text-xs">
+                        <td className="px-3 py-2.5 text-stone-500 whitespace-nowrap text-xs">
                           {u.data_nascimento ? formatDate(u.data_nascimento) : '—'}
                         </td>
-                        <td className="px-4 py-3 text-stone-600 text-xs">
+                        <td className="px-3 py-2.5 text-stone-600 text-xs whitespace-nowrap">
                           {u.parentesco ?? '—'}
                           {u.numero_dependente != null && (
                             <span className="text-stone-400"> · Dep {u.numero_dependente}</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-stone-600 text-xs">{u.sexo ?? '—'}</td>
-                        <td className="px-4 py-3 text-stone-500 max-w-[180px] truncate">
+                        <td className="px-3 py-2.5 text-stone-600 text-xs">{u.sexo ?? '—'}</td>
+                        <td className="px-3 py-2.5 text-stone-500 max-w-[11rem] truncate">
                           {u.email || '—'}
                         </td>
-                        <td className="px-4 py-3 font-mono text-stone-500 whitespace-nowrap">
+                        <td className="px-3 py-2.5 font-mono text-stone-500 whitespace-nowrap text-xs">
                           {u.telefone ? formatPhone(u.telefone) : '—'}
                         </td>
-                        <td className="px-4 py-3 font-mono text-stone-500 whitespace-nowrap">
+                        <td className="px-3 py-2.5 font-mono text-stone-500 whitespace-nowrap text-xs">
                           {formatCpf(u.cpf)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2.5 whitespace-nowrap">
                           <span
                             className={`text-xs px-2 py-0.5 rounded ${
                               u.perfil === 'admin'
@@ -704,24 +804,11 @@ export function AdminUsuariosSection({
                             {u.perfil === 'admin' ? 'Admin' : 'Usuário'}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            onClick={() => onToggleStatus(u)}
-                            className={`${BTN_ACAO} ${
-                              u.ativo
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-red-100 text-red-600'
-                            }`}
-                            aria-label={u.ativo ? `Desativar ${u.nome}` : `Ativar ${u.nome}`}
-                          >
-                            {u.ativo ? 'Ativo' : 'Inativo'}
-                          </button>
-                        </td>
-                        <td className="px-4 py-3">
-                          <UsuarioAcoesLinha
+                        <td className={`px-3 py-2.5 ${TD_STICKY_RIGHT}`}>
+                          <UsuarioAcoesCelula
                             u={u}
                             adminUserId={adminUserId}
+                            onToggleStatus={onToggleStatus}
                             onEditar={onEditar}
                             onExcluir={onExcluir}
                           />

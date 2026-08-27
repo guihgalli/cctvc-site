@@ -211,11 +211,6 @@ export function LoginPage() {
                   onSubmit={handleSubmit}
                   className="space-y-4 motion-tab-panel"
                 >
-                  <p className="text-sm text-stone-600 leading-relaxed">
-                    Use a matrícula de 4 dígitos e a senha de 6 dígitos fornecidas pelo clube.
-                    O último dígito 0 indica titular (ex.: 1660); 1–9 indica dependente (ex.: 1661).
-                  </p>
-
                   <div>
                     <label htmlFor="userCode" className="block text-sm font-medium text-stone-700 mb-1.5">
                       Matrícula
