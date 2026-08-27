@@ -400,6 +400,24 @@ export async function adminCreateBooking(reserva: {
   )
 }
 
+export async function searchParticipantesReserva(busca = ''): Promise<
+  (Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'tipo_socio'> & {
+    eh_dependente?: boolean
+  })[]
+> {
+  const token = requireToken()
+  const data = await rpc<
+    (Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'tipo_socio'> & {
+      eh_dependente?: boolean
+    })[]
+  >(
+    'buscar_participantes_reserva',
+    { p_token: token, p_busca: busca.trim() || null },
+    'Erro ao buscar participantes.'
+  )
+  return data || []
+}
+
 export async function searchSocios(busca: string): Promise<
   Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'ativo'>[]
 > {
@@ -407,6 +425,16 @@ export async function searchSocios(busca: string): Promise<
   const data = await rpc<
     Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'ativo'>[]
   >('buscar_socios', { p_token: token, p_busca: busca }, 'Erro ao buscar sócios.')
+  return data || []
+}
+
+export async function adminSearchUsers(busca: string): Promise<
+  Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'tipo_socio' | 'ativo'>[]
+> {
+  const token = requireToken()
+  const data = await rpc<
+    Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'tipo_socio' | 'ativo'>[]
+  >('admin_buscar_usuarios', { p_token: token, p_busca: busca }, 'Erro ao buscar usuários.')
   return data || []
 }
 

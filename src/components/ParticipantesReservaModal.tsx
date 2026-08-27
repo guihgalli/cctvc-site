@@ -1,15 +1,49 @@
 import { useCallback, useEffect, useState } from 'react'
-import { searchSocios } from '../services/api'
+import { searchParticipantesReserva } from '../services/api'
 import type { Usuario } from '../types'
 import { Modal } from './motion/Modal'
 import { Button } from './motion/Button'
-import { labelCategoriaSocio } from '../lib/bookingRules'
+import { descricaoUsuarioReserva } from '../lib/bookingRules'
+
+type ParticipanteResumo = Pick<
+  Usuario,
+  'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'tipo_socio'
+> & { eh_dependente?: boolean }
 
 interface ParticipantesReservaModalProps {
   open: boolean
   onClose: () => void
   onConfirm: (participanteIds: string[]) => void
   loading?: boolean
+}
+
+function ParticipanteItem({
+  usuario,
+  selecionado,
+  onToggle,
+}: {
+  usuario: ParticipanteResumo
+  selecionado: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`w-full text-left px-3 py-2 text-sm border-b last:border-0 hover:bg-stone-50 ${
+        selecionado ? 'bg-emerald-50' : ''
+      }`}
+    >
+      <span className="font-medium">{usuario.nome}</span>
+      {usuario.codigo_usuario && (
+        <span className="text-stone-500 ml-2 font-mono text-xs">{usuario.codigo_usuario}</span>
+      )}
+      <span className="text-stone-400 ml-2 text-xs">{descricaoUsuarioReserva(usuario)}</span>
+      {usuario.eh_dependente && (
+        <span className="ml-2 text-xs text-emerald-700 font-medium">Dependente</span>
+      )}
+    </button>
+  )
 }
 
 export function ParticipantesReservaModal({
@@ -19,58 +53,60 @@ export function ParticipantesReservaModal({
   loading = false,
 }: ParticipantesReservaModalProps) {
   const [busca, setBusca] = useState('')
-  const [resultados, setResultados] = useState<
-    Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio'>[]
-  >([])
-  const [selecionados, setSelecionados] = useState<
-    Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio'>[]
-  >([])
-  const [buscando, setBuscando] = useState(false)
+  const [dependentes, setDependentes] = useState<ParticipanteResumo[]>([])
+  const [resultadosBusca, setResultadosBusca] = useState<ParticipanteResumo[]>([])
+  const [selecionados, setSelecionados] = useState<ParticipanteResumo[]>([])
+  const [carregando, setCarregando] = useState(false)
 
   useEffect(() => {
     if (!open) {
       setBusca('')
-      setResultados([])
+      setDependentes([])
+      setResultadosBusca([])
       setSelecionados([])
     }
   }, [open])
 
   useEffect(() => {
-    if (!open || busca.trim().length < 2) {
-      setResultados([])
-      return
-    }
+    if (!open) return
 
     const timer = window.setTimeout(async () => {
-      setBuscando(true)
+      setCarregando(true)
       try {
-        const data = await searchSocios(busca.trim())
-        setResultados(data)
+        const data = await searchParticipantesReserva(busca.trim())
+        if (busca.trim().length < 2) {
+          setDependentes(data)
+          setResultadosBusca([])
+        } else {
+          setDependentes([])
+          setResultadosBusca(data)
+        }
       } catch {
-        setResultados([])
+        setDependentes([])
+        setResultadosBusca([])
       } finally {
-        setBuscando(false)
+        setCarregando(false)
       }
-    }, 300)
+    }, busca.trim().length >= 2 ? 300 : 0)
 
     return () => window.clearTimeout(timer)
   }, [busca, open])
 
-  const toggleParticipante = useCallback(
-    (socio: Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio'>) => {
-      setSelecionados((prev) => {
-        if (prev.some((p) => p.id === socio.id)) {
-          return prev.filter((p) => p.id !== socio.id)
-        }
-        return [...prev, socio]
-      })
-    },
-    []
-  )
+  const toggleParticipante = useCallback((usuario: ParticipanteResumo) => {
+    setSelecionados((prev) => {
+      if (prev.some((p) => p.id === usuario.id)) {
+        return prev.filter((p) => p.id !== usuario.id)
+      }
+      return [...prev, usuario]
+    })
+  }, [])
 
   function handleConfirm() {
     onConfirm(selecionados.map((p) => p.id))
   }
+
+  const listaVisivel = busca.trim().length >= 2 ? resultadosBusca : dependentes
+  const mostrandoDependentes = busca.trim().length < 2
 
   return (
     <Modal open={open} onClose={onClose} labelledBy="participantes-title" maxWidth="lg">
@@ -78,14 +114,15 @@ export function ParticipantesReservaModal({
         Quem vai jogar?
       </h2>
       <p className="text-sm text-stone-500 mb-4">
-        Opcional — busque sócios titulares ou dependentes pelo nome ou matrícula.
+        Opcional — seus dependentes aparecem primeiro. Você também pode buscar qualquer usuário
+        cadastrado pelo nome, matrícula ou CPF.
       </p>
 
       <input
         type="search"
         value={busca}
         onChange={(e) => setBusca(e.target.value)}
-        placeholder="Nome ou matrícula (mín. 2 caracteres)"
+        placeholder="Nome, matrícula ou CPF (mín. 2 caracteres para buscar)"
         className="w-full border border-stone-300 rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-emerald-500 outline-none"
       />
 
@@ -98,36 +135,36 @@ export function ParticipantesReservaModal({
               onClick={() => toggleParticipante(p)}
               className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
             >
-              {p.nome} ({p.codigo_usuario}) ×
+              {p.nome}
+              {p.codigo_usuario ? ` (${p.codigo_usuario})` : ''} ×
             </button>
           ))}
         </div>
       )}
 
       <div className="max-h-48 overflow-y-auto border border-stone-200 rounded-lg mb-4">
-        {buscando && <p className="p-3 text-sm text-stone-400">Buscando...</p>}
-        {!buscando && busca.trim().length >= 2 && resultados.length === 0 && (
-          <p className="p-3 text-sm text-stone-400">Nenhum sócio encontrado.</p>
+        {carregando && <p className="p-3 text-sm text-stone-400">Carregando...</p>}
+        {!carregando && mostrandoDependentes && listaVisivel.length === 0 && (
+          <p className="p-3 text-sm text-stone-400">
+            Nenhum dependente cadastrado. Use a busca para encontrar outros participantes.
+          </p>
         )}
-        {resultados.map((socio) => {
-          const ativo = selecionados.some((p) => p.id === socio.id)
-          return (
-            <button
-              key={socio.id}
-              type="button"
-              onClick={() => toggleParticipante(socio)}
-              className={`w-full text-left px-3 py-2 text-sm border-b last:border-0 hover:bg-stone-50 ${
-                ativo ? 'bg-emerald-50' : ''
-              }`}
-            >
-              <span className="font-medium">{socio.nome}</span>
-              <span className="text-stone-500 ml-2 font-mono text-xs">{socio.codigo_usuario}</span>
-              <span className="text-stone-400 ml-2 text-xs">
-                {labelCategoriaSocio(socio.categoria_socio)}
-              </span>
-            </button>
-          )
-        })}
+        {!carregando && !mostrandoDependentes && listaVisivel.length === 0 && (
+          <p className="p-3 text-sm text-stone-400">Nenhum usuário encontrado.</p>
+        )}
+        {mostrandoDependentes && listaVisivel.length > 0 && (
+          <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-stone-500 bg-stone-50 border-b">
+            Seus dependentes
+          </p>
+        )}
+        {listaVisivel.map((usuario) => (
+          <ParticipanteItem
+            key={usuario.id}
+            usuario={usuario}
+            selecionado={selecionados.some((p) => p.id === usuario.id)}
+            onToggle={() => toggleParticipante(usuario)}
+          />
+        ))}
       </div>
 
       <div className="flex flex-col-reverse sm:flex-row gap-3">

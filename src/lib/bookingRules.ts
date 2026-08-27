@@ -48,10 +48,24 @@ export function generateBookableDates(maxDays = 14, hoje = todayIsoDate()): stri
   return dates
 }
 
-/** Seleção de participantes habilitada a partir de outubro */
-export function isParticipantesHabilitado(date = todayIsoDate()): boolean {
-  const month = Number(date.split('-')[1])
-  return month >= 10
+/** Seleção de participantes na reserva (sócio titular) */
+export function isParticipantesHabilitado(_date = todayIsoDate()): boolean {
+  return true
+}
+
+export function labelTipoUsuario(tipo: string | null | undefined): string {
+  if (tipo === 'nao_socio') return 'Visitante'
+  return 'Sócio'
+}
+
+export function descricaoUsuarioReserva(usuario: {
+  tipo_socio?: string | null
+  categoria_socio?: string | null
+}): string {
+  if (usuario.tipo_socio === 'socio') {
+    return labelCategoriaSocio(usuario.categoria_socio)
+  }
+  return labelTipoUsuario(usuario.tipo_socio)
 }
 
 /** Último dígito 0 = titular, 1-9 = dependente */

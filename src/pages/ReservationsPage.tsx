@@ -25,6 +25,7 @@ import { useMyBookings } from '../hooks/useMyBookings'
 import { useBookingActions } from '../hooks/useBookingActions'
 
 import { ParticipantesReservaModal } from '../components/ParticipantesReservaModal'
+import { AdminReservaUsuarioModal } from '../components/AdminReservaUsuarioModal'
 import { diaDisponivel } from '../lib/bookingSchedule'
 import { isDataReservavel, labelTipoQuadra } from '../lib/bookingRules'
 
@@ -128,7 +129,7 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
 
 export function ReservationsPage() {
 
-  const { user, isSocio, canBook, isDependente, isInadimplente, isTitular } = useAuth()
+  const { user, isSocio, canBook, isAdmin, isDependente, isInadimplente, isTitular } = useAuth()
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -232,11 +233,23 @@ export function ReservationsPage() {
 
     confirmarReservaComParticipantes,
 
+    adminUsuarioModalOpen,
+
+    fecharAdminUsuarioModal,
+
+    confirmarReservaAdmin,
+
+    nomeUsuarioReserva,
+
   } = useBookingActions({
 
     user,
 
     canBook,
+
+    isAdmin,
+
+    isSocio,
 
     isTitular,
 
@@ -321,6 +334,18 @@ export function ReservationsPage() {
             expira automaticamente e o horário é liberado. A confirmação será enviada no WhatsApp
 
             cadastrado.
+
+          </p>
+
+        )}
+
+        {isAdmin && (
+
+          <p className="text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm mb-4">
+
+            Como <strong>administrador</strong>, você pode reservar horários em nome de qualquer
+
+            usuário. Ao clicar em &quot;Reservar horário&quot;, selecione o usuário desejado.
 
           </p>
 
@@ -1038,7 +1063,7 @@ export function ReservationsPage() {
 
         isVisitante={!isSocio}
 
-        nomeUsuario={user?.nome}
+        nomeUsuario={nomeUsuarioReserva ?? user?.nome}
 
         expiracaoPendenteMinutos={modalExpiracaoMinutos}
 
@@ -1056,6 +1081,13 @@ export function ReservationsPage() {
         open={participantesModalOpen}
         onClose={fecharParticipantesModal}
         onConfirm={confirmarReservaComParticipantes}
+        loading={!!reservandoSlot}
+      />
+
+      <AdminReservaUsuarioModal
+        open={adminUsuarioModalOpen}
+        onClose={fecharAdminUsuarioModal}
+        onConfirm={confirmarReservaAdmin}
         loading={!!reservandoSlot}
       />
 

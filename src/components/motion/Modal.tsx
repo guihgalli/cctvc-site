@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { lockBodyScroll, unlockBodyScroll } from '../../lib/scrollLock'
 
 interface ModalProps {
   open: boolean
@@ -60,8 +61,7 @@ export function Modal({
   useEffect(() => {
     if (!mounted) return
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    lockBodyScroll()
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose()
@@ -69,23 +69,20 @@ export function Modal({
 
     window.addEventListener('keydown', handleKeyDown)
 
+    let focusTimer: number | undefined
     if (initialFocus) {
-      const timer = window.setTimeout(() => {
+      focusTimer = window.setTimeout(() => {
         const focusable = panelRef.current?.querySelector<HTMLElement>(
           'input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
         )
         focusable?.focus()
       }, 50)
-      return () => {
-        document.body.style.overflow = previousOverflow
-        window.removeEventListener('keydown', handleKeyDown)
-        window.clearTimeout(timer)
-      }
     }
 
     return () => {
-      document.body.style.overflow = previousOverflow
+      unlockBodyScroll()
       window.removeEventListener('keydown', handleKeyDown)
+      if (focusTimer !== undefined) window.clearTimeout(focusTimer)
     }
   }, [mounted, onClose, initialFocus])
 

@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react'
-import { cancelBooking, createBooking } from '../services/api'
+import { adminCreateBooking, cancelBooking, createBooking } from '../services/api'
 import {
   formatTime,
   getBookingErrorMessage,
   isPastDate,
   isPastDateTime,
 } from '../lib/utils'
-import { isDataReservavel, isParticipantesHabilitado } from '../lib/bookingRules'
+import { isDataReservavel } from '../lib/bookingRules'
 import { horarioDoDia } from '../lib/bookingSchedule'
 import type { AuthUser } from '../types'
 import type { Quadra, Reserva } from '../types'
@@ -16,6 +16,8 @@ type PageMessage = { type: 'success' | 'error'; text: string }
 interface UseBookingActionsParams {
   user: AuthUser | null
   canBook: boolean
+  isAdmin: boolean
+  isSocio: boolean
   isTitular: boolean
   quadraSelecionada: Quadra | null
   dataSelecionada: string
@@ -28,6 +30,8 @@ interface UseBookingActionsParams {
 export function useBookingActions({
   user,
   canBook,
+  isAdmin,
+  isSocio,
   isTitular,
   quadraSelecionada,
   dataSelecionada,
@@ -44,7 +48,9 @@ export function useBookingActions({
   const [modalExpiracaoMinutos, setModalExpiracaoMinutos] = useState(60)
   const [modalValorVisitante, setModalValorVisitante] = useState<number | null>(null)
   const [participantesModalOpen, setParticipantesModalOpen] = useState(false)
+  const [adminUsuarioModalOpen, setAdminUsuarioModalOpen] = useState(false)
   const [slotPendente, setSlotPendente] = useState<{ inicio: string; fim: string } | null>(null)
+  const [nomeUsuarioReserva, setNomeUsuarioReserva] = useState<string | undefined>()
 
   const janelaDia = horarioDoDia(quadraSelecionada, dataSelecionada)
 
@@ -77,6 +83,7 @@ export function useBookingActions({
     setModalQuadraNome(undefined)
     setModalExpiracaoMinutos(60)
     setModalValorVisitante(null)
+    setNomeUsuarioReserva(undefined)
   }, [])
 
   const solicitarCancelamento = useCallback((reservaId: string) => {
@@ -101,25 +108,43 @@ export function useBookingActions({
   }, [cancelConfirmId, fecharModalReserva, refreshCourtBookings, refreshMyBookings, setMessage])
 
   const executarReserva = useCallback(
-    async (horaInicio: string, horaFim: string, participantes?: string[]) => {
+    async (
+      horaInicio: string,
+      horaFim: string,
+      options?: { usuarioId?: string; participantes?: string[]; nomeUsuario?: string }
+    ) => {
       if (!quadraSelecionada || !dataSelecionada || !user) return
+
+      const usuarioId = options?.usuarioId ?? user.id
+      const participantes = options?.participantes
 
       setReservandoSlot(horaInicio)
       setMessage(null)
 
       try {
-        const reserva = await createBooking({
-          quadra_id: quadraSelecionada.id,
-          usuario_id: user.id,
-          data_reserva: dataSelecionada,
-          hora_inicio: horaInicio,
-          hora_fim: horaFim,
-          participantes,
-        })
+        const reserva = isAdmin && options?.usuarioId
+          ? await adminCreateBooking({
+              quadra_id: quadraSelecionada.id,
+              usuario_id: usuarioId,
+              data_reserva: dataSelecionada,
+              hora_inicio: horaInicio,
+              hora_fim: horaFim,
+              participantes,
+            })
+          : await createBooking({
+              quadra_id: quadraSelecionada.id,
+              usuario_id: usuarioId,
+              data_reserva: dataSelecionada,
+              hora_inicio: horaInicio,
+              hora_fim: horaFim,
+              participantes,
+            })
+        setNomeUsuarioReserva(options?.nomeUsuario)
         abrirModalReserva(reserva, quadraSelecionada.nome)
         setModalExpiracaoMinutos(quadraSelecionada.expiracao_pendente_minutos ?? 60)
         setModalValorVisitante(quadraSelecionada.valor_visitante ?? null)
         setParticipantesModalOpen(false)
+        setAdminUsuarioModalOpen(false)
         setSlotPendente(null)
         await Promise.all([refreshCourtBookings(), refreshMyBookings()])
       } catch (err) {
@@ -136,6 +161,7 @@ export function useBookingActions({
       quadraSelecionada,
       dataSelecionada,
       user,
+      isAdmin,
       abrirModalReserva,
       refreshCourtBookings,
       refreshMyBookings,
@@ -185,7 +211,13 @@ export function useBookingActions({
         return
       }
 
-      if (isTitular && isParticipantesHabilitado(dataSelecionada)) {
+      if (isAdmin) {
+        setSlotPendente({ inicio: horaInicio, fim: horaFim })
+        setAdminUsuarioModalOpen(true)
+        return
+      }
+
+      if (isSocio && isTitular) {
         setSlotPendente({ inicio: horaInicio, fim: horaFim })
         setParticipantesModalOpen(true)
         return
@@ -200,6 +232,8 @@ export function useBookingActions({
       canBook,
       janelaDia,
       horarioOcupado,
+      isAdmin,
+      isSocio,
       isTitular,
       executarReserva,
       setMessage,
@@ -209,13 +243,30 @@ export function useBookingActions({
   const confirmarReservaComParticipantes = useCallback(
     async (participanteIds: string[]) => {
       if (!slotPendente) return
-      await executarReserva(slotPendente.inicio, slotPendente.fim, participanteIds)
+      await executarReserva(slotPendente.inicio, slotPendente.fim, { participantes: participanteIds })
+    },
+    [slotPendente, executarReserva]
+  )
+
+  const confirmarReservaAdmin = useCallback(
+    async (usuarioId: string, participanteIds: string[], nomeUsuario: string) => {
+      if (!slotPendente) return
+      await executarReserva(slotPendente.inicio, slotPendente.fim, {
+        usuarioId,
+        participantes: participanteIds.length ? participanteIds : undefined,
+        nomeUsuario,
+      })
     },
     [slotPendente, executarReserva]
   )
 
   const fecharParticipantesModal = useCallback(() => {
     setParticipantesModalOpen(false)
+    setSlotPendente(null)
+  }, [])
+
+  const fecharAdminUsuarioModal = useCallback(() => {
+    setAdminUsuarioModalOpen(false)
     setSlotPendente(null)
   }, [])
 
@@ -239,5 +290,9 @@ export function useBookingActions({
     participantesModalOpen,
     fecharParticipantesModal,
     confirmarReservaComParticipantes,
+    adminUsuarioModalOpen,
+    fecharAdminUsuarioModal,
+    confirmarReservaAdmin,
+    nomeUsuarioReserva,
   }
 }
