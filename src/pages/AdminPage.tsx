@@ -899,7 +899,7 @@ export function AdminPage() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Foto da quadra</label>
                   <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
-                    <div className="w-28 h-28 rounded-lg border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
+                    <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
                       {previewFotoUrl || fotoAtualUrl ? (
                         <img
                           src={previewFotoUrl || fotoAtualUrl || ''}
@@ -970,10 +970,10 @@ export function AdminPage() {
                         <LazyImage
                           src={foto.url}
                           alt={quadra.nome}
-                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg shrink-0"
+                          className="w-36 h-36 sm:w-44 sm:h-44 rounded-xl shrink-0"
                         />
                       ) : (
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400 text-xs shrink-0">
+                        <div className="w-36 h-36 sm:w-44 sm:h-44 bg-stone-100 rounded-xl flex items-center justify-center text-stone-400 text-xs shrink-0">
                           Sem foto
                         </div>
                       )}

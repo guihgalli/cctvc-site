@@ -508,23 +508,15 @@ export function ReservationsPage() {
 
 
               {quadraSelecionada && fotoPrincipal && (
-
-                <div className="flex items-center gap-3 motion-page-enter">
-
+                <div className="w-full max-w-3xl motion-page-enter">
                   <LazyImage
-
                     src={fotoPrincipal.url}
-
                     alt={quadraSelecionada.nome}
-
-                    className="w-14 h-14 rounded-lg shrink-0"
-
+                    className="rounded-xl"
+                    aspectRatio="16/9"
                     loading="eager"
-
                   />
-
                 </div>
-
               )}
 
 

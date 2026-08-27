@@ -55,7 +55,21 @@ const EXPORT_HEADERS = [
   'Status',
 ]
 
-/** Exporta lista filtrada para arquivo compatível com Excel (UTF-8 + separador ;). */
+/** Excel no Windows abre UTF-16 LE com BOM corretamente; UTF-8 em .xls gera mojibake (UsuÃ¡rio). */
+function toExcelCsvBlob(text: string): Blob {
+  const bom = new Uint8Array([0xff, 0xfe])
+  const bytes = new Uint8Array(text.length * 2)
+  const view = new DataView(bytes.buffer)
+  for (let i = 0; i < text.length; i++) {
+    view.setUint16(i * 2, text.charCodeAt(i), true)
+  }
+  const combined = new Uint8Array(bom.length + bytes.length)
+  combined.set(bom, 0)
+  combined.set(bytes, bom.length)
+  return new Blob([combined], { type: 'text/csv;charset=utf-16le' })
+}
+
+/** Exporta lista filtrada para CSV (;) compatível com Excel no Windows. */
 export function exportUsuariosExcel(usuarios: Usuario[], filenamePrefix = 'usuarios-cctvc'): void {
   if (usuarios.length === 0) return
 
@@ -66,16 +80,14 @@ export function exportUsuariosExcel(usuarios: Usuario[], filenamePrefix = 'usuar
     ...usuarios.map((u) => usuarioToRow(u).map(escapeCsvCell).join(sep)),
   ]
 
-  const blob = new Blob(['\uFEFF', linhas.join('\r\n')], {
-    type: 'application/vnd.ms-excel;charset=utf-8',
-  })
+  const blob = toExcelCsvBlob(linhas.join('\r\n'))
 
   const data = new Date()
   const stamp = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `${filenamePrefix}-${stamp}.xls`
+  link.download = `${filenamePrefix}-${stamp}.csv`
   link.click()
   URL.revokeObjectURL(url)
 }
