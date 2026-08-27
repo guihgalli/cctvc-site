@@ -4,6 +4,15 @@ export type CategoriaSocio = 'titular' | 'dependente'
 export type TipoQuadra = 'socio' | 'locacao' | 'geral'
 export type StatusReserva = 'pendente' | 'confirmada' | 'recusada' | 'cancelada'
 
+export interface TitularResumo {
+  nome: string
+  codigo_usuario: string | null
+  matricula?: number | null
+  categoria_clube?: string | null
+  data_nascimento?: string | null
+  data_admissao?: string | null
+}
+
 export interface Usuario {
   id: string
   codigo_usuario: string | null
@@ -15,6 +24,14 @@ export interface Usuario {
   tipo_socio: TipoSocio
   categoria_socio?: CategoriaSocio | null
   titular_id?: string | null
+  titular?: TitularResumo | null
+  matricula?: number | null
+  categoria_clube?: string | null
+  data_nascimento?: string | null
+  data_admissao?: string | null
+  parentesco?: string | null
+  sexo?: string | null
+  numero_dependente?: number | null
   ativo: boolean
   criado_em: string
 }
@@ -92,6 +109,14 @@ export interface AuthUser {
   perfil: PerfilUsuario
   tipo_socio: TipoSocio
   categoria_socio?: CategoriaSocio | null
+  titular?: TitularResumo | null
+  matricula?: number | null
+  categoria_clube?: string | null
+  data_nascimento?: string | null
+  data_admissao?: string | null
+  parentesco?: string | null
+  sexo?: string | null
+  numero_dependente?: number | null
   ativo?: boolean
   inadimplente?: boolean
   telefone: string | null

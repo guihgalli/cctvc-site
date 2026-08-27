@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FormEvent, type CSSProperties } from 'react'
+import { useState, useEffect, useCallback, useMemo, type FormEvent, type CSSProperties } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { useAuth } from '../contexts/AuthContext'
@@ -6,7 +6,9 @@ import { FeedbackMessage } from '../components/motion/FeedbackMessage'
 import { TabPanel } from '../components/motion/TabPanel'
 import { Button } from '../components/motion/Button'
 import { LazyImage } from '../components/motion/LazyImage'
-import { AdminPageSkeleton } from '../components/motion/Skeleton'
+import { AdminPageSkeleton, AdminUsuariosSkeleton } from '../components/motion/Skeleton'
+import { AdminUsuariosSection, contarUsuariosPendentes } from '../components/admin/AdminUsuariosSection'
+import { CAMPOS_PLANILHA_VAZIOS, type CamposPlanilhaUsuario } from '../lib/usuarioPlanilha'
 import { ConfirmDialog } from '../components/motion/ConfirmDialog'
 import { Modal } from '../components/motion/Modal'
 import {
@@ -34,14 +36,12 @@ import { EditUsuarioModal, type UsuarioEditForm } from '../components/EditUsuari
 import {
   formatDate,
   formatTime,
-  formatCpf,
   formatPhone,
   cleanCpf,
   cleanPhone,
   cpfToPassword,
   isValidEmail,
   isValidPhone,
-  maskPhoneInput,
   getErrorMessage,
   prepareCourtPhoto,
   buildWhatsAppReservaConfirmadaUrl,
@@ -51,13 +51,14 @@ import {
 } from '../lib/utils'
 import { adminTabPath, parseAdminTab, type AdminTab } from '../lib/authRoutes'
 import type { CourtScheduleInput, Quadra, Reserva, StatusReserva, TipoQuadra, Usuario } from '../types'
-import { labelCategoriaSocio, labelTipoQuadra } from '../lib/bookingRules'
+import { labelTipoQuadra, resolveTitularUsuario } from '../lib/bookingRules'
 
 type AbaAdmin = AdminTab
 
 type ConfirmAction =
   | { kind: 'deleteCourt'; quadra: Quadra }
   | { kind: 'deleteUser'; usuario: Usuario }
+  | { kind: 'toggleUserStatus'; usuario: Usuario }
   | { kind: 'approve'; reserva: Reserva }
   | null
 
@@ -122,6 +123,14 @@ export function AdminPage() {
   const [tipoSocioUsuario, setTipoSocioUsuario] = useState<'socio' | 'nao_socio'>('socio')
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null)
   const [salvandoUsuario, setSalvandoUsuario] = useState(false)
+  const [criandoUsuario, setCriandoUsuario] = useState(false)
+  const [campoErrosUsuario, setCampoErrosUsuario] = useState<{
+    cpf?: string
+    email?: string
+    telefone?: string
+  }>({})
+  const [camposPlanilhaUsuario, setCamposPlanilhaUsuario] =
+    useState<CamposPlanilhaUsuario>(CAMPOS_PLANILHA_VAZIOS)
 
   const [filtroStatus, setFiltroStatus] = useState<'' | StatusReserva>('')
   const [resumo, setResumo] = useState({
@@ -375,6 +384,10 @@ export function AdminPage() {
         await deleteUser(confirmAction.usuario.id)
         setMessage({ type: 'success', text: 'Usuário excluído.' })
         await carregarDados()
+      } else if (confirmAction.kind === 'toggleUserStatus') {
+        await updateUser(confirmAction.usuario.id, { ativo: false })
+        setMessage({ type: 'success', text: `${confirmAction.usuario.nome} foi desativado.` })
+        await carregarDados()
       } else if (confirmAction.kind === 'approve') {
         const { reserva } = confirmAction
         const result = await approveBooking(reserva.id)
@@ -404,6 +417,8 @@ export function AdminPage() {
           type: 'error',
           text: err instanceof Error ? err.message : 'Erro ao excluir usuário.',
         })
+      } else if (confirmAction.kind === 'toggleUserStatus') {
+        setMessage({ type: 'error', text: 'Erro ao desativar usuário.' })
       } else if (confirmAction.kind === 'approve') {
         setMessage({ type: 'error', text: getErrorMessage(err, 'Erro ao aprovar reserva.') })
       } else {
@@ -458,6 +473,7 @@ export function AdminPage() {
       setMessage({ type: 'error', text: 'Telefone deve ter 10 ou 11 dígitos (com DDD).' })
       return
     }
+    setCriandoUsuario(true)
     try {
       await createUser({
         codigo_usuario: codigoUsuario,
@@ -467,6 +483,7 @@ export function AdminPage() {
         telefone,
         perfil: perfilUsuario,
         tipo_socio: tipoSocioUsuario,
+        ...camposPlanilhaUsuario,
       })
       setMessage({
         type: 'success',
@@ -479,6 +496,8 @@ export function AdminPage() {
       setTelefoneUsuario('')
       setPerfilUsuario('usuario')
       setTipoSocioUsuario('socio')
+      setCamposPlanilhaUsuario(CAMPOS_PLANILHA_VAZIOS)
+      setCampoErrosUsuario({})
       setMostrarFormUsuario(false)
       carregarDados()
     } catch (err) {
@@ -486,7 +505,44 @@ export function AdminPage() {
         type: 'error',
         text: err instanceof Error ? err.message : 'Erro ao cadastrar usuário.',
       })
+    } finally {
+      setCriandoUsuario(false)
     }
+  }
+
+  function validarCampoUsuario(campo: 'cpf' | 'email' | 'telefone') {
+    if (campo === 'cpf') {
+      const cpf = cleanCpf(cpfUsuario)
+      setCampoErrosUsuario((prev) => ({
+        ...prev,
+        cpf: cpf.length > 0 && cpf.length !== 11 ? 'CPF deve ter 11 dígitos.' : undefined,
+      }))
+    }
+    if (campo === 'email') {
+      const email = emailUsuario.trim()
+      setCampoErrosUsuario((prev) => ({
+        ...prev,
+        email: email.length > 0 && !isValidEmail(email) ? 'Informe um e-mail válido.' : undefined,
+      }))
+    }
+    if (campo === 'telefone') {
+      const telefone = cleanPhone(telefoneUsuario)
+      setCampoErrosUsuario((prev) => ({
+        ...prev,
+        telefone:
+          telefone.length > 0 && !isValidPhone(telefone)
+            ? 'Telefone deve ter 10 ou 11 dígitos (com DDD).'
+            : undefined,
+      }))
+    }
+  }
+
+  function solicitarToggleStatusUsuario(usuario: Usuario) {
+    if (usuario.ativo) {
+      setConfirmAction({ kind: 'toggleUserStatus', usuario })
+      return
+    }
+    void handleAlternarUsuario(usuario)
   }
 
   async function handleAlternarUsuario(usuario: Usuario) {
@@ -509,6 +565,13 @@ export function AdminPage() {
         perfil: data.perfil,
         tipo_socio: data.tipo_socio,
         ativo: data.ativo,
+        matricula: data.matricula ?? null,
+        categoria_clube: data.categoria_clube ?? null,
+        data_nascimento: data.data_nascimento ?? null,
+        data_admissao: data.data_admissao ?? null,
+        parentesco: data.parentesco ?? null,
+        sexo: data.sexo ?? null,
+        numero_dependente: data.numero_dependente ?? null,
       })
       setUsuarioEditando(null)
       setMessage({ type: 'success', text: 'Usuário atualizado.' })
@@ -611,6 +674,15 @@ export function AdminPage() {
         loadingText: 'Excluindo...',
       }
     }
+    if (confirmAction.kind === 'toggleUserStatus') {
+      return {
+        title: 'Desativar usuário',
+        message: `Desativar ${confirmAction.usuario.nome}? O usuário não poderá fazer login até ser reativado.`,
+        confirmLabel: 'Desativar',
+        confirmVariant: 'danger',
+        loadingText: 'Desativando...',
+      }
+    }
     return {
       title: 'Aprovar reserva',
       message: 'Confirmar pagamento e aprovar esta reserva? Um link de WhatsApp será aberto para avisar o usuário.',
@@ -623,6 +695,8 @@ export function AdminPage() {
   const reservasFiltradas = filtroStatus
     ? reservas.filter((r) => r.status === filtroStatus)
     : reservas
+
+  const usuariosPendentes = useMemo(() => contarUsuariosPendentes(usuarios), [usuarios])
 
   const dialogProps = confirmDialogProps()
 
@@ -690,6 +764,11 @@ export function AdminPage() {
                   {resumo.pendentes}
                 </span>
               )}
+              {t.id === 'usuarios' && usuariosPendentes > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-purple-500 text-white text-xs font-bold">
+                  {usuariosPendentes}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -706,7 +785,7 @@ export function AdminPage() {
         )}
 
         {loading ? (
-          <AdminPageSkeleton />
+          aba === 'usuarios' ? <AdminUsuariosSkeleton /> : <AdminPageSkeleton />
         ) : (
           <>
         <TabPanel active={aba === 'quadras'}>
@@ -1219,199 +1298,35 @@ export function AdminPage() {
         </TabPanel>
 
         <TabPanel active={aba === 'usuarios'}>
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-stone-700">Usuários Cadastrados</h2>
-              <button
-                onClick={() => setMostrarFormUsuario(!mostrarFormUsuario)}
-                className="bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-600"
-              >
-                {mostrarFormUsuario ? 'Cancelar' : '+ Novo Usuário'}
-              </button>
-            </div>
-
-            {mostrarFormUsuario && (
-              <form
-                onSubmit={handleCriarUsuario}
-                className="motion-card border border-stone-200 p-6 mb-6 space-y-4 motion-page-enter"
-              >
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Código (4 dígitos) *</label>
-                    <input
-                      value={codigoUsuario}
-                      onChange={(e) => setCodigoUsuario(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      required
-                      pattern="\d{4}"
-                      placeholder="1660 titular, 1661 dep."
-                      className="w-full border rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">CPF *</label>
-                    <input
-                      value={cpfUsuario}
-                      onChange={(e) => setCpfUsuario(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                      required
-                      className="w-full border rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nome *</label>
-                    <input
-                      value={nomeUsuario}
-                      onChange={(e) => setNomeUsuario(e.target.value)}
-                      required
-                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">E-mail *</label>
-                    <input
-                      type="email"
-                      value={emailUsuario}
-                      onChange={(e) => setEmailUsuario(e.target.value)}
-                      required
-                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Telefone *</label>
-                    <input
-                      type="tel"
-                      value={telefoneUsuario}
-                      onChange={(e) => setTelefoneUsuario(maskPhoneInput(e.target.value))}
-                      required
-                      inputMode="numeric"
-                      placeholder="(47) 99999-9999"
-                      className="w-full border rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Tipo</label>
-                    <select
-                      value={tipoSocioUsuario}
-                      onChange={(e) => setTipoSocioUsuario(e.target.value as 'socio' | 'nao_socio')}
-                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-                    >
-                      <option value="socio">Sócio (aprovação imediata)</option>
-                      <option value="nao_socio">Não-sócio (aprovação manual)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Perfil</label>
-                    <select
-                      value={perfilUsuario}
-                      onChange={(e) => setPerfilUsuario(e.target.value as 'usuario' | 'admin')}
-                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-                    >
-                      <option value="usuario">Usuário</option>
-                      <option value="admin">Administrador</option>
-                    </select>
-                  </div>
-                </div>
-                <p className="text-stone-500 text-xs">
-                  A senha inicial será os 6 primeiros dígitos do CPF. Último dígito 0 = titular;
-                  1–9 = dependente. O sócio pode alterá-la depois em Conta.
-                </p>
-                <Button type="submit" variant="primary">
-                  Cadastrar
-                </Button>
-              </form>
-            )}
-
-            <div className="motion-card border border-stone-200 overflow-x-auto">
-              <table className="w-full text-sm min-w-[960px]">
-                <thead className="bg-stone-50 border-b">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Código</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Nome</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Tipo</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">E-mail</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Telefone</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">CPF</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Perfil</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Status</th>
-                    <th className="text-left px-4 py-3 font-medium text-stone-600">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuarios.map((u) => (
-                    <tr key={u.id} className="border-b last:border-0 hover:bg-stone-50">
-                      <td className="px-4 py-3 font-mono">{u.codigo_usuario ?? '—'}</td>
-                      <td className="px-4 py-3">{u.nome}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded font-medium ${
-                            u.tipo_socio === 'socio'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {u.tipo_socio === 'socio'
-                            ? labelCategoriaSocio(u.categoria_socio)
-                            : 'Visitante'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-stone-500">{u.email || '—'}</td>
-                      <td className="px-4 py-3 font-mono text-stone-500">
-                        {u.telefone ? formatPhone(u.telefone) : '—'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-stone-500">{formatCpf(u.cpf)}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded ${
-                            u.perfil === 'admin'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-stone-100 text-stone-600'
-                          }`}
-                        >
-                          {u.perfil === 'admin' ? 'Admin' : 'Usuário'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => handleAlternarUsuario(u)}
-                          className={`text-xs px-2 py-1 rounded ${
-                            u.ativo
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-red-100 text-red-600'
-                          }`}
-                        >
-                          {u.ativo ? 'Ativo' : 'Inativo'}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setUsuarioEditando(u)}
-                            className="text-xs px-2 py-1 rounded bg-stone-100 text-stone-700 hover:bg-stone-200"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleExcluirUsuario(u)}
-                            disabled={u.id === adminUser?.id}
-                            className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title={
-                              u.id === adminUser?.id
-                                ? 'Você não pode excluir sua própria conta'
-                                : 'Excluir usuário permanentemente'
-                            }
-                          >
-                            Excluir
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <AdminUsuariosSection
+            usuarios={usuarios}
+            adminUserId={adminUser?.id}
+            mostrarFormUsuario={mostrarFormUsuario}
+            setMostrarFormUsuario={setMostrarFormUsuario}
+            codigoUsuario={codigoUsuario}
+            setCodigoUsuario={setCodigoUsuario}
+            cpfUsuario={cpfUsuario}
+            setCpfUsuario={setCpfUsuario}
+            nomeUsuario={nomeUsuario}
+            setNomeUsuario={setNomeUsuario}
+            emailUsuario={emailUsuario}
+            setEmailUsuario={setEmailUsuario}
+            telefoneUsuario={telefoneUsuario}
+            setTelefoneUsuario={setTelefoneUsuario}
+            tipoSocioUsuario={tipoSocioUsuario}
+            setTipoSocioUsuario={setTipoSocioUsuario}
+            perfilUsuario={perfilUsuario}
+            setPerfilUsuario={setPerfilUsuario}
+            criandoUsuario={criandoUsuario}
+            campoErros={campoErrosUsuario}
+            onBlurValidarCampo={validarCampoUsuario}
+            onCriarUsuario={handleCriarUsuario}
+            onToggleStatus={solicitarToggleStatusUsuario}
+            onEditar={setUsuarioEditando}
+            onExcluir={handleExcluirUsuario}
+            camposPlanilha={camposPlanilhaUsuario}
+            setCamposPlanilha={setCamposPlanilhaUsuario}
+          />
         </TabPanel>
           </>
         )}
@@ -1476,6 +1391,11 @@ export function AdminPage() {
 
       <EditUsuarioModal
         usuario={usuarioEditando}
+        titular={
+          usuarioEditando
+            ? resolveTitularUsuario(usuarioEditando, usuarios)
+            : null
+        }
         isSelf={usuarioEditando?.id === adminUser?.id}
         saving={salvandoUsuario}
         onClose={() => setUsuarioEditando(null)}

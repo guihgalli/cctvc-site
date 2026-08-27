@@ -8,8 +8,11 @@ import {
   isValidPassword,
   maskPhoneInput,
 } from '../lib/utils'
-import { labelCategoriaSocio } from '../lib/bookingRules'
-import type { TipoSocio, Usuario } from '../types'
+import { labelCategoriaSocio, formatTitularVinculo, resolveTitularUsuario } from '../lib/bookingRules'
+import type { CamposPlanilhaUsuario } from '../lib/usuarioPlanilha'
+import { CAMPOS_PLANILHA_VAZIOS } from '../lib/usuarioPlanilha'
+import { UsuarioPlanilhaFields } from './admin/UsuarioPlanilhaFields'
+import type { TipoSocio, TitularResumo, Usuario } from '../types'
 import { Modal } from './motion/Modal'
 import { Button } from './motion/Button'
 import { FeedbackMessage } from './motion/FeedbackMessage'
@@ -22,10 +25,18 @@ export interface UsuarioEditForm {
   perfil: 'usuario' | 'admin'
   tipo_socio: TipoSocio
   ativo: boolean
+  matricula?: number | null
+  categoria_clube?: string | null
+  data_nascimento?: string | null
+  data_admissao?: string | null
+  parentesco?: string | null
+  sexo?: string | null
+  numero_dependente?: number | null
 }
 
 interface EditUsuarioModalProps {
   usuario: Usuario | null
+  titular?: TitularResumo | null
   isSelf: boolean
   saving?: boolean
   onClose: () => void
@@ -35,6 +46,7 @@ interface EditUsuarioModalProps {
 
 export function EditUsuarioModal({
   usuario,
+  titular,
   isSelf,
   saving = false,
   onClose,
@@ -48,6 +60,7 @@ export function EditUsuarioModal({
   const [perfil, setPerfil] = useState<'usuario' | 'admin'>('usuario')
   const [tipoSocio, setTipoSocio] = useState<TipoSocio>('socio')
   const [ativo, setAtivo] = useState(true)
+  const [camposPlanilha, setCamposPlanilha] = useState<CamposPlanilhaUsuario>(CAMPOS_PLANILHA_VAZIOS)
   const [error, setError] = useState('')
   const [novaSenhaAdmin, setNovaSenhaAdmin] = useState('')
   const [resetandoSenha, setResetandoSenha] = useState(false)
@@ -62,12 +75,24 @@ export function EditUsuarioModal({
     setPerfil(usuario.perfil)
     setTipoSocio(usuario.tipo_socio)
     setAtivo(usuario.ativo)
+    setCamposPlanilha({
+      matricula: usuario.matricula ?? null,
+      categoria_clube: usuario.categoria_clube ?? null,
+      data_nascimento: usuario.data_nascimento ?? null,
+      data_admissao: usuario.data_admissao ?? null,
+      parentesco: usuario.parentesco ?? null,
+      sexo: usuario.sexo ?? null,
+      numero_dependente: usuario.numero_dependente ?? null,
+    })
     setError('')
   }, [usuario])
 
   if (!usuario) return null
 
   const usuarioAtual = usuario
+  const titularVinculo =
+    titular ?? resolveTitularUsuario(usuarioAtual)
+  const titularLabel = formatTitularVinculo(titularVinculo)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -111,6 +136,7 @@ export function EditUsuarioModal({
         perfil: isSelf ? usuarioAtual.perfil : perfil,
         tipo_socio: tipoSocio,
         ativo: isSelf ? usuarioAtual.ativo : ativo,
+        ...camposPlanilha,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar usuário.')
@@ -131,6 +157,11 @@ export function EditUsuarioModal({
             )}
             {isSelf && ' · você não pode alterar seu perfil ou status aqui'}
           </p>
+          {usuarioAtual.categoria_socio === 'dependente' && titularLabel && (
+            <p className="text-stone-600 text-sm mt-1">
+              Dependente de <strong>{titularLabel}</strong>
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -224,6 +255,13 @@ export function EditUsuarioModal({
           />
           Usuário ativo (desmarque para inadimplente/inativo)
         </label>
+
+        <UsuarioPlanilhaFields
+          idPrefix="edit-usuario"
+          codigoUsuario={usuarioAtual.codigo_usuario ?? ''}
+          campos={camposPlanilha}
+          onChange={(patch) => setCamposPlanilha((prev) => ({ ...prev, ...patch }))}
+        />
 
         {!isSelf && onResetPassword && usuarioAtual.tipo_socio === 'socio' && (
           <div className="border-t border-stone-200 pt-4 space-y-2">

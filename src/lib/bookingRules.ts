@@ -1,4 +1,5 @@
 import { todayIsoDate } from './utils'
+import type { TitularResumo, Usuario } from '../types'
 
 /** Segunda=0 … Domingo=6 (semana clube) */
 function dowSegunda(date: string): number {
@@ -63,6 +64,41 @@ export function labelCategoriaSocio(categoria: string | null | undefined): strin
   if (categoria === 'titular') return 'Sócio titular'
   if (categoria === 'dependente') return 'Sócio dependente'
   return 'Sócio'
+}
+
+/** Matrícula do titular a partir do código do dependente (ex.: 0261 → 0260). */
+export function codigoTitularFromDependente(codigo: string | null | undefined): string | null {
+  if (!codigo || !/^\d{4}$/.test(codigo) || codigo.endsWith('0')) return null
+  return codigo.slice(0, 3) + '0'
+}
+
+export function formatTitularVinculo(titular: TitularResumo | null | undefined): string | null {
+  if (!titular?.nome) return null
+  const matricula = titular.codigo_usuario ? ` · matrícula ${titular.codigo_usuario}` : ''
+  return `${titular.nome}${matricula}`
+}
+
+/** Resolve titular de um dependente a partir da lista de usuários ou do vínculo da API. */
+export function resolveTitularUsuario(
+  usuario: Pick<Usuario, 'categoria_socio' | 'titular_id' | 'titular' | 'codigo_usuario'>,
+  usuarios: Pick<Usuario, 'id' | 'nome' | 'codigo_usuario'>[] = []
+): TitularResumo | null {
+  if (usuario.categoria_socio !== 'dependente') return null
+  if (usuario.titular?.nome) return usuario.titular
+
+  if (usuario.titular_id) {
+    const porId = usuarios.find((u) => u.id === usuario.titular_id)
+    if (porId) return { nome: porId.nome, codigo_usuario: porId.codigo_usuario }
+  }
+
+  const codigoTitular = codigoTitularFromDependente(usuario.codigo_usuario)
+  if (codigoTitular) {
+    const porCodigo = usuarios.find((u) => u.codigo_usuario === codigoTitular)
+    if (porCodigo) return { nome: porCodigo.nome, codigo_usuario: porCodigo.codigo_usuario }
+    return { nome: 'Titular', codigo_usuario: codigoTitular }
+  }
+
+  return null
 }
 
 export function labelTipoQuadra(tipo: string | null | undefined): string {

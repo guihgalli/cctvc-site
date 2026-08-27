@@ -108,6 +108,38 @@ export function AdminPageSkeleton() {
   )
 }
 
+export function AdminUsuariosSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Carregando usuários" className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <Skeleton variant="text" width="200px" height="24px" />
+        <Skeleton variant="rounded" width="140px" height="40px" />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Skeleton variant="rounded" className="flex-1 min-w-[200px] h-10" />
+        <Skeleton variant="rounded" width="120px" height="40px" />
+        <Skeleton variant="rounded" width="120px" height="40px" />
+        <Skeleton variant="rounded" width="100px" height="40px" />
+      </div>
+      <div className="motion-card border border-stone-200 overflow-hidden">
+        <div className="bg-stone-50 border-b px-4 py-3 flex gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} variant="text" width={`${60 + i * 10}px`} height="16px" />
+          ))}
+        </div>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="px-4 py-3 border-b last:border-0 flex gap-4 items-center">
+            <Skeleton variant="text" width="48px" height="16px" />
+            <Skeleton variant="text" className="flex-1" height="16px" />
+            <Skeleton variant="rounded" width="72px" height="28px" />
+            <Skeleton variant="rounded" width="56px" height="28px" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function PageLoadingSkeleton() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 motion-page-enter" aria-busy="true">

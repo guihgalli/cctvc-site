@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+supabase/scripts/import_admin_credentials.json
 
 # Editor directories and files
 .vscode/*

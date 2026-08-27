@@ -15,8 +15,11 @@ import {
   cleanPhone,
   cleanCpf,
   formatPhone,
+  formatDate,
 } from '../lib/utils'
 import { getPostLoginPath } from '../lib/authRoutes'
+import { formatTitularVinculo, labelCategoriaSocio, resolveTitularUsuario } from '../lib/bookingRules'
+import { labelCategoriaClube, labelSexo } from '../lib/usuarioPlanilha'
 
 export function AccountPage() {
   const { user, updateSessionToken, updateUser } = useAuth()
@@ -156,10 +159,53 @@ export function AccountPage() {
           {user && (
             <p className="text-stone-500 text-sm mt-1">
               {user.nome}
-              {user.codigo_usuario ? ` · matrícula ${user.codigo_usuario}` : ''}
+              {user.matricula != null && ` · matrícula ${user.matricula}`}
+              {user.codigo_usuario && ` · usuário ${user.codigo_usuario}`}
               {isVisitante ? ' · visitante' : ' · sócio'}
+              {!isVisitante && user.categoria_socio && (
+                <> · {labelCategoriaSocio(user.categoria_socio)}</>
+              )}
+              {!isVisitante && user.categoria_clube && (
+                <> · {labelCategoriaClube(user.categoria_clube)}</>
+              )}
             </p>
           )}
+          {user && (user.data_admissao || user.data_nascimento || user.parentesco || user.sexo) && (
+            <dl className="text-stone-600 text-sm mt-2 space-y-0.5">
+              {user.data_admissao && (
+                <div>
+                  <dt className="inline text-stone-500">Admissão: </dt>
+                  <dd className="inline">{formatDate(user.data_admissao)}</dd>
+                </div>
+              )}
+              {user.data_nascimento && (
+                <div>
+                  <dt className="inline text-stone-500">Nascimento: </dt>
+                  <dd className="inline">{formatDate(user.data_nascimento)}</dd>
+                </div>
+              )}
+              {user.parentesco && (
+                <div>
+                  <dt className="inline text-stone-500">Parentesco: </dt>
+                  <dd className="inline">{user.parentesco}</dd>
+                </div>
+              )}
+              {user.sexo && (
+                <div>
+                  <dt className="inline text-stone-500">Sexo: </dt>
+                  <dd className="inline">{labelSexo(user.sexo)}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+          {user?.categoria_socio === 'dependente' && (() => {
+            const titularLabel = formatTitularVinculo(resolveTitularUsuario(user))
+            return titularLabel ? (
+              <p className="text-stone-600 text-sm mt-1">
+                Dependente de <strong>{titularLabel}</strong>
+              </p>
+            ) : null
+          })()}
         </div>
 
         {(precisaCadastro || cadastroGoogle) && (

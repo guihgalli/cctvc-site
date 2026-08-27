@@ -497,6 +497,13 @@ export async function createUser(usuario: {
   telefone: string
   perfil?: 'usuario' | 'admin'
   tipo_socio?: TipoSocio
+  matricula?: number | null
+  categoria_clube?: string | null
+  data_nascimento?: string | null
+  data_admissao?: string | null
+  parentesco?: string | null
+  sexo?: string | null
+  numero_dependente?: number | null
 }): Promise<Usuario> {
   const token = requireToken()
   return rpc<Usuario>(
@@ -510,6 +517,13 @@ export async function createUser(usuario: {
       p_telefone: usuario.telefone,
       p_perfil: usuario.perfil || 'usuario',
       p_tipo_socio: usuario.tipo_socio || 'socio',
+      p_matricula: usuario.matricula ?? null,
+      p_categoria_clube: usuario.categoria_clube ?? null,
+      p_data_nascimento: usuario.data_nascimento || null,
+      p_data_admissao: usuario.data_admissao || null,
+      p_parentesco: usuario.parentesco ?? null,
+      p_sexo: usuario.sexo ?? null,
+      p_numero_dependente: usuario.numero_dependente ?? null,
     },
     'Erro ao cadastrar usuário.'
   )
@@ -525,6 +539,13 @@ export async function updateUser(
     email: string
     telefone: string
     tipo_socio: TipoSocio
+    matricula: number | null
+    categoria_clube: string | null
+    data_nascimento: string | null
+    data_admissao: string | null
+    parentesco: string | null
+    sexo: string | null
+    numero_dependente: number | null
   }>
 ): Promise<Usuario> {
   const token = requireToken()
@@ -540,6 +561,13 @@ export async function updateUser(
       p_email: updates.email ?? null,
       p_telefone: updates.telefone ?? null,
       p_tipo_socio: updates.tipo_socio ?? null,
+      p_matricula: updates.matricula ?? null,
+      p_categoria_clube: updates.categoria_clube ?? null,
+      p_data_nascimento: updates.data_nascimento ?? null,
+      p_data_admissao: updates.data_admissao ?? null,
+      p_parentesco: updates.parentesco ?? null,
+      p_sexo: updates.sexo ?? null,
+      p_numero_dependente: updates.numero_dependente ?? null,
     },
     'Erro ao atualizar usuário.'
   )
