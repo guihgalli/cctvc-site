@@ -9,6 +9,8 @@ interface LazyImageProps {
   loading?: 'lazy' | 'eager'
   /** aspect ratio CSS (ex.: "1", "4/3") */
   aspectRatio?: string
+  /** cover preenche e pode cortar; contain mostra a imagem inteira */
+  objectFit?: 'cover' | 'contain'
 }
 
 export function LazyImage({
@@ -17,6 +19,7 @@ export function LazyImage({
   className = '',
   loading = 'lazy',
   aspectRatio,
+  objectFit = 'cover',
 }: LazyImageProps) {
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
@@ -41,6 +44,7 @@ export function LazyImage({
           decoding="async"
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
+          style={{ objectFit }}
           className={`motion-lazy-image__img ${className} ${loaded ? 'motion-lazy-image__img--loaded' : ''}`.trim()}
         />
       )}

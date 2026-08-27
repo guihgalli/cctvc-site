@@ -1,5 +1,4 @@
 import { labelCategoriaSocio } from './bookingRules'
-import { labelCategoriaClube, labelSexo } from './usuarioPlanilha'
 import { formatCpf, formatDate, formatPhone } from './utils'
 import type { Usuario } from '../types'
 
@@ -8,6 +7,16 @@ function escapeCsvCell(value: string): string {
     return `"${value.replace(/"/g, '""')}"`
   }
   return value
+}
+
+function exportCategoriaClube(categoria: string | null | undefined): string {
+  return categoria?.trim() || ''
+}
+
+function exportSexo(sexo: string | null | undefined): string {
+  if (sexo === 'F') return 'Feminino'
+  if (sexo === 'M') return 'Masculino'
+  return ''
 }
 
 function usuarioToRow(u: Usuario): string[] {
@@ -21,11 +30,11 @@ function usuarioToRow(u: Usuario): string[] {
     u.matricula != null ? String(u.matricula) : '',
     u.nome,
     u.tipo_socio === 'socio' ? labelCategoriaSocio(u.categoria_socio) : 'Visitante',
-    labelCategoriaClube(u.categoria_clube),
+    exportCategoriaClube(u.categoria_clube),
     u.data_admissao ? formatDate(u.data_admissao) : '',
     u.data_nascimento ? formatDate(u.data_nascimento) : '',
     u.parentesco ?? '',
-    u.sexo ? labelSexo(u.sexo) : '',
+    exportSexo(u.sexo),
     u.numero_dependente != null ? String(u.numero_dependente) : '',
     titular,
     u.email ?? '',
