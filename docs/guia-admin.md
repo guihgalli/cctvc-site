@@ -15,6 +15,7 @@ O painel admin concentra três áreas:
 | **Quadras** | `/admin` | Cadastro, horários, fotos e configuração das quadras |
 | **Agenda** | `/admin/agenda` | Aprovar/recusar reservas, liberações e visão geral |
 | **Usuários** | `/admin/usuarios` | Cadastro, edição, ativação e exportação de usuários |
+| **Guias** | `/admin/guias` | Guia operacional do administrador (exclusivo admin) |
 
 O dashboard inicial exibe cards com totais: reservas pendentes, quadras ativas, quadras inativas e usuários cadastrados.
 
@@ -24,7 +25,9 @@ O dashboard inicial exibe cards com totais: reservas pendentes, quadras ativas, 
 
 1. Entre com matrícula/senha de admin ou Google vinculado a conta admin
 2. Após o login, você será direcionado automaticamente para `/admin`
-3. Use o menu superior ou as abas internas para navegar entre **Quadras**, **Agenda** e **Usuários**
+3. Use o menu superior ou as abas internas para navegar entre **Quadras**, **Agenda**, **Usuários** e **Guias**
+
+> O guia de **usuários** (sócios e visitantes) fica em `/guia`. O guia **administrativo** fica em **Admin → Guias** (`/admin/guias`).
 
 ---
 

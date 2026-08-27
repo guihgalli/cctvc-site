@@ -8,6 +8,7 @@ import { Button } from '../components/motion/Button'
 import { LazyImage } from '../components/motion/LazyImage'
 import { AdminPageSkeleton, AdminUsuariosSkeleton } from '../components/motion/Skeleton'
 import { AdminUsuariosSection, contarUsuariosPendentes } from '../components/admin/AdminUsuariosSection'
+import { AdminGuideSection } from '../components/admin/AdminGuideSection'
 import { CAMPOS_PLANILHA_VAZIOS, type CamposPlanilhaUsuario } from '../lib/usuarioPlanilha'
 import { ConfirmDialog } from '../components/motion/ConfirmDialog'
 import { Modal } from '../components/motion/Modal'
@@ -213,6 +214,10 @@ export function AdminPage() {
   }, [aba, filtroQuadra, filtroData, filtroPendentes, abaInicializada, abaParam])
 
   async function carregarDados() {
+    if (aba === 'guias') {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
       if (aba === 'quadras') {
@@ -704,6 +709,7 @@ export function AdminPage() {
     { id: 'quadras', label: 'Quadras' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'usuarios', label: 'Usuários' },
+    { id: 'guias', label: 'Guias' },
   ]
 
   return (
@@ -784,10 +790,19 @@ export function AdminPage() {
           </FeedbackMessage>
         )}
 
-        {loading ? (
+        {loading && aba !== 'guias' ? (
           aba === 'usuarios' ? <AdminUsuariosSkeleton /> : <AdminPageSkeleton />
         ) : (
           <>
+        <TabPanel active={aba === 'guias'}>
+          <AdminGuideSection
+            pendentesCount={resumo.pendentes}
+            onIrParaAgenda={() => irParaAba('agenda')}
+            onIrParaQuadras={() => irParaAba('quadras')}
+            onIrParaUsuarios={() => irParaAba('usuarios')}
+          />
+        </TabPanel>
+
         <TabPanel active={aba === 'quadras'}>
           <div>
             <div className="flex justify-between items-center mb-4">

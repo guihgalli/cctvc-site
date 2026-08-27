@@ -182,7 +182,7 @@ function profileHighlightIndex(
 
 export function GuidePage() {
 
-  const { user, isSocio, isTitular, isDependente, isInadimplente, canBook } = useAuth()
+  const { user, isSocio, isTitular, isDependente, isInadimplente, canBook, isAdmin } = useAuth()
 
   const isVisitante = user?.tipo_socio === 'nao_socio'
 
@@ -387,6 +387,20 @@ export function GuidePage() {
           </div>
 
         </div>
+
+
+
+        {isAdmin && (
+          <div className="mb-6">
+            <GuideCallout variant="info" title="Administrador">
+              O guia operacional do painel (aprovações, quadras, usuários) está em{' '}
+              <Link to="/admin/guias" className="underline font-medium">
+                Admin → Guias
+              </Link>
+              . Esta página é orientada a sócios e visitantes.
+            </GuideCallout>
+          </div>
+        )}
 
 
 
