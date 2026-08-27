@@ -3,6 +3,7 @@ import { adminSearchUsers } from '../services/api'
 import type { TipoSocio, Usuario } from '../types'
 import { Modal } from './motion/Modal'
 import { Button } from './motion/Button'
+import { ReservaSlotResumo } from './ReservaSlotResumo'
 import { labelCategoriaSocio } from '../lib/bookingRules'
 
 type UsuarioResumo = Pick<
@@ -15,6 +16,10 @@ interface AdminReservaUsuarioModalProps {
   onClose: () => void
   onConfirm: (usuarioId: string, participanteIds: string[], nomeUsuario: string) => void
   loading?: boolean
+  quadraNome?: string
+  dataReserva?: string
+  horaInicio?: string
+  horaFim?: string
 }
 
 function labelTipoUsuario(tipo: TipoSocio | undefined): string {
@@ -34,6 +39,10 @@ export function AdminReservaUsuarioModal({
   onClose,
   onConfirm,
   loading = false,
+  quadraNome,
+  dataReserva,
+  horaInicio,
+  horaFim,
 }: AdminReservaUsuarioModalProps) {
   const [busca, setBusca] = useState('')
   const [resultados, setResultados] = useState<UsuarioResumo[]>([])
@@ -106,6 +115,16 @@ export function AdminReservaUsuarioModal({
       <p className="text-sm text-stone-500 mb-4">
         Busque pelo nome, matrícula ou CPF. A reserva será registrada em nome do usuário selecionado.
       </p>
+
+      {quadraNome && dataReserva && horaInicio && horaFim && (
+        <ReservaSlotResumo
+          quadraNome={quadraNome}
+          dataReserva={dataReserva}
+          horaInicio={horaInicio}
+          horaFim={horaFim}
+          className="mb-4"
+        />
+      )}
 
       <input
         type="search"

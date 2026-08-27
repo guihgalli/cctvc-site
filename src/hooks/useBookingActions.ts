@@ -25,6 +25,7 @@ interface UseBookingActionsParams {
   refreshCourtBookings: (options?: { silent?: boolean }) => Promise<void>
   refreshMyBookings: () => Promise<void>
   setMessage: (message: PageMessage | null) => void
+  onBookingSuccess?: () => void
 }
 
 export function useBookingActions({
@@ -39,6 +40,7 @@ export function useBookingActions({
   refreshCourtBookings,
   refreshMyBookings,
   setMessage,
+  onBookingSuccess,
 }: UseBookingActionsParams) {
   const [reservandoSlot, setReservandoSlot] = useState<string | null>(null)
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null)
@@ -49,6 +51,7 @@ export function useBookingActions({
   const [modalValorVisitante, setModalValorVisitante] = useState<number | null>(null)
   const [participantesModalOpen, setParticipantesModalOpen] = useState(false)
   const [adminUsuarioModalOpen, setAdminUsuarioModalOpen] = useState(false)
+  const [visitanteConfirmOpen, setVisitanteConfirmOpen] = useState(false)
   const [slotPendente, setSlotPendente] = useState<{ inicio: string; fim: string } | null>(null)
   const [nomeUsuarioReserva, setNomeUsuarioReserva] = useState<string | undefined>()
 
@@ -59,16 +62,23 @@ export function useBookingActions({
     [reservas]
   )
 
+  const horarioPassado = useCallback(
+    (horaInicio: string) => {
+      if (!dataSelecionada) return false
+      return isPastDate(dataSelecionada) || isPastDateTime(dataSelecionada, horaInicio)
+    },
+    [dataSelecionada]
+  )
+
   const horarioDisponivel = useCallback(
     (horaInicio: string) => {
       if (!canBook) return false
       if (!dataSelecionada) return false
       if (!isDataReservavel(dataSelecionada)) return false
-      if (isPastDate(dataSelecionada)) return false
-      if (isPastDateTime(dataSelecionada, horaInicio)) return false
+      if (horarioPassado(horaInicio)) return false
       return !horarioOcupado(horaInicio)
     },
-    [canBook, dataSelecionada, horarioOcupado]
+    [canBook, dataSelecionada, horarioOcupado, horarioPassado]
   )
 
   const abrirModalReserva = useCallback((reserva: Reserva, quadraNome?: string) => {
@@ -145,7 +155,9 @@ export function useBookingActions({
         setModalValorVisitante(quadraSelecionada.valor_visitante ?? null)
         setParticipantesModalOpen(false)
         setAdminUsuarioModalOpen(false)
+        setVisitanteConfirmOpen(false)
         setSlotPendente(null)
+        onBookingSuccess?.()
         await Promise.all([refreshCourtBookings(), refreshMyBookings()])
       } catch (err) {
         const text = getBookingErrorMessage(err)
@@ -166,6 +178,7 @@ export function useBookingActions({
       refreshCourtBookings,
       refreshMyBookings,
       setMessage,
+      onBookingSuccess,
     ]
   )
 
@@ -223,7 +236,8 @@ export function useBookingActions({
         return
       }
 
-      await executarReserva(horaInicio, horaFim)
+      setSlotPendente({ inicio: horaInicio, fim: horaFim })
+      setVisitanteConfirmOpen(true)
     },
     [
       quadraSelecionada,
@@ -235,10 +249,14 @@ export function useBookingActions({
       isAdmin,
       isSocio,
       isTitular,
-      executarReserva,
       setMessage,
     ]
   )
+
+  const confirmarReservaVisitante = useCallback(async () => {
+    if (!slotPendente) return
+    await executarReserva(slotPendente.inicio, slotPendente.fim)
+  }, [slotPendente, executarReserva])
 
   const confirmarReservaComParticipantes = useCallback(
     async (participanteIds: string[]) => {
@@ -270,6 +288,11 @@ export function useBookingActions({
     setSlotPendente(null)
   }, [])
 
+  const fecharVisitanteConfirm = useCallback(() => {
+    setVisitanteConfirmOpen(false)
+    setSlotPendente(null)
+  }, [])
+
   return {
     janelaDia,
     reservandoSlot,
@@ -282,6 +305,7 @@ export function useBookingActions({
     modalValorVisitante,
     horarioOcupado,
     horarioDisponivel,
+    horarioPassado,
     abrirModalReserva,
     fecharModalReserva,
     solicitarCancelamento,
@@ -293,6 +317,10 @@ export function useBookingActions({
     adminUsuarioModalOpen,
     fecharAdminUsuarioModal,
     confirmarReservaAdmin,
+    visitanteConfirmOpen,
+    fecharVisitanteConfirm,
+    confirmarReservaVisitante,
+    slotPendente,
     nomeUsuarioReserva,
   }
 }

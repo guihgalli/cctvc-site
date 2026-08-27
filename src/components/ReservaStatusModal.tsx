@@ -162,6 +162,22 @@ export function ReservaStatusModal({
           {formatDate(reservaAtiva.data_reserva)} · {formatTime(reservaAtiva.hora_inicio)} –{' '}
           {formatTime(reservaAtiva.hora_fim)}
         </p>
+        {reservaAtiva.participante && reservaAtiva.titular_reserva && (
+          <p className="text-blue-800 text-sm mt-2">
+            Reserva de <strong>{reservaAtiva.titular_reserva.nome}</strong>
+            {reservaAtiva.titular_reserva.codigo_usuario && (
+              <span className="text-stone-500 font-mono text-xs ml-1">
+                ({reservaAtiva.titular_reserva.codigo_usuario})
+              </span>
+            )}
+          </p>
+        )}
+        {reservaAtiva.participantes && reservaAtiva.participantes.length > 0 && (
+          <p className="text-stone-500 text-sm mt-2">
+            Participantes:{' '}
+            {reservaAtiva.participantes.map((p) => p.nome).join(', ')}
+          </p>
+        )}
       </div>
 
       {mostrarPagamentoPix ? (

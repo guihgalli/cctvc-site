@@ -1,10 +1,12 @@
+import type { ReactNode } from 'react'
 import { Modal } from './Modal'
 import { Button } from './Button'
 
 interface ConfirmDialogProps {
   open: boolean
   title: string
-  message: string
+  message?: string
+  children?: ReactNode
   confirmLabel?: string
   cancelLabel?: string
   confirmVariant?: 'primary' | 'danger'
@@ -18,6 +20,7 @@ export function ConfirmDialog({
   open,
   title,
   message,
+  children,
   confirmLabel = 'Confirmar',
   cancelLabel = 'Voltar',
   confirmVariant = 'danger',
@@ -37,7 +40,11 @@ export function ConfirmDialog({
       <h2 id="confirm-dialog-title" className="text-lg font-bold text-emerald-900 mb-2">
         {title}
       </h2>
-      <p className="text-stone-600 text-sm leading-relaxed mb-6">{message}</p>
+      {children ? (
+        <div className="mb-6">{children}</div>
+      ) : (
+        <p className="text-stone-600 text-sm leading-relaxed mb-6">{message}</p>
+      )}
       <div className="flex flex-col-reverse sm:flex-row gap-3">
         <Button variant="ghost" size="lg" className="w-full sm:w-auto" onClick={onCancel} disabled={loading}>
           {cancelLabel}

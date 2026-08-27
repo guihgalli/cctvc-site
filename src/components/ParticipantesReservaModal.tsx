@@ -3,6 +3,7 @@ import { searchParticipantesReserva } from '../services/api'
 import type { Usuario } from '../types'
 import { Modal } from './motion/Modal'
 import { Button } from './motion/Button'
+import { ReservaSlotResumo } from './ReservaSlotResumo'
 import { descricaoUsuarioReserva } from '../lib/bookingRules'
 
 type ParticipanteResumo = Pick<
@@ -15,6 +16,10 @@ interface ParticipantesReservaModalProps {
   onClose: () => void
   onConfirm: (participanteIds: string[]) => void
   loading?: boolean
+  quadraNome?: string
+  dataReserva?: string
+  horaInicio?: string
+  horaFim?: string
 }
 
 function ParticipanteItem({
@@ -51,6 +56,10 @@ export function ParticipantesReservaModal({
   onClose,
   onConfirm,
   loading = false,
+  quadraNome,
+  dataReserva,
+  horaInicio,
+  horaFim,
 }: ParticipantesReservaModalProps) {
   const [busca, setBusca] = useState('')
   const [dependentes, setDependentes] = useState<ParticipanteResumo[]>([])
@@ -117,6 +126,16 @@ export function ParticipantesReservaModal({
         Opcional — seus dependentes aparecem primeiro. Você também pode buscar qualquer usuário
         cadastrado pelo nome, matrícula ou CPF.
       </p>
+
+      {quadraNome && dataReserva && horaInicio && horaFim && (
+        <ReservaSlotResumo
+          quadraNome={quadraNome}
+          dataReserva={dataReserva}
+          horaInicio={horaInicio}
+          horaFim={horaFim}
+          className="mb-4"
+        />
+      )}
 
       <input
         type="search"
