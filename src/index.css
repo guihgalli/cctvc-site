@@ -1034,3 +1034,22 @@ body {
     transition: none;
   }
 }
+
+/* Guia de uso */
+html:has(.guide-page) {
+  scroll-padding-top: 7rem;
+}
+
+.guide-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.guide-section:not(:last-child) {
+  padding-bottom: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-faq summary svg {
+    transition: none;
+  }
+}

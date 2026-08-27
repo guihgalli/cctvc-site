@@ -38,6 +38,7 @@ export function Header() {
   const loggedInLinks = user
     ? [
         { to: '/reservas', label: 'Reservas' },
+        { to: '/guia', label: 'Guia' },
         { to: '/conta', label: 'Conta' },
         ...(isAdmin ? [{ to: '/admin', label: 'Admin' }] : []),
       ]

@@ -12,6 +12,7 @@ const ReservationsPage = lazy(() =>
   import('./pages/ReservationsPage').then((m) => ({ default: m.ReservationsPage }))
 )
 const AccountPage = lazy(() => import('./pages/AccountPage').then((m) => ({ default: m.AccountPage })))
+const GuidePage = lazy(() => import('./pages/GuidePage').then((m) => ({ default: m.GuidePage })))
 const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const AuthCallbackPage = lazy(() =>
   import('./pages/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage }))
@@ -48,6 +49,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <ProtectedRoute>
                   <AccountPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/guia"
+              element={
+                <ProtectedRoute>
+                  <GuidePage />
                 </ProtectedRoute>
               }
             />

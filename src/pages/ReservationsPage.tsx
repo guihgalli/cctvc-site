@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo, type CSSProperties, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import { Layout } from '../components/Layout'
 import { ReservaStatusModal } from '../components/ReservaStatusModal'
@@ -300,7 +301,15 @@ export function ReservationsPage() {
   return (
     <Layout>
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-emerald-900 mb-2">Reserva de Quadras</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+          <h1 className="text-2xl font-bold text-emerald-900">Reserva de Quadras</h1>
+          <Link
+            to="/guia"
+            className="text-sm text-emerald-700 hover:underline shrink-0 min-h-11 inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 rounded"
+          >
+            Guia de uso
+          </Link>
+        </div>
 
         <AvisosPerfil
           isSocio={isSocio}
