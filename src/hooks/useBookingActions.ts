@@ -6,6 +6,7 @@ import {
   isPastDate,
   isPastDateTime,
 } from '../lib/utils'
+import { isDataReservavel, isParticipantesHabilitado } from '../lib/bookingRules'
 import { horarioDoDia } from '../lib/bookingSchedule'
 import type { AuthUser } from '../types'
 import type { Quadra, Reserva } from '../types'
@@ -14,6 +15,8 @@ type PageMessage = { type: 'success' | 'error'; text: string }
 
 interface UseBookingActionsParams {
   user: AuthUser | null
+  canBook: boolean
+  isTitular: boolean
   quadraSelecionada: Quadra | null
   dataSelecionada: string
   reservas: Reserva[]
@@ -24,6 +27,8 @@ interface UseBookingActionsParams {
 
 export function useBookingActions({
   user,
+  canBook,
+  isTitular,
   quadraSelecionada,
   dataSelecionada,
   reservas,
@@ -38,6 +43,8 @@ export function useBookingActions({
   const [modalQuadraNome, setModalQuadraNome] = useState<string | undefined>()
   const [modalExpiracaoMinutos, setModalExpiracaoMinutos] = useState(60)
   const [modalValorVisitante, setModalValorVisitante] = useState<number | null>(null)
+  const [participantesModalOpen, setParticipantesModalOpen] = useState(false)
+  const [slotPendente, setSlotPendente] = useState<{ inicio: string; fim: string } | null>(null)
 
   const janelaDia = horarioDoDia(quadraSelecionada, dataSelecionada)
 
@@ -48,12 +55,14 @@ export function useBookingActions({
 
   const horarioDisponivel = useCallback(
     (horaInicio: string) => {
+      if (!canBook) return false
       if (!dataSelecionada) return false
+      if (!isDataReservavel(dataSelecionada)) return false
       if (isPastDate(dataSelecionada)) return false
       if (isPastDateTime(dataSelecionada, horaInicio)) return false
       return !horarioOcupado(horaInicio)
     },
-    [dataSelecionada, horarioOcupado]
+    [canBook, dataSelecionada, horarioOcupado]
   )
 
   const abrirModalReserva = useCallback((reserva: Reserva, quadraNome?: string) => {
@@ -91,12 +100,73 @@ export function useBookingActions({
     }
   }, [cancelConfirmId, fecharModalReserva, refreshCourtBookings, refreshMyBookings, setMessage])
 
+  const executarReserva = useCallback(
+    async (horaInicio: string, horaFim: string, participantes?: string[]) => {
+      if (!quadraSelecionada || !dataSelecionada || !user) return
+
+      setReservandoSlot(horaInicio)
+      setMessage(null)
+
+      try {
+        const reserva = await createBooking({
+          quadra_id: quadraSelecionada.id,
+          usuario_id: user.id,
+          data_reserva: dataSelecionada,
+          hora_inicio: horaInicio,
+          hora_fim: horaFim,
+          participantes,
+        })
+        abrirModalReserva(reserva, quadraSelecionada.nome)
+        setModalExpiracaoMinutos(quadraSelecionada.expiracao_pendente_minutos ?? 60)
+        setModalValorVisitante(quadraSelecionada.valor_visitante ?? null)
+        setParticipantesModalOpen(false)
+        setSlotPendente(null)
+        await Promise.all([refreshCourtBookings(), refreshMyBookings()])
+      } catch (err) {
+        const text = getBookingErrorMessage(err)
+        setMessage({ type: 'error', text })
+        if (text.includes('acabou de ser reservado')) {
+          await refreshCourtBookings()
+        }
+      } finally {
+        setReservandoSlot(null)
+      }
+    },
+    [
+      quadraSelecionada,
+      dataSelecionada,
+      user,
+      abrirModalReserva,
+      refreshCourtBookings,
+      refreshMyBookings,
+      setMessage,
+    ]
+  )
+
   const handleReservar = useCallback(
     async (horaInicio: string, horaFim: string) => {
       if (!quadraSelecionada || !dataSelecionada || !user) return
 
+      if (!canBook) {
+        setMessage({
+          type: 'error',
+          text: user.inadimplente
+            ? 'Há pendências financeiras em sua associação. Procure a secretaria do clube.'
+            : 'Seu perfil não permite fazer reservas.',
+        })
+        return
+      }
+
       if (!janelaDia) {
         setMessage({ type: 'error', text: 'Quadra fechada neste dia.' })
+        return
+      }
+
+      if (!isDataReservavel(dataSelecionada)) {
+        setMessage({
+          type: 'error',
+          text: 'Data fora do período liberado. A próxima semana abre aos domingos.',
+        })
         return
       }
 
@@ -115,43 +185,39 @@ export function useBookingActions({
         return
       }
 
-      setReservandoSlot(horaInicio)
-      setMessage(null)
-
-      try {
-        const reserva = await createBooking({
-          quadra_id: quadraSelecionada.id,
-          usuario_id: user.id,
-          data_reserva: dataSelecionada,
-          hora_inicio: horaInicio,
-          hora_fim: horaFim,
-        })
-        abrirModalReserva(reserva, quadraSelecionada.nome)
-        setModalExpiracaoMinutos(quadraSelecionada.expiracao_pendente_minutos ?? 60)
-        setModalValorVisitante(quadraSelecionada.valor_visitante ?? null)
-        await Promise.all([refreshCourtBookings(), refreshMyBookings()])
-      } catch (err) {
-        const text = getBookingErrorMessage(err)
-        setMessage({ type: 'error', text })
-        if (text.includes('acabou de ser reservado')) {
-          await refreshCourtBookings()
-        }
-      } finally {
-        setReservandoSlot(null)
+      if (isTitular && isParticipantesHabilitado(dataSelecionada)) {
+        setSlotPendente({ inicio: horaInicio, fim: horaFim })
+        setParticipantesModalOpen(true)
+        return
       }
+
+      await executarReserva(horaInicio, horaFim)
     },
     [
       quadraSelecionada,
       dataSelecionada,
       user,
+      canBook,
       janelaDia,
       horarioOcupado,
-      abrirModalReserva,
-      refreshCourtBookings,
-      refreshMyBookings,
+      isTitular,
+      executarReserva,
       setMessage,
     ]
   )
+
+  const confirmarReservaComParticipantes = useCallback(
+    async (participanteIds: string[]) => {
+      if (!slotPendente) return
+      await executarReserva(slotPendente.inicio, slotPendente.fim, participanteIds)
+    },
+    [slotPendente, executarReserva]
+  )
+
+  const fecharParticipantesModal = useCallback(() => {
+    setParticipantesModalOpen(false)
+    setSlotPendente(null)
+  }, [])
 
   return {
     janelaDia,
@@ -170,5 +236,8 @@ export function useBookingActions({
     solicitarCancelamento,
     confirmarCancelamento,
     handleReservar,
+    participantesModalOpen,
+    fecharParticipantesModal,
+    confirmarReservaComParticipantes,
   }
 }

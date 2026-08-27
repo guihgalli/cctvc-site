@@ -5,8 +5,10 @@ import {
   isValidCpfLength,
   isValidEmail,
   isValidPhone,
+  isValidPassword,
   maskPhoneInput,
 } from '../lib/utils'
+import { labelCategoriaSocio } from '../lib/bookingRules'
 import type { TipoSocio, Usuario } from '../types'
 import { Modal } from './motion/Modal'
 import { Button } from './motion/Button'
@@ -28,6 +30,7 @@ interface EditUsuarioModalProps {
   saving?: boolean
   onClose: () => void
   onSave: (id: string, data: UsuarioEditForm) => Promise<void>
+  onResetPassword?: (id: string, senha: string) => Promise<void>
 }
 
 export function EditUsuarioModal({
@@ -36,6 +39,7 @@ export function EditUsuarioModal({
   saving = false,
   onClose,
   onSave,
+  onResetPassword,
 }: EditUsuarioModalProps) {
   const [nome, setNome] = useState('')
   const [cpf, setCpf] = useState('')
@@ -45,6 +49,8 @@ export function EditUsuarioModal({
   const [tipoSocio, setTipoSocio] = useState<TipoSocio>('socio')
   const [ativo, setAtivo] = useState(true)
   const [error, setError] = useState('')
+  const [novaSenhaAdmin, setNovaSenhaAdmin] = useState('')
+  const [resetandoSenha, setResetandoSenha] = useState(false)
 
   useEffect(() => {
     if (!usuario) return
@@ -120,6 +126,9 @@ export function EditUsuarioModal({
           </h2>
           <p className="text-stone-500 text-sm mt-1">
             Matrícula: {usuarioAtual.codigo_usuario ?? '—'}
+            {usuarioAtual.categoria_socio && (
+              <> · {labelCategoriaSocio(usuarioAtual.categoria_socio)}</>
+            )}
             {isSelf && ' · você não pode alterar seu perfil ou status aqui'}
           </p>
         </div>
@@ -213,8 +222,46 @@ export function EditUsuarioModal({
             disabled={isSelf}
             className="rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
           />
-          Usuário ativo
+          Usuário ativo (desmarque para inadimplente/inativo)
         </label>
+
+        {!isSelf && onResetPassword && usuarioAtual.tipo_socio === 'socio' && (
+          <div className="border-t border-stone-200 pt-4 space-y-2">
+            <p className="text-sm font-medium text-stone-700">Redefinir senha (admin)</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={novaSenhaAdmin}
+                onChange={(e) => setNovaSenhaAdmin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="Nova senha (6 dígitos)"
+                className="flex-1 border border-stone-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                loading={resetandoSenha}
+                loadingText="Salvando..."
+                disabled={!isValidPassword(novaSenhaAdmin)}
+                onClick={async () => {
+                  setError('')
+                  setResetandoSenha(true)
+                  try {
+                    await onResetPassword(usuarioAtual.id, novaSenhaAdmin)
+                    setNovaSenhaAdmin('')
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Erro ao redefinir senha.')
+                  } finally {
+                    setResetandoSenha(false)
+                  }
+                }}
+              >
+                Redefinir senha
+              </Button>
+            </div>
+          </div>
+        )}
 
         {error && <FeedbackMessage type="error">{error}</FeedbackMessage>}
 

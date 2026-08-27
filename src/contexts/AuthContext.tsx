@@ -36,6 +36,10 @@ interface AuthContextType {
   updateUser: (user: AuthUser) => void
   isAdmin: boolean
   isSocio: boolean
+  isTitular: boolean
+  isDependente: boolean
+  canBook: boolean
+  isInadimplente: boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -205,6 +209,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateUser,
         isAdmin: user?.perfil === 'admin',
         isSocio: user?.tipo_socio !== 'nao_socio',
+        isTitular: user?.categoria_socio === 'titular',
+        isDependente: user?.categoria_socio === 'dependente',
+        isInadimplente: Boolean(user?.inadimplente),
+        canBook:
+          user?.perfil === 'admin' ||
+          (user?.tipo_socio === 'socio' &&
+            user?.categoria_socio === 'titular' &&
+            !user?.inadimplente) ||
+          user?.tipo_socio === 'nao_socio',
       }}
     >
       {children}

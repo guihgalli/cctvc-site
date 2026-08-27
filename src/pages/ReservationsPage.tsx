@@ -24,7 +24,9 @@ import { useMyBookings } from '../hooks/useMyBookings'
 
 import { useBookingActions } from '../hooks/useBookingActions'
 
+import { ParticipantesReservaModal } from '../components/ParticipantesReservaModal'
 import { diaDisponivel } from '../lib/bookingSchedule'
+import { isDataReservavel, labelTipoQuadra } from '../lib/bookingRules'
 
 import {
 
@@ -126,7 +128,7 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
 
 export function ReservationsPage() {
 
-  const { user, isSocio } = useAuth()
+  const { user, isSocio, canBook, isDependente, isInadimplente, isTitular } = useAuth()
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -160,7 +162,7 @@ export function ReservationsPage() {
 
     loading,
 
-  } = useQuadras({ onError: reportError })
+  } = useQuadras({ user, onError: reportError })
 
 
 
@@ -224,9 +226,19 @@ export function ReservationsPage() {
 
     handleReservar,
 
+    participantesModalOpen,
+
+    fecharParticipantesModal,
+
+    confirmarReservaComParticipantes,
+
   } = useBookingActions({
 
     user,
+
+    canBook,
+
+    isTitular,
 
     quadraSelecionada,
 
@@ -300,7 +312,7 @@ export function ReservationsPage() {
 
         {!isSocio && (
 
-          <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm mb-6">
+          <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm mb-4">
 
             Como visitante, sua reserva ficará <strong>pendente</strong> até a secretaria confirmar o
 
@@ -313,6 +325,38 @@ export function ReservationsPage() {
           </p>
 
         )}
+
+        {isDependente && (
+
+          <p className="text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm mb-4">
+
+            Como <strong>sócio dependente</strong>, você pode visualizar horários e acompanhar suas
+
+            reservas, mas apenas o titular pode fazer novos agendamentos.
+
+          </p>
+
+        )}
+
+        {isInadimplente && (
+
+          <p className="text-red-800 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm mb-4">
+
+            Há <strong>pendências financeiras</strong> em sua associação. Procure a secretaria do clube
+
+            para regularizar antes de agendar.
+
+          </p>
+
+        )}
+
+        <p className="text-stone-500 text-sm mb-6">
+
+          Agendamentos da semana atual (segunda a domingo). A <strong>próxima semana</strong> abre aos{' '}
+
+          <strong>domingos</strong>.
+
+        </p>
 
 
 
@@ -423,6 +467,11 @@ export function ReservationsPage() {
                   >
 
                     {quadra.nome}
+                    {quadra.tipo_quadra && quadra.tipo_quadra !== 'geral' && (
+                      <span className="ml-1 text-xs opacity-75">
+                        ({labelTipoQuadra(quadra.tipo_quadra)})
+                      </span>
+                    )}
 
                   </button>
 
@@ -510,7 +559,7 @@ export function ReservationsPage() {
 
                     const selecionada = data === dataSelecionada
 
-                    const disponivel = diaDisponivel(quadraSelecionada, data)
+                    const disponivel = diaDisponivel(quadraSelecionada, data) && isDataReservavel(data)
 
                     return (
 
@@ -1009,6 +1058,13 @@ export function ReservationsPage() {
       />
 
 
+
+      <ParticipantesReservaModal
+        open={participantesModalOpen}
+        onClose={fecharParticipantesModal}
+        onConfirm={confirmarReservaComParticipantes}
+        loading={!!reservandoSlot}
+      />
 
       <ConfirmDialog
 

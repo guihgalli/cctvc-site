@@ -23,6 +23,11 @@ import {
   deleteUser,
   approveBooking,
   rejectBooking,
+  adminLiberarQuadraSocio,
+  adminListarLiberacoes,
+  adminRevogarLiberacao,
+  adminResetUserPassword,
+  type LiberacaoQuadra,
 } from '../services/api'
 import { CourtScheduleEditor, resumirHorarios } from '../components/CourtScheduleEditor'
 import { EditUsuarioModal, type UsuarioEditForm } from '../components/EditUsuarioModal'
@@ -45,7 +50,8 @@ import {
   formatMoney,
 } from '../lib/utils'
 import { adminTabPath, parseAdminTab, type AdminTab } from '../lib/authRoutes'
-import type { CourtScheduleInput, Quadra, Reserva, StatusReserva, Usuario } from '../types'
+import type { CourtScheduleInput, Quadra, Reserva, StatusReserva, TipoQuadra, Usuario } from '../types'
+import { labelCategoriaSocio, labelTipoQuadra } from '../lib/bookingRules'
 
 type AbaAdmin = AdminTab
 
@@ -94,6 +100,7 @@ export function AdminPage() {
   const [tipoEsporte, setTipoEsporte] = useState('')
   const [expiracaoPendenteMinutos, setExpiracaoPendenteMinutos] = useState('60')
   const [valorVisitante, setValorVisitante] = useState('')
+  const [tipoQuadra, setTipoQuadra] = useState<TipoQuadra>('geral')
   const [arquivoFoto, setArquivoFoto] = useState<File | null>(null)
   const [fotoAtualUrl, setFotoAtualUrl] = useState<string | null>(null)
   const [previewFotoUrl, setPreviewFotoUrl] = useState<string | null>(null)
@@ -128,6 +135,10 @@ export function AdminPage() {
   const [rejectReservaId, setRejectReservaId] = useState<string | null>(null)
   const [rejectMotivo, setRejectMotivo] = useState('')
   const [rejectLoading, setRejectLoading] = useState(false)
+  const [liberacoes, setLiberacoes] = useState<LiberacaoQuadra[]>([])
+  const [liberacaoQuadraId, setLiberacaoQuadraId] = useState('')
+  const [liberacaoData, setLiberacaoData] = useState('')
+  const [liberando, setLiberando] = useState(false)
 
   const atualizarResumo = useCallback(async () => {
     try {
@@ -206,6 +217,7 @@ export function AdminPage() {
           })
         )
         if (quadras.length === 0) setQuadras(await fetchAllCourts())
+        setLiberacoes(await adminListarLiberacoes())
       } else if (aba === 'usuarios') {
         setUsuarios(await fetchUsers())
       }
@@ -229,6 +241,7 @@ export function AdminPage() {
     setTipoEsporte('')
     setExpiracaoPendenteMinutos('60')
     setValorVisitante('')
+    setTipoQuadra('geral')
     setArquivoFoto(null)
     setFotoAtualUrl(null)
     setPreviewFotoUrl(null)
@@ -257,6 +270,7 @@ export function AdminPage() {
     setValorVisitante(
       quadra.valor_visitante != null ? String(quadra.valor_visitante) : ''
     )
+    setTipoQuadra(quadra.tipo_quadra ?? 'geral')
     setArquivoFoto(null)
     setPreviewFotoUrl(null)
     setFotoAtualUrl(foto?.url || null)
@@ -298,6 +312,7 @@ export function AdminPage() {
             tipo_esporte: tipoEsporte || '',
             expiracao_pendente_minutos: expiracaoMinutos,
             valor_visitante: valorVisitanteNum,
+            tipo_quadra: tipoQuadra,
           })
         } else {
           const criada = await createCourt({
@@ -306,6 +321,7 @@ export function AdminPage() {
             tipo_esporte: tipoEsporte || undefined,
             expiracao_pendente_minutos: expiracaoMinutos,
             valor_visitante: valorVisitanteNum,
+            tipo_quadra: tipoQuadra,
           })
           quadraId = criada.id
         }
@@ -499,6 +515,40 @@ export function AdminPage() {
       await carregarDados()
     } finally {
       setSalvandoUsuario(false)
+    }
+  }
+
+  async function handleResetPasswordUsuario(id: string, senha: string) {
+    await adminResetUserPassword(id, senha)
+    setMessage({ type: 'success', text: 'Senha redefinida com sucesso.' })
+  }
+
+  async function handleLiberarQuadraSocio(e: FormEvent) {
+    e.preventDefault()
+    if (!liberacaoQuadraId || !liberacaoData) {
+      setMessage({ type: 'error', text: 'Selecione quadra de locação e data.' })
+      return
+    }
+    setLiberando(true)
+    try {
+      await adminLiberarQuadraSocio(liberacaoQuadraId, liberacaoData)
+      setMessage({ type: 'success', text: 'Quadra de locação liberada para sócios nesta data.' })
+      setLiberacaoData('')
+      setLiberacoes(await adminListarLiberacoes())
+    } catch (err) {
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Erro ao liberar quadra.') })
+    } finally {
+      setLiberando(false)
+    }
+  }
+
+  async function handleRevogarLiberacao(id: string) {
+    try {
+      await adminRevogarLiberacao(id)
+      setLiberacoes(await adminListarLiberacoes())
+      setMessage({ type: 'success', text: 'Liberação revogada.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Erro ao revogar liberação.' })
     }
   }
 
@@ -753,6 +803,21 @@ export function AdminPage() {
                   </p>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1">Tipo de quadra</label>
+                  <select
+                    value={tipoQuadra}
+                    onChange={(e) => setTipoQuadra(e.target.value as TipoQuadra)}
+                    className="w-full sm:max-w-xs border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="socio">Sócios</option>
+                    <option value="locacao">Locação (visitantes)</option>
+                    <option value="geral">Geral (ambos)</option>
+                  </select>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Configure uma quadra para sócios e outra para locação/visitantes.
+                  </p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">Foto da quadra</label>
                   <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
                     <div className="w-28 h-28 rounded-lg border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
@@ -840,6 +905,11 @@ export function AdminPage() {
                             {quadra.tipo_esporte && (
                               <p className="text-stone-500 text-sm">{quadra.tipo_esporte}</p>
                             )}
+                            {quadra.tipo_quadra && quadra.tipo_quadra !== 'geral' && (
+                              <p className="text-xs text-emerald-700">
+                                {labelTipoQuadra(quadra.tipo_quadra)}
+                              </p>
+                            )}
                             {quadra.descricao && (
                               <p className="text-stone-600 text-sm mt-1">{quadra.descricao}</p>
                             )}
@@ -908,6 +978,68 @@ export function AdminPage() {
 
         <TabPanel active={aba === 'agenda'}>
           <div>
+            <form
+              onSubmit={handleLiberarQuadraSocio}
+              className="motion-card border border-emerald-200 bg-emerald-50/50 p-4 mb-4 flex flex-wrap gap-3 items-end"
+            >
+              <div>
+                <p className="text-sm font-medium text-emerald-900 mb-1">
+                  Liberar quadra de locação para sócios
+                </p>
+                <p className="text-xs text-stone-500 mb-2">
+                  Quando a quadra de sócios estiver cheia, libere horários na quadra de locação.
+                </p>
+              </div>
+              <select
+                value={liberacaoQuadraId}
+                onChange={(e) => setLiberacaoQuadraId(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm min-w-[180px]"
+                required
+              >
+                <option value="">Quadra locação...</option>
+                {quadras
+                  .filter((q) => q.tipo_quadra === 'locacao')
+                  .map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.nome}
+                    </option>
+                  ))}
+              </select>
+              <input
+                type="date"
+                value={liberacaoData}
+                onChange={(e) => setLiberacaoData(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm"
+                required
+              />
+              <Button type="submit" variant="primary" loading={liberando} loadingText="Liberando...">
+                Liberar dia inteiro
+              </Button>
+            </form>
+
+            {liberacoes.length > 0 && (
+              <div className="mb-4 text-sm">
+                <p className="font-medium text-stone-700 mb-2">Liberações ativas</p>
+                <ul className="space-y-1">
+                  {liberacoes.map((l) => (
+                    <li key={l.id} className="flex items-center gap-2 text-stone-600">
+                      <span>
+                        {l.quadra_nome ?? 'Quadra'} — {formatDate(l.data_reserva)}
+                        {l.hora_inicio ? ` ${formatTime(l.hora_inicio)}` : ' (dia inteiro)'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRevogarLiberacao(l.id)}
+                        className="text-xs text-red-600 underline"
+                      >
+                        Revogar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="flex gap-4 mb-4 flex-wrap">
               <select
                 value={filtroQuadra}
@@ -1105,12 +1237,13 @@ export function AdminPage() {
               >
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Código (6 dígitos) *</label>
+                    <label className="block text-sm font-medium mb-1">Código (4 dígitos) *</label>
                     <input
                       value={codigoUsuario}
-                      onChange={(e) => setCodigoUsuario(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onChange={(e) => setCodigoUsuario(e.target.value.replace(/\D/g, '').slice(0, 4))}
                       required
-                      pattern="\d{6}"
+                      pattern="\d{4}"
+                      placeholder="1660 titular, 1661 dep."
                       className="w-full border rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
                     />
                   </div>
@@ -1178,8 +1311,8 @@ export function AdminPage() {
                   </div>
                 </div>
                 <p className="text-stone-500 text-xs">
-                  A senha inicial será os 3 primeiros dígitos do CPF. O sócio pode alterá-la depois
-                  em Conta.
+                  A senha inicial será os 6 primeiros dígitos do CPF. Último dígito 0 = titular;
+                  1–9 = dependente. O sócio pode alterá-la depois em Conta.
                 </p>
                 <Button type="submit" variant="primary">
                   Cadastrar
@@ -1215,7 +1348,9 @@ export function AdminPage() {
                               : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {u.tipo_socio === 'socio' ? 'Sócio' : 'Visitante'}
+                          {u.tipo_socio === 'socio'
+                            ? labelCategoriaSocio(u.categoria_socio)
+                            : 'Visitante'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-stone-500">{u.email || '—'}</td>
@@ -1345,6 +1480,7 @@ export function AdminPage() {
         saving={salvandoUsuario}
         onClose={() => setUsuarioEditando(null)}
         onSave={handleSalvarUsuarioEditado}
+        onResetPassword={handleResetPasswordUsuario}
       />
     </Layout>
   )

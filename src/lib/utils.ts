@@ -3,20 +3,20 @@ export function cleanCpf(cpf: string | null | undefined): string {
   return (cpf ?? '').replace(/\D/g, '')
 }
 
-/** Extrai os 3 primeiros dígitos do CPF como senha */
+/** Extrai os 6 primeiros dígitos do CPF como senha inicial */
 export function cpfToPassword(cpf: string): string {
   const cleaned = cleanCpf(cpf)
-  return cleaned.slice(0, 3)
+  return cleaned.slice(0, 6)
 }
 
-/** Valida formato do código de usuário (6 dígitos) */
+/** Valida matrícula de sócio (4 dígitos: ex. 1660 titular, 1661 dependente) */
 export function isValidUserCode(code: string): boolean {
-  return /^\d{6}$/.test(code)
+  return /^\d{4}$/.test(code)
 }
 
-/** Valida formato da senha (3 dígitos) */
+/** Valida formato da senha (6 dígitos) */
 export function isValidPassword(password: string): boolean {
-  return /^\d{3}$/.test(password)
+  return /^\d{6}$/.test(password)
 }
 
 /** Formata CPF para exibição: 000.000.000-00 */

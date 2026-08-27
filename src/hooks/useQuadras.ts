@@ -1,20 +1,36 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchCourts } from '../services/api'
-import { BOOKING_DATE_RANGE_DAYS, generateDateRange, todayIsoDate } from '../lib/utils'
+import { generateBookableDates } from '../lib/bookingRules'
+import { todayIsoDate } from '../lib/utils'
 import { diaDisponivel, proximaDataDisponivel } from '../lib/bookingSchedule'
-import type { Quadra } from '../types'
+import type { AuthUser, Quadra, TipoQuadra } from '../types'
 
 interface UseQuadrasOptions {
+  user?: AuthUser | null
   onError?: (message: string) => void
 }
 
-export function useQuadras({ onError }: UseQuadrasOptions = {}) {
+function quadraVisivelParaUsuario(quadra: Quadra, user: AuthUser | null | undefined): boolean {
+  if (!user || user.perfil === 'admin') return true
+  const tipo: TipoQuadra = quadra.tipo_quadra ?? 'geral'
+  if (tipo === 'geral') return true
+  if (user.tipo_socio === 'nao_socio') return tipo === 'locacao'
+  if (user.tipo_socio === 'socio') return tipo === 'socio'
+  return true
+}
+
+export function useQuadras({ user, onError }: UseQuadrasOptions = {}) {
   const [quadras, setQuadras] = useState<Quadra[]>([])
   const [quadraSelecionada, setQuadraSelecionada] = useState<Quadra | null>(null)
   const [dataSelecionada, setDataSelecionada] = useState(todayIsoDate)
   const [loading, setLoading] = useState(true)
 
-  const datasDisponiveis = generateDateRange(BOOKING_DATE_RANGE_DAYS)
+  const datasDisponiveis = useMemo(() => generateBookableDates(14), [])
+
+  const quadrasFiltradas = useMemo(
+    () => quadras.filter((q) => quadraVisivelParaUsuario(q, user)),
+    [quadras, user]
+  )
 
   const selecionarProximaData = useCallback(
     (quadra: Quadra | null, dataAtual: string) => {
@@ -33,8 +49,9 @@ export function useQuadras({ onError }: UseQuadrasOptions = {}) {
         if (cancelled) return
 
         setQuadras(data)
-        if (data.length > 0) {
-          const primeira = data[0]
+        const visiveis = data.filter((q) => quadraVisivelParaUsuario(q, user))
+        if (visiveis.length > 0) {
+          const primeira = visiveis[0]
           setQuadraSelecionada(primeira)
           setDataSelecionada((atual) => selecionarProximaData(primeira, atual))
         }
@@ -49,7 +66,15 @@ export function useQuadras({ onError }: UseQuadrasOptions = {}) {
     return () => {
       cancelled = true
     }
-  }, [onError, selecionarProximaData])
+  }, [onError, selecionarProximaData, user])
+
+  useEffect(() => {
+    if (!quadraSelecionada) return
+    const aindaVisivel = quadrasFiltradas.some((q) => q.id === quadraSelecionada.id)
+    if (!aindaVisivel && quadrasFiltradas.length > 0) {
+      setQuadraSelecionada(quadrasFiltradas[0])
+    }
+  }, [quadrasFiltradas, quadraSelecionada])
 
   useEffect(() => {
     if (!quadraSelecionada) return
@@ -58,7 +83,7 @@ export function useQuadras({ onError }: UseQuadrasOptions = {}) {
   }, [quadraSelecionada, dataSelecionada, selecionarProximaData])
 
   return {
-    quadras,
+    quadras: quadrasFiltradas,
     quadraSelecionada,
     setQuadraSelecionada,
     dataSelecionada,

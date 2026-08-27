@@ -1,5 +1,7 @@
 export type PerfilUsuario = 'usuario' | 'admin'
 export type TipoSocio = 'socio' | 'nao_socio'
+export type CategoriaSocio = 'titular' | 'dependente'
+export type TipoQuadra = 'socio' | 'locacao' | 'geral'
 export type StatusReserva = 'pendente' | 'confirmada' | 'recusada' | 'cancelada'
 
 export interface Usuario {
@@ -11,6 +13,8 @@ export interface Usuario {
   telefone: string | null
   perfil: PerfilUsuario
   tipo_socio: TipoSocio
+  categoria_socio?: CategoriaSocio | null
+  titular_id?: string | null
   ativo: boolean
   criado_em: string
 }
@@ -37,6 +41,7 @@ export interface Quadra {
   expiracao_pendente_minutos?: number
   /** Valor cobrado por reserva de visitante (não-sócio), em reais */
   valor_visitante?: number | null
+  tipo_quadra?: TipoQuadra
   criado_em: string
   fotos_quadras?: FotoQuadra[]
   horarios_quadra?: HorarioQuadra[]
@@ -68,6 +73,16 @@ export interface Reserva {
   criado_em: string
   quadras?: Quadra
   usuarios?: Usuario
+  participantes?: ReservaParticipante[]
+  participante?: boolean
+  titular_reserva?: { nome: string; codigo_usuario: string | null }
+}
+
+export interface ReservaParticipante {
+  id: string
+  nome: string
+  codigo_usuario: string | null
+  categoria_socio?: CategoriaSocio | null
 }
 
 export interface AuthUser {
@@ -76,6 +91,9 @@ export interface AuthUser {
   nome: string
   perfil: PerfilUsuario
   tipo_socio: TipoSocio
+  categoria_socio?: CategoriaSocio | null
+  ativo?: boolean
+  inadimplente?: boolean
   telefone: string | null
   email: string | null
   precisa_cadastro?: boolean

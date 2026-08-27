@@ -58,12 +58,12 @@ export function LoginPage() {
     setError('')
 
     if (!isValidUserCode(userCode)) {
-      setError('Matrícula deve ter 6 dígitos.')
+      setError('Matrícula deve ter 4 dígitos (ex.: 1660 titular, 1661 dependente).')
       return
     }
 
     if (!isValidPassword(password)) {
-      setError('Senha deve ter 3 dígitos.')
+      setError('Senha deve ter 6 dígitos.')
       return
     }
 
@@ -212,7 +212,8 @@ export function LoginPage() {
                   className="space-y-4 motion-tab-panel"
                 >
                   <p className="text-sm text-stone-600 leading-relaxed">
-                    Use a matrícula de 6 dígitos e a senha de 3 dígitos fornecidas pelo clube.
+                    Use a matrícula de 4 dígitos e a senha de 6 dígitos fornecidas pelo clube.
+                    O último dígito 0 indica titular (ex.: 1660); 1–9 indica dependente (ex.: 1661).
                   </p>
 
                   <div>
@@ -223,14 +224,14 @@ export function LoginPage() {
                       id="userCode"
                       type="text"
                       inputMode="numeric"
-                      maxLength={6}
+                      maxLength={4}
                       value={userCode}
                       onChange={(e) => {
-                        setUserCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                        setUserCode(e.target.value.replace(/\D/g, '').slice(0, 4))
                         if (error) setError('')
                       }}
                       className="login-page__field"
-                      placeholder="000000"
+                      placeholder="0000"
                       autoComplete="username"
                       required
                     />
@@ -244,14 +245,14 @@ export function LoginPage() {
                       id="password"
                       type="password"
                       inputMode="numeric"
-                      maxLength={3}
+                      maxLength={6}
                       value={password}
                       onChange={(e) => {
-                        setPassword(e.target.value.replace(/\D/g, '').slice(0, 3))
+                        setPassword(e.target.value.replace(/\D/g, '').slice(0, 6))
                         if (error) setError('')
                       }}
                       className="login-page__field"
-                      placeholder="•••"
+                      placeholder="••••••"
                       autoComplete="current-password"
                       required
                     />

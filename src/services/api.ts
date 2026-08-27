@@ -6,6 +6,7 @@ import type {
   HorarioQuadra,
   Quadra,
   Reserva,
+  TipoQuadra,
   TipoSocio,
   Usuario,
 } from '../types'
@@ -174,6 +175,7 @@ export async function createCourt(quadra: {
   tipo_esporte?: string
   expiracao_pendente_minutos?: number
   valor_visitante?: number | null
+  tipo_quadra?: TipoQuadra
 }): Promise<Quadra> {
   const token = requireToken()
   return rpc<Quadra>(
@@ -185,6 +187,7 @@ export async function createCourt(quadra: {
       p_tipo_esporte: quadra.tipo_esporte ?? null,
       p_expiracao_pendente_minutos: quadra.expiracao_pendente_minutos ?? 60,
       p_valor_visitante: quadra.valor_visitante ?? null,
+      p_tipo_quadra: quadra.tipo_quadra ?? 'geral',
     },
     'Erro ao cadastrar quadra.'
   )
@@ -216,6 +219,7 @@ export async function updateCourt(
     ativo: boolean
     expiracao_pendente_minutos: number
     valor_visitante: number | null
+    tipo_quadra: TipoQuadra
   }>
 ): Promise<Quadra> {
   const token = requireToken()
@@ -230,6 +234,7 @@ export async function updateCourt(
       p_ativo: updates.ativo ?? null,
       p_expiracao_pendente_minutos: updates.expiracao_pendente_minutos ?? null,
       p_valor_visitante: updates.valor_visitante ?? null,
+      p_tipo_quadra: updates.tipo_quadra ?? null,
     },
     'Erro ao atualizar quadra.'
   )
@@ -353,9 +358,9 @@ export async function createBooking(reserva: {
   data_reserva: string
   hora_inicio: string
   hora_fim: string
+  participantes?: string[]
 }): Promise<Reserva> {
   const token = requireToken()
-  // usuario_id é ignorado no servidor — sempre usa o dono da sessão
   void reserva.usuario_id
   return rpc<Reserva>(
     'criar_reserva',
@@ -365,8 +370,107 @@ export async function createBooking(reserva: {
       p_data: reserva.data_reserva,
       p_hora_inicio: reserva.hora_inicio,
       p_hora_fim: reserva.hora_fim,
+      p_participantes: reserva.participantes?.length ? reserva.participantes : null,
     },
     'Erro ao fazer reserva.'
+  )
+}
+
+export async function adminCreateBooking(reserva: {
+  usuario_id: string
+  quadra_id: string
+  data_reserva: string
+  hora_inicio: string
+  hora_fim: string
+  participantes?: string[]
+}): Promise<Reserva> {
+  const token = requireToken()
+  return rpc<Reserva>(
+    'admin_criar_reserva',
+    {
+      p_token: token,
+      p_usuario_id: reserva.usuario_id,
+      p_quadra_id: reserva.quadra_id,
+      p_data: reserva.data_reserva,
+      p_hora_inicio: reserva.hora_inicio,
+      p_hora_fim: reserva.hora_fim,
+      p_participantes: reserva.participantes?.length ? reserva.participantes : null,
+    },
+    'Erro ao criar reserva administrativa.'
+  )
+}
+
+export async function searchSocios(busca: string): Promise<
+  Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'ativo'>[]
+> {
+  const token = requireToken()
+  const data = await rpc<
+    Pick<Usuario, 'id' | 'codigo_usuario' | 'nome' | 'categoria_socio' | 'ativo'>[]
+  >('buscar_socios', { p_token: token, p_busca: busca }, 'Erro ao buscar sócios.')
+  return data || []
+}
+
+export async function adminResetUserPassword(
+  usuarioId: string,
+  senhaNova: string
+): Promise<void> {
+  const token = requireToken()
+  await rpc(
+    'admin_alterar_senha_usuario',
+    { p_token: token, p_usuario_id: usuarioId, p_senha_nova: senhaNova },
+    'Erro ao alterar senha do usuário.'
+  )
+}
+
+export interface LiberacaoQuadra {
+  id: string
+  quadra_id: string
+  data_reserva: string
+  hora_inicio: string | null
+  quadra_nome?: string
+}
+
+export async function adminLiberarQuadraSocio(
+  quadraId: string,
+  data: string,
+  horaInicio?: string | null
+): Promise<LiberacaoQuadra> {
+  const token = requireToken()
+  return rpc<LiberacaoQuadra>(
+    'admin_liberar_quadra_socio',
+    {
+      p_token: token,
+      p_quadra_id: quadraId,
+      p_data: data,
+      p_hora_inicio: horaInicio ?? null,
+    },
+    'Erro ao liberar quadra para sócios.'
+  )
+}
+
+export async function adminListarLiberacoes(filters?: {
+  quadraId?: string
+  date?: string
+}): Promise<LiberacaoQuadra[]> {
+  const token = requireToken()
+  const data = await rpc<LiberacaoQuadra[]>(
+    'admin_listar_liberacoes_quadra',
+    {
+      p_token: token,
+      p_quadra_id: filters?.quadraId ?? null,
+      p_data: filters?.date ?? null,
+    },
+    'Erro ao listar liberações.'
+  )
+  return data || []
+}
+
+export async function adminRevogarLiberacao(liberacaoId: string): Promise<void> {
+  const token = requireToken()
+  await rpc(
+    'admin_revogar_liberacao_quadra',
+    { p_token: token, p_liberacao_id: liberacaoId },
+    'Erro ao revogar liberação.'
   )
 }
 

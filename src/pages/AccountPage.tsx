@@ -116,7 +116,7 @@ export function AccountPage() {
     setSuccess('')
 
     if (!isValidPassword(senhaAtual) || !isValidPassword(senhaNova)) {
-      setError('A senha deve ter exatamente 3 dígitos numéricos.')
+      setError('A senha deve ter exatamente 6 dígitos numéricos.')
       return
     }
 
@@ -273,7 +273,7 @@ export function AccountPage() {
               <input
                 type="password"
                 inputMode="numeric"
-                maxLength={3}
+                maxLength={6}
                 value={senhaAtual}
                 onChange={(e) => setSenhaAtual(e.target.value.replace(/\D/g, '').slice(0, 3))}
                 placeholder="Senha atual"
@@ -283,7 +283,7 @@ export function AccountPage() {
               <input
                 type="password"
                 inputMode="numeric"
-                maxLength={3}
+                maxLength={6}
                 value={senhaNova}
                 onChange={(e) => setSenhaNova(e.target.value.replace(/\D/g, '').slice(0, 3))}
                 placeholder="Nova senha"
@@ -293,7 +293,7 @@ export function AccountPage() {
               <input
                 type="password"
                 inputMode="numeric"
-                maxLength={3}
+                maxLength={6}
                 value={senhaNovaConfirm}
                 onChange={(e) => setSenhaNovaConfirm(e.target.value.replace(/\D/g, '').slice(0, 3))}
                 placeholder="Confirmar nova senha"
