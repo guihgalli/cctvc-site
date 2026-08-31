@@ -112,16 +112,6 @@ const FAQ_ITEMS = [
 
   },
 
-  {
-
-    question: 'Esqueci minha senha.',
-
-    answer:
-
-      'Tente os 6 primeiros dígitos do seu CPF. Se não funcionar, peça redefinição à secretaria pelo WhatsApp ou telefone.',
-
-  },
-
 ]
 
 
@@ -182,7 +172,7 @@ function profileHighlightIndex(
 
 export function GuidePage() {
 
-  const { user, isSocio, isTitular, isDependente, isInadimplente, canBook, isAdmin } = useAuth()
+  const { user, isTitular, isDependente, isInadimplente, canBook, isAdmin } = useAuth()
 
   const isVisitante = user?.tipo_socio === 'nao_socio'
 
@@ -644,7 +634,7 @@ export function GuidePage() {
 
                   title="Gerenciar conta"
 
-                  text="Altere senha, cadastre WhatsApp ou conclua vínculo com Google."
+                  text="Cadastre WhatsApp ou conclua vínculo com Google."
 
                 />
 
@@ -751,50 +741,6 @@ export function GuidePage() {
                 ]}
 
               />
-
-
-
-              {isSocio && (
-
-                <GuideCard title="Matrícula e senha">
-
-                  <ul className="text-sm text-stone-600 space-y-2 leading-relaxed max-w-prose">
-
-                    <li>
-
-                      <strong>Matrícula:</strong> 4 dígitos — termina em <strong>0</strong> para titular
-
-                      (ex.: 1660) e em <strong>1 a 9</strong> para dependente (ex.: 1661).
-
-                    </li>
-
-                    <li>
-
-                      <strong>Senha inicial:</strong> 6 primeiros dígitos do CPF (ex.: CPF 123.456.789-01
-
-                      → senha 123456).
-
-                    </li>
-
-                    <li>
-
-                      Altere a senha a qualquer momento em{' '}
-
-                      <Link to="/conta" className="text-emerald-700 underline">
-
-                        Minha conta
-
-                      </Link>
-
-                      .
-
-                    </li>
-
-                  </ul>
-
-                </GuideCard>
-
-              )}
 
 
 
@@ -992,7 +938,7 @@ export function GuidePage() {
 
               title="Minha conta"
 
-              description="Gerencie dados pessoais, senha e cadastro complementar."
+              description="Gerencie dados pessoais e cadastro complementar."
 
             >
 
@@ -1004,8 +950,6 @@ export function GuidePage() {
 
                   <li>Dados do cadastro do clube: admissão, nascimento, parentesco, titular vinculado</li>
 
-                  <li>Alteração de senha (sócios com login por matrícula)</li>
-
                   <li>Cadastro de WhatsApp (visitantes)</li>
 
                   <li>Conclusão de cadastro Google (CPF + WhatsApp no primeiro acesso)</li>
@@ -1016,27 +960,7 @@ export function GuidePage() {
 
 
 
-              <div className="grid sm:grid-cols-2 gap-4">
-
-                <GuideCard title="Alterar senha">
-
-                  <GuideSteps
-
-                    steps={[
-
-                      'Acesse Minha conta.',
-
-                      'Informe a senha atual e a nova senha (6 dígitos).',
-
-                      'Confirme e salve.',
-
-                    ]}
-
-                  />
-
-                </GuideCard>
-
-                <GuideCard title="Login com Google">
+              <GuideCard title="Login com Google">
 
                   <ul className="text-sm text-stone-600 space-y-2 leading-relaxed max-w-prose">
 
@@ -1049,8 +973,6 @@ export function GuidePage() {
                   </ul>
 
                 </GuideCard>
-
-              </div>
 
             </GuideSection>
 

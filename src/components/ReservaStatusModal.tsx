@@ -17,6 +17,7 @@ interface ReservaStatusModalProps {
   reserva: Reserva | null
   quadraNome?: string
   isVisitante?: boolean
+  requerPagamento?: boolean
   nomeUsuario?: string
   expiracaoPendenteMinutos?: number
   valorVisitante?: number | null
@@ -28,6 +29,7 @@ export function ReservaStatusModal({
   reserva,
   quadraNome,
   isVisitante = false,
+  requerPagamento = false,
   nomeUsuario = '',
   expiracaoPendenteMinutos = 60,
   valorVisitante = null,
@@ -57,7 +59,8 @@ export function ReservaStatusModal({
     reservaAtiva.quadras?.expiracao_pendente_minutos ?? expiracaoPendenteMinutos
   const valorReserva = reservaAtiva.quadras?.valor_visitante ?? valorVisitante
   const podeCancelar = reservaAtiva.status === 'pendente' || reservaAtiva.status === 'confirmada'
-  const mostrarPagamentoPix = isVisitante && reservaAtiva.status === 'pendente'
+  const mostrarPagamentoPix =
+    reservaAtiva.status === 'pendente' && (isVisitante || requerPagamento)
   const prazoPagamento =
     reservaAtiva.status === 'pendente'
       ? formatExpiracaoReserva(reservaAtiva.criado_em, minutosExpiracao)

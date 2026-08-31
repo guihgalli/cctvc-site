@@ -1,22 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchCourts } from '../services/api'
-import { generateBookableDates } from '../lib/bookingRules'
+import { generateBookableDates, quadraVisivelParaUsuario } from '../lib/bookingRules'
 import { todayIsoDate } from '../lib/utils'
 import { diaDisponivel, proximaDataDisponivel } from '../lib/bookingSchedule'
-import type { AuthUser, Quadra, TipoQuadra } from '../types'
+import type { AuthUser, Quadra } from '../types'
 
 interface UseQuadrasOptions {
   user?: AuthUser | null
   onError?: (message: string) => void
 }
 
-function quadraVisivelParaUsuario(quadra: Quadra, user: AuthUser | null | undefined): boolean {
-  if (!user || user.perfil === 'admin') return true
-  const tipo: TipoQuadra = quadra.tipo_quadra ?? 'geral'
-  if (tipo === 'geral') return true
-  if (user.tipo_socio === 'nao_socio') return tipo === 'locacao'
-  if (user.tipo_socio === 'socio') return tipo === 'socio'
-  return true
+function quadraVisivel(quadra: Quadra, user: AuthUser | null | undefined): boolean {
+  return quadraVisivelParaUsuario(quadra.tipo_quadra, user)
 }
 
 export function useQuadras({ user, onError }: UseQuadrasOptions = {}) {
@@ -28,7 +23,7 @@ export function useQuadras({ user, onError }: UseQuadrasOptions = {}) {
   const datasDisponiveis = useMemo(() => generateBookableDates(14), [])
 
   const quadrasFiltradas = useMemo(
-    () => quadras.filter((q) => quadraVisivelParaUsuario(q, user)),
+    () => quadras.filter((q) => quadraVisivel(q, user)),
     [quadras, user]
   )
 
@@ -49,7 +44,7 @@ export function useQuadras({ user, onError }: UseQuadrasOptions = {}) {
         if (cancelled) return
 
         setQuadras(data)
-        const visiveis = data.filter((q) => quadraVisivelParaUsuario(q, user))
+        const visiveis = data.filter((q) => quadraVisivel(q, user))
         if (visiveis.length > 0) {
           const primeira = visiveis[0]
           setQuadraSelecionada(primeira)

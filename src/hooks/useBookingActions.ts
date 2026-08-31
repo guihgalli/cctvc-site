@@ -6,7 +6,7 @@ import {
   isPastDate,
   isPastDateTime,
 } from '../lib/utils'
-import { isDataReservavel } from '../lib/bookingRules'
+import { isDataReservavel, quadraRequerPagamento } from '../lib/bookingRules'
 import { horarioDoDia } from '../lib/bookingSchedule'
 import type { AuthUser } from '../types'
 import type { Quadra, Reserva } from '../types'
@@ -230,7 +230,9 @@ export function useBookingActions({
         return
       }
 
-      if (isSocio && isTitular) {
+      const requerPagamento = quadraRequerPagamento(quadraSelecionada.tipo_quadra)
+
+      if (isSocio && isTitular && !requerPagamento) {
         setSlotPendente({ inicio: horaInicio, fim: horaFim })
         setParticipantesModalOpen(true)
         return

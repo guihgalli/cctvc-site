@@ -880,7 +880,7 @@ export function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Valor para visitantes (R$)
+                    Valor da locação (R$)
                   </label>
                   <input
                     type="number"
@@ -892,8 +892,7 @@ export function AdminPage() {
                     placeholder="Ex.: 80.00"
                   />
                   <p className="text-xs text-stone-500 mt-1">
-                    Valor cobrado por reserva de não-sócio nesta quadra. Exibido no modal de
-                    confirmação.
+                    Obrigatório para quadras de locação. Cobrado de sócios e visitantes ao reservar.
                   </p>
                 </div>
                 <div>
@@ -903,12 +902,13 @@ export function AdminPage() {
                     onChange={(e) => setTipoQuadra(e.target.value as TipoQuadra)}
                     className="w-full sm:max-w-xs border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
                   >
-                    <option value="socio">Sócios</option>
-                    <option value="locacao">Locação (visitantes)</option>
-                    <option value="geral">Geral (ambos)</option>
+                    <option value="socio">Sócios (sem pagamento)</option>
+                    <option value="locacao">Locação (com pagamento PIX)</option>
+                    <option value="geral">Geral (ambos os perfis)</option>
                   </select>
                   <p className="text-xs text-stone-500 mt-1">
-                    Configure uma quadra para sócios e outra para locação/visitantes.
+                    Sócios: visível apenas para associados. Locação: visível a todos, com pagamento
+                    para confirmar. Geral: todos veem; sócios confirmam na hora, visitantes pagam.
                   </p>
                 </div>
                 <div>
@@ -1078,10 +1078,11 @@ export function AdminPage() {
             >
               <div>
                 <p className="text-sm font-medium text-emerald-900 mb-1">
-                  Liberar quadra de locação para sócios
+                  Liberar quadra de locação (legado)
                 </p>
                 <p className="text-xs text-stone-500 mb-2">
-                  Quando a quadra de sócios estiver cheia, libere horários na quadra de locação.
+                  Sócios já podem reservar quadras de locação diretamente (com pagamento). Use
+                  apenas se precisar liberar um horário específico por outro motivo operacional.
                 </p>
               </div>
               <select

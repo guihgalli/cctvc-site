@@ -6,7 +6,7 @@ interface ReservaSlotResumoProps {
   horaInicio: string
   horaFim: string
   valorVisitante?: number | null
-  isVisitante?: boolean
+  mostrarValor?: boolean
   className?: string
 }
 
@@ -16,7 +16,7 @@ export function ReservaSlotResumo({
   horaInicio,
   horaFim,
   valorVisitante,
-  isVisitante = false,
+  mostrarValor = false,
   className = '',
 }: ReservaSlotResumoProps) {
   return (
@@ -25,7 +25,7 @@ export function ReservaSlotResumo({
       <p className="text-stone-600 text-sm mt-1">
         {formatDate(dataReserva)} · {horaInicio} – {horaFim}
       </p>
-      {isVisitante && valorVisitante != null && (
+      {mostrarValor && valorVisitante != null && (
         <p className="text-emerald-800 text-sm font-semibold mt-1.5">
           Valor: {formatMoney(Number(valorVisitante))}
         </p>

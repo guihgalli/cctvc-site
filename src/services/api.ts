@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { getAppOrigin } from '../lib/siteOrigin'
 import type {
   AuthUser,
   CourtScheduleInput,
@@ -75,7 +76,7 @@ export async function loginWithGoogleSession(): Promise<LoginResult> {
 }
 
 export async function startGoogleOAuth(redirectPath = '/auth/callback'): Promise<void> {
-  const redirectTo = `${window.location.origin}${redirectPath}`
+  const redirectTo = `${getAppOrigin()}${redirectPath}`
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo },

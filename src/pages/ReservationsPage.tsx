@@ -17,7 +17,7 @@ import { useBookingActions } from '../hooks/useBookingActions'
 import { ParticipantesReservaModal } from '../components/ParticipantesReservaModal'
 import { AdminReservaUsuarioModal } from '../components/AdminReservaUsuarioModal'
 import { diaDisponivel } from '../lib/bookingSchedule'
-import { isDataReservavel, labelTipoQuadra } from '../lib/bookingRules'
+import { isDataReservavel, labelTipoQuadra, quadraRequerPagamento } from '../lib/bookingRules'
 import {
   DEFAULT_SLOT_MINUTES,
   generateTimeSlotsFromRange,
@@ -388,14 +388,23 @@ export function ReservationsPage() {
               </div>
 
               {quadraSelecionada && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <div className="space-y-3">
                   {quadraSelecionada.descricao && (
-                    <p className="text-stone-500">{quadraSelecionada.descricao}</p>
+                    <p className="text-stone-500 text-sm">{quadraSelecionada.descricao}</p>
                   )}
-                  {!isSocio && quadraSelecionada.valor_visitante != null && (
-                    <p className="text-emerald-800 font-semibold">
-                      Valor visitante: {formatMoney(Number(quadraSelecionada.valor_visitante))}
-                    </p>
+                  {quadraRequerPagamento(quadraSelecionada.tipo_quadra) && (
+                    <div className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm leading-relaxed">
+                      <strong>Quadra de locação.</strong> A reserva só será confirmada após o
+                      pagamento via PIX
+                      {quadraSelecionada.valor_visitante != null && (
+                        <>
+                          {' '}
+                          de{' '}
+                          <strong>{formatMoney(Number(quadraSelecionada.valor_visitante))}</strong>
+                        </>
+                      )}
+                      . Envie o comprovante pelo WhatsApp dentro do prazo da quadra.
+                    </div>
                   )}
                 </div>
               )}
@@ -734,6 +743,9 @@ export function ReservationsPage() {
         reserva={reservaModal}
         quadraNome={modalQuadraNome}
         isVisitante={!isSocio}
+        requerPagamento={quadraRequerPagamento(
+          reservaModal?.quadras?.tipo_quadra ?? quadraSelecionada?.tipo_quadra
+        )}
         nomeUsuario={nomeUsuarioReserva ?? user?.nome}
         expiracaoPendenteMinutos={modalExpiracaoMinutos}
         valorVisitante={modalValorVisitante}
@@ -782,7 +794,9 @@ export function ReservationsPage() {
               horaInicio={slotPendente.inicio}
               horaFim={slotPendente.fim}
               valorVisitante={quadraSelecionada.valor_visitante}
-              isVisitante
+              mostrarValor={
+                !isSocio || quadraRequerPagamento(quadraSelecionada.tipo_quadra)
+              }
             />
             <p className="text-stone-600 text-sm leading-relaxed">
               Sua reserva ficará <strong>pendente</strong> até a confirmação do pagamento pela

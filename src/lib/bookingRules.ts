@@ -120,3 +120,21 @@ export function labelTipoQuadra(tipo: string | null | undefined): string {
   if (tipo === 'locacao') return 'Locação'
   return 'Geral'
 }
+
+/** Quadra de locação exige pagamento PIX para confirmar a reserva */
+export function quadraRequerPagamento(tipo: string | null | undefined): boolean {
+  return tipo === 'locacao'
+}
+
+/** Visibilidade da quadra conforme perfil do usuário logado */
+export function quadraVisivelParaUsuario(
+  tipo: string | null | undefined,
+  user: { perfil?: string; tipo_socio?: string } | null | undefined
+): boolean {
+  if (!user || user.perfil === 'admin') return true
+  const tipoQuadra = tipo ?? 'geral'
+  if (tipoQuadra === 'geral') return true
+  if (user.tipo_socio === 'nao_socio') return tipoQuadra !== 'socio'
+  if (user.tipo_socio === 'socio') return tipoQuadra === 'socio' || tipoQuadra === 'locacao'
+  return true
+}

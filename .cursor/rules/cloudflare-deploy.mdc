@@ -14,6 +14,7 @@ Este projeto **usa Cloudflare Pages**, não Netlify.
 - **Variáveis de ambiente** (Cloudflare Dashboard → Settings → Environment variables):
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
+  - `VITE_SITE_URL` = `https://www.cctvc.com.br` (redirect OAuth Google)
 
 ## Headers e SPA
 

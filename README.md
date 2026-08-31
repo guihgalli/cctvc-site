@@ -42,9 +42,15 @@ npm install
 11. Execute `supabase/migrations/010_admin_excluir_usuario.sql` (admin pode excluir usuário)
 12. Se o banco já existia antes dos horários/storage, execute também `001` e `002` antes da `003`
 13. Em **Settings > API**, copie a URL e a `anon key`
-14. Em **Authentication → Providers → Google**, habilite e configure redirect URLs:
-    - `http://localhost:5173/auth/callback`
-    - `https://seu-dominio.cloudflarepages.dev/auth/callback` (ou domínio customizado)
+14. Em **Authentication → URL Configuration** (obrigatório para login Google em produção):
+    - **Site URL:** `https://www.cctvc.com.br`
+    - **Redirect URLs** (adicione todas):
+      - `http://localhost:5173/**`
+      - `https://www.cctvc.com.br/**`
+      - `https://cctvc.com.br/**`
+      - `https://cctvc-site.pages.dev/**` (opcional — preview)
+    - Se a Site URL continuar como `cctvc-site.pages.dev`, o OAuth redireciona para o domínio antigo após o Google.
+15. Em **Authentication → Providers → Google**, habilite o provider (redirect do Google aponta para `https://<projeto>.supabase.co/auth/v1/callback`).
 
 > A chave `anon` continua no frontend, mas **CPF, usuários, reservas e escritas** só são acessíveis via RPCs com sessão válida. Upload de fotos exige ticket emitido para admin autenticado.
 
@@ -55,7 +61,10 @@ Copie `.env.example` para `.env` e preencha:
 ```env
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
+VITE_SITE_URL=https://www.cctvc.com.br
 ```
+
+`VITE_SITE_URL` define a URL canônica usada no redirect OAuth (login Google). Em produção no Cloudflare Pages, defina também essa variável.
 
 ### 4. Rodar localmente
 
@@ -86,6 +95,7 @@ Acesse `http://localhost:5173`
 3. Em **Settings → Environment variables**, adicione:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SITE_URL` = `https://www.cctvc.com.br` (redirect OAuth Google)
 4. Deploy automático a cada push na branch principal
 
 Headers de segurança (CSP) e redirect SPA estão em `public/_headers` e `public/_redirects`.
