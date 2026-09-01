@@ -63,6 +63,7 @@ export interface AdminUsuariosSectionProps {
   onToggleStatus: (usuario: Usuario) => void
   onEditar: (usuario: Usuario) => void
   onExcluir: (usuario: Usuario) => void
+  onExcluirVarios: (usuarios: Usuario[]) => void
   camposPlanilha: CamposPlanilhaUsuario
   setCamposPlanilha: (v: CamposPlanilhaUsuario) => void
 }
@@ -262,13 +263,16 @@ export function AdminUsuariosSection({
   onToggleStatus,
   onEditar,
   onExcluir,
+  onExcluirVarios,
   camposPlanilha,
   setCamposPlanilha,
 }: AdminUsuariosSectionProps) {
   const [filtros, setFiltros] = useState<FiltrosUsuario>(FILTROS_USUARIO_VAZIOS)
   const [sort, setSort] = useState<UsuarioSort>({ col: 'nome', dir: 'asc' })
   const [pagina, setPagina] = useState(1)
-  const [itensPorPagina, setItensPorPagina] = useState<ItensPorPagina>(25)
+  const [itensPorPagina, setItensPorPagina] = useState<ItensPorPagina>(100)
+  const [modoSelecao, setModoSelecao] = useState(false)
+  const [selecionados, setSelecionados] = useState<Set<string>>(() => new Set())
 
   const pendentesAprovacao = useMemo(() => contarUsuariosPendentes(usuarios), [usuarios])
 
@@ -292,6 +296,76 @@ export function AdminUsuariosSection({
   useEffect(() => {
     if (pagina > paginas) setPagina(paginas)
   }, [pagina, paginas])
+
+  useEffect(() => {
+    setSelecionados((prev) => {
+      const idsValidos = new Set(usuarios.map((u) => u.id))
+      const next = new Set([...prev].filter((id) => idsValidos.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [usuarios])
+
+  const selecionaveisPagina = useMemo(
+    () => usuariosPagina.filter((u) => u.id !== adminUserId),
+    [usuariosPagina, adminUserId]
+  )
+
+  const selecionaveisFiltrados = useMemo(
+    () => usuariosFiltrados.filter((u) => u.id !== adminUserId),
+    [usuariosFiltrados, adminUserId]
+  )
+
+  const todosPaginaSelecionados =
+    selecionaveisPagina.length > 0 &&
+    selecionaveisPagina.every((u) => selecionados.has(u.id))
+
+  const algunsPaginaSelecionados =
+    selecionaveisPagina.some((u) => selecionados.has(u.id)) && !todosPaginaSelecionados
+
+  const usuariosSelecionados = useMemo(
+    () => usuariosFiltrados.filter((u) => selecionados.has(u.id)),
+    [usuariosFiltrados, selecionados]
+  )
+
+  function alternarModoSelecao() {
+    setModoSelecao((ativo) => {
+      if (ativo) setSelecionados(new Set())
+      return !ativo
+    })
+  }
+
+  function alternarSelecionado(id: string) {
+    setSelecionados((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function selecionarTodosPagina() {
+    setSelecionados((prev) => {
+      const next = new Set(prev)
+      selecionaveisPagina.forEach((u) => next.add(u.id))
+      return next
+    })
+  }
+
+  function selecionarTodosFiltrados() {
+    setSelecionados(new Set(selecionaveisFiltrados.map((u) => u.id)))
+  }
+
+  function alternarTodosPagina() {
+    if (todosPaginaSelecionados) {
+      setSelecionados((prev) => {
+        const next = new Set(prev)
+        selecionaveisPagina.forEach((u) => next.delete(u.id))
+        return next
+      })
+    } else {
+      selecionarTodosPagina()
+    }
+  }
 
   function limparFiltros() {
     setFiltros(FILTROS_USUARIO_VAZIOS)
@@ -353,6 +427,50 @@ export function AdminUsuariosSection({
           )}
         </div>
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          {!listaVazia && (
+            <>
+              <button
+                type="button"
+                onClick={alternarModoSelecao}
+                className={`border px-4 py-2 min-h-11 rounded-lg text-sm ${
+                  modoSelecao
+                    ? 'border-stone-400 bg-stone-100 text-stone-800'
+                    : 'border-stone-300 text-stone-700 hover:bg-stone-50'
+                }`}
+              >
+                {modoSelecao ? 'Cancelar seleção' : 'Selecionar'}
+              </button>
+              {modoSelecao && (
+                <>
+                  <button
+                    type="button"
+                    onClick={selecionarTodosFiltrados}
+                    disabled={selecionaveisFiltrados.length === 0}
+                    className="border border-stone-300 text-stone-700 px-4 py-2 min-h-11 rounded-lg text-sm hover:bg-stone-50 disabled:opacity-40"
+                    title={
+                      selecionaveisFiltrados.length > selecionaveisPagina.length
+                        ? `Selecionar todos os ${selecionaveisFiltrados.length} usuários filtrados`
+                        : 'Selecionar todos os usuários visíveis'
+                    }
+                  >
+                    Selecionar todos
+                    {selecionaveisFiltrados.length > selecionaveisPagina.length
+                      ? ` (${selecionaveisFiltrados.length})`
+                      : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onExcluirVarios(usuariosSelecionados)}
+                    disabled={usuariosSelecionados.length === 0}
+                    className="border border-red-300 bg-red-50 text-red-700 px-4 py-2 min-h-11 rounded-lg text-sm hover:bg-red-100 disabled:opacity-40"
+                  >
+                    Excluir selecionados
+                    {usuariosSelecionados.length > 0 ? ` (${usuariosSelecionados.length})` : ''}
+                  </button>
+                </>
+              )}
+            </>
+          )}
           {!listaVazia && (
             <button
               type="button"
@@ -641,10 +759,28 @@ export function AdminUsuariosSection({
           <div className="md:hidden space-y-3 mb-4">
             {usuariosPagina.map((u) => {
               const vinculo = titularLabel(u)
+              const selecionado = selecionados.has(u.id)
+              const podeSelecionar = u.id !== adminUserId
               return (
-                <div key={u.id} className="motion-card border border-stone-200 p-4 space-y-3">
+                <div
+                  key={u.id}
+                  className={`motion-card border p-4 space-y-3 ${
+                    selecionado ? 'border-emerald-400 bg-emerald-50/40' : 'border-stone-200'
+                  }`}
+                >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
+                    <div className="flex items-start gap-3 min-w-0">
+                      {modoSelecao && (
+                        <input
+                          type="checkbox"
+                          checked={selecionado}
+                          disabled={!podeSelecionar}
+                          onChange={() => alternarSelecionado(u.id)}
+                          aria-label={`Selecionar ${u.nome}`}
+                          className="mt-1 h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-500 disabled:opacity-40"
+                        />
+                      )}
+                      <div className="min-w-0">
                       <p className="font-medium text-emerald-900">{u.nome}</p>
                       <p className="text-xs font-mono text-stone-500 mt-0.5">
                         Cód. {u.codigo_usuario ?? '—'}
@@ -652,6 +788,7 @@ export function AdminUsuariosSection({
                       {vinculo && (
                         <p className="text-xs text-stone-500 mt-0.5">Dependente de {vinculo}</p>
                       )}
+                      </div>
                     </div>
                     <UsuarioBadges u={u} />
                   </div>
@@ -690,6 +827,21 @@ export function AdminUsuariosSection({
               <table className="w-full text-sm border-collapse min-w-[1100px]">
                 <thead className="border-b">
                   <tr>
+                    {modoSelecao && (
+                      <th className={`text-left px-3 py-3 font-medium text-stone-600 w-10 ${TH_STICKY}`}>
+                        <input
+                          type="checkbox"
+                          checked={todosPaginaSelecionados}
+                          ref={(el) => {
+                            if (el) el.indeterminate = algunsPaginaSelecionados
+                          }}
+                          onChange={alternarTodosPagina}
+                          disabled={selecionaveisPagina.length === 0}
+                          aria-label="Selecionar todos nesta página"
+                          className="h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-500 disabled:opacity-40"
+                        />
+                      </th>
+                    )}
                     <SortHeader col="codigo" sort={sort} onSort={alterarOrdenacao}>
                       Usuário
                     </SortHeader>
@@ -739,8 +891,27 @@ export function AdminUsuariosSection({
                 <tbody>
                   {usuariosPagina.map((u) => {
                     const vinculo = titularLabel(u)
+                    const selecionado = selecionados.has(u.id)
+                    const podeSelecionar = u.id !== adminUserId
                     return (
-                      <tr key={u.id} className="group border-b last:border-0 hover:bg-stone-50">
+                      <tr
+                        key={u.id}
+                        className={`group border-b last:border-0 hover:bg-stone-50 ${
+                          selecionado ? 'bg-emerald-50/50' : ''
+                        }`}
+                      >
+                        {modoSelecao && (
+                          <td className="px-3 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={selecionado}
+                              disabled={!podeSelecionar}
+                              onChange={() => alternarSelecionado(u.id)}
+                              aria-label={`Selecionar ${u.nome}`}
+                              className="h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-500 disabled:opacity-40"
+                            />
+                          </td>
+                        )}
                         <td className="px-3 py-2.5 font-mono whitespace-nowrap">
                           {u.codigo_usuario ?? '—'}
                         </td>

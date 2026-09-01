@@ -25,7 +25,7 @@ export const FILTROS_USUARIO_VAZIOS: FiltrosUsuario = {
   ativo: '',
 }
 
-export const ITENS_POR_PAGINA_OPCOES = [25, 50, 100] as const
+export const ITENS_POR_PAGINA_OPCOES = [100, 500, 1000] as const
 export type ItensPorPagina = (typeof ITENS_POR_PAGINA_OPCOES)[number]
 
 export function filtrarUsuarios(usuarios: Usuario[], filtros: FiltrosUsuario): Usuario[] {

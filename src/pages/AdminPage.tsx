@@ -60,6 +60,7 @@ type AbaAdmin = AdminTab
 type ConfirmAction =
   | { kind: 'deleteCourt'; quadra: Quadra }
   | { kind: 'deleteUser'; usuario: Usuario }
+  | { kind: 'deleteUsers'; usuarios: Usuario[] }
   | { kind: 'toggleUserStatus'; usuario: Usuario }
   | { kind: 'approve'; reserva: Reserva }
   | null
@@ -390,6 +391,28 @@ export function AdminPage() {
         await deleteUser(confirmAction.usuario.id)
         setMessage({ type: 'success', text: 'Usuário excluído.' })
         await carregarDados()
+      } else if (confirmAction.kind === 'deleteUsers') {
+        const { usuarios: lista } = confirmAction
+        let erros = 0
+        for (const usuario of lista) {
+          try {
+            await deleteUser(usuario.id)
+          } catch {
+            erros++
+          }
+        }
+        if (erros === 0) {
+          setMessage({
+            type: 'success',
+            text: `${lista.length} usuário${lista.length !== 1 ? 's' : ''} excluído${lista.length !== 1 ? 's' : ''}.`,
+          })
+        } else {
+          setMessage({
+            type: 'error',
+            text: `${lista.length - erros} excluído(s), ${erros} falha(s).`,
+          })
+        }
+        await carregarDados()
       } else if (confirmAction.kind === 'toggleUserStatus') {
         await updateUser(confirmAction.usuario.id, { ativo: false })
         setMessage({ type: 'success', text: `${confirmAction.usuario.nome} foi desativado.` })
@@ -418,7 +441,7 @@ export function AdminPage() {
       }
       setConfirmAction(null)
     } catch (err) {
-      if (confirmAction.kind === 'deleteUser') {
+      if (confirmAction.kind === 'deleteUser' || confirmAction.kind === 'deleteUsers') {
         setMessage({
           type: 'error',
           text: err instanceof Error ? err.message : 'Erro ao excluir usuário.',
@@ -629,6 +652,15 @@ export function AdminPage() {
     setConfirmAction({ kind: 'deleteUser', usuario })
   }
 
+  function handleExcluirUsuarios(usuariosSelecionados: Usuario[]) {
+    const validos = usuariosSelecionados.filter((u) => u.id !== adminUser?.id)
+    if (validos.length === 0) {
+      setMessage({ type: 'error', text: 'Nenhum usuário selecionado para exclusão.' })
+      return
+    }
+    setConfirmAction({ kind: 'deleteUsers', usuarios: validos })
+  }
+
   function handleAprovarReserva(reserva: Reserva) {
     setConfirmAction({ kind: 'approve', reserva })
   }
@@ -676,6 +708,16 @@ export function AdminPage() {
         title: 'Excluir usuário',
         message: `Excluir permanentemente ${confirmAction.usuario.nome} (${tipo})? As reservas deste usuário também serão removidas.`,
         confirmLabel: 'Excluir usuário',
+        confirmVariant: 'danger',
+        loadingText: 'Excluindo...',
+      }
+    }
+    if (confirmAction.kind === 'deleteUsers') {
+      const n = confirmAction.usuarios.length
+      return {
+        title: 'Excluir usuários',
+        message: `Excluir permanentemente ${n} usuário${n !== 1 ? 's' : ''}? As reservas deles também serão removidas.`,
+        confirmLabel: `Excluir ${n} usuário${n !== 1 ? 's' : ''}`,
         confirmVariant: 'danger',
         loadingText: 'Excluindo...',
       }
@@ -1354,6 +1396,7 @@ export function AdminPage() {
             onToggleStatus={solicitarToggleStatusUsuario}
             onEditar={setUsuarioEditando}
             onExcluir={handleExcluirUsuario}
+            onExcluirVarios={handleExcluirUsuarios}
             camposPlanilha={camposPlanilhaUsuario}
             setCamposPlanilha={setCamposPlanilhaUsuario}
           />
