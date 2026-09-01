@@ -9,6 +9,7 @@ import { LazyImage } from '../components/motion/LazyImage'
 import { AdminPageSkeleton, AdminUsuariosSkeleton } from '../components/motion/Skeleton'
 import { AdminUsuariosSection, contarUsuariosPendentes } from '../components/admin/AdminUsuariosSection'
 import { AdminGuideSection } from '../components/admin/AdminGuideSection'
+import { ReservationsContent } from './ReservationsPage'
 import { CAMPOS_PLANILHA_VAZIOS, type CamposPlanilhaUsuario } from '../lib/usuarioPlanilha'
 import { ConfirmDialog } from '../components/motion/ConfirmDialog'
 import { Modal } from '../components/motion/Modal'
@@ -87,7 +88,7 @@ export function AdminPage() {
   const { user: adminUser } = useAuth()
   const navigate = useNavigate()
   const { aba: abaParam } = useParams<{ aba?: string }>()
-  const [aba, setAba] = useState<AbaAdmin>('quadras')
+  const [aba, setAba] = useState<AbaAdmin>('reservas')
   const [abaInicializada, setAbaInicializada] = useState(false)
   const [quadras, setQuadras] = useState<Quadra[]>([])
   const [reservas, setReservas] = useState<Reserva[]>([])
@@ -188,11 +189,11 @@ export function AdminPage() {
       try {
         const pendentes = await fetchAllBookings({ apenasPendentes: true })
         if (cancelled) return
-        const defaultTab: AbaAdmin = pendentes.length > 0 ? 'agenda' : 'quadras'
+        const defaultTab: AbaAdmin = pendentes.length > 0 ? 'agenda' : 'reservas'
         setAba(defaultTab)
         navigate(adminTabPath(defaultTab), { replace: true })
       } catch {
-        if (!cancelled) setAba('quadras')
+        if (!cancelled) setAba('reservas')
       } finally {
         if (!cancelled) setAbaInicializada(true)
       }
@@ -214,7 +215,7 @@ export function AdminPage() {
   }, [aba, filtroQuadra, filtroData, filtroPendentes, abaInicializada, abaParam])
 
   async function carregarDados() {
-    if (aba === 'guias') {
+    if (aba === 'guias' || aba === 'reservas') {
       setLoading(false)
       return
     }
@@ -706,21 +707,34 @@ export function AdminPage() {
   const dialogProps = confirmDialogProps()
 
   const abas: { id: AbaAdmin; label: string }[] = [
-    { id: 'quadras', label: 'Quadras' },
+    { id: 'reservas', label: 'Reservas' },
     { id: 'agenda', label: 'Agenda' },
     { id: 'usuarios', label: 'Usuários' },
+    { id: 'quadras', label: 'Quadras' },
     { id: 'guias', label: 'Guias' },
   ]
 
   return (
     <Layout>
-      <div className={`mx-auto px-4 py-8 ${aba === 'usuarios' ? 'max-w-[1600px]' : 'max-w-6xl'}`}>
+      <div
+        className={`mx-auto px-4 py-8 ${
+          aba === 'usuarios' ? 'max-w-[1600px]' : aba === 'reservas' ? 'max-w-5xl' : 'max-w-6xl'
+        }`}
+      >
         <h1 className="text-2xl font-bold text-emerald-900 mb-2">Painel Administrativo</h1>
         <p className="text-stone-500 text-sm mb-6">
-          Gerencie quadras, aprove reservas e administre usuários do clube.
+          Reservas, usuários, agenda e quadras — tudo centralizado neste painel.
         </p>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => irParaAba('reservas')}
+            className="motion-card border border-stone-200 p-4 text-left hover:border-emerald-300 transition-colors"
+          >
+            <p className="text-sm font-semibold text-emerald-800">Nova reserva</p>
+            <p className="text-xs text-stone-500 mt-1">Agendar em nome de um usuário</p>
+          </button>
           <button
             type="button"
             onClick={() => irParaAba('agenda')}
@@ -735,15 +749,10 @@ export function AdminPage() {
             className="motion-card border border-stone-200 p-4 text-left hover:border-emerald-300 transition-colors"
           >
             <p className="text-2xl font-bold text-emerald-800">{resumo.totalQuadras}</p>
-            <p className="text-xs text-stone-500 mt-1">Quadras cadastradas</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => irParaAba('quadras')}
-            className="motion-card border border-stone-200 p-4 text-left hover:border-stone-400 transition-colors"
-          >
-            <p className="text-2xl font-bold text-stone-700">{resumo.quadrasInativas}</p>
-            <p className="text-xs text-stone-500 mt-1">Quadras inativas</p>
+            <p className="text-xs text-stone-500 mt-1">
+              Quadras cadastradas
+              {resumo.quadrasInativas > 0 ? ` · ${resumo.quadrasInativas} inativa(s)` : ''}
+            </p>
           </button>
           <button
             type="button"
@@ -790,17 +799,22 @@ export function AdminPage() {
           </FeedbackMessage>
         )}
 
-        {loading && aba !== 'guias' ? (
+        {loading && aba !== 'guias' && aba !== 'reservas' ? (
           aba === 'usuarios' ? <AdminUsuariosSkeleton /> : <AdminPageSkeleton />
         ) : (
           <>
         <TabPanel active={aba === 'guias'}>
           <AdminGuideSection
             pendentesCount={resumo.pendentes}
+            onIrParaReservas={() => irParaAba('reservas')}
             onIrParaAgenda={() => irParaAba('agenda')}
             onIrParaQuadras={() => irParaAba('quadras')}
             onIrParaUsuarios={() => irParaAba('usuarios')}
           />
+        </TabPanel>
+
+        <TabPanel active={aba === 'reservas'}>
+          <ReservationsContent embedded />
         </TabPanel>
 
         <TabPanel active={aba === 'quadras'}>

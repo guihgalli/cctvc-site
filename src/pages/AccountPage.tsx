@@ -22,7 +22,7 @@ import { formatTitularVinculo, labelCategoriaSocio, resolveTitularUsuario } from
 import { labelCategoriaClube, labelSexo } from '../lib/usuarioPlanilha'
 
 export function AccountPage() {
-  const { user, updateSessionToken, updateUser } = useAuth()
+  const { user, updateSessionToken, updateUser, isAdmin } = useAuth()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const cadastroTelefone = searchParams.get('cadastro') === 'telefone'
@@ -152,8 +152,8 @@ export function AccountPage() {
     <Layout>
       <div className="max-w-md mx-auto px-4 py-10 space-y-6">
         <div>
-          <Link to="/reservas" className="text-emerald-700 text-sm hover:underline">
-            ← Voltar às reservas
+          <Link to={isAdmin ? '/admin' : '/reservas'} className="text-emerald-700 text-sm hover:underline">
+            {isAdmin ? '← Voltar ao painel' : '← Voltar às reservas'}
           </Link>
           <h1 className="text-2xl font-bold text-emerald-900 mt-3">Minha conta</h1>
           {user && (

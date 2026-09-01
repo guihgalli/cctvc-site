@@ -61,6 +61,7 @@ function usePrefersReducedMotion() {
 
 interface AdminGuideSectionProps {
   pendentesCount?: number
+  onIrParaReservas?: () => void
   onIrParaAgenda?: () => void
   onIrParaQuadras?: () => void
   onIrParaUsuarios?: () => void
@@ -68,6 +69,7 @@ interface AdminGuideSectionProps {
 
 export function AdminGuideSection({
   pendentesCount = 0,
+  onIrParaReservas,
   onIrParaAgenda,
   onIrParaQuadras,
   onIrParaUsuarios,
@@ -138,8 +140,13 @@ export function AdminGuideSection({
           </GuideCard>
 
           <div className="flex flex-wrap gap-2">
+            {onIrParaReservas && (
+              <button type="button" onClick={onIrParaReservas} className="motion-btn motion-btn--primary motion-btn--md min-h-11">
+                Ir para Reservas
+              </button>
+            )}
             {onIrParaAgenda && (
-              <button type="button" onClick={onIrParaAgenda} className="motion-btn motion-btn--primary motion-btn--md min-h-11">
+              <button type="button" onClick={onIrParaAgenda} className="motion-btn motion-btn--secondary motion-btn--md min-h-11">
                 Ir para Agenda
               </button>
             )}
@@ -254,15 +261,16 @@ export function AdminGuideSection({
             headers={['Perfil', 'Reserva']}
             rows={[
               ['Admin', 'Sim — em nome de qualquer usuário, sem limite semanal'],
-              ['Sócio titular ativo', 'Confirmada na hora — máx. 2/semana'],
+              ['Sócio titular ativo', 'Confirmada na hora — máx. 2/semana por família'],
+              ['Sócio dependente ativo', 'Confirmada na hora — máx. 2/semana por família'],
               ['Sócio inadimplente', 'Bloqueado'],
-              ['Dependente', 'Não — só participante'],
               ['Visitante com WhatsApp', 'Pendente até aprovação'],
             ]}
           />
           <GuideCard title="Período e limites">
             <ul className="text-sm text-stone-600 space-y-2 list-disc pl-5 leading-relaxed max-w-prose">
               <li>Semana atual + próxima (próxima abre aos domingos).</li>
+              <li>Limite semanal de 2 reservas por família (titular + dependentes).</li>
               <li>Admin ignora limite semanal ao reservar por terceiros.</li>
               <li>Expiração de pendente configurável por quadra.</li>
             </ul>
@@ -301,8 +309,9 @@ export function AdminGuideSection({
             </GuideCard>
             <GuideCard title="Reserva admin para terceiro">
               <p className="text-sm text-stone-600 leading-relaxed">
-                Em Reservas, admin busca usuário por nome/matrícula/CPF e reserva — ignora limite semanal e
-                período de datas.
+                Na aba <strong>Reservas</strong> do painel, busque o usuário por nome/matrícula/CPF e
+                agende — ignora limite semanal e período de datas. A reserva já nasce{' '}
+                <strong>confirmada</strong>, sem etapa de aprovação.
               </p>
             </GuideCard>
           </div>

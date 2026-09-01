@@ -214,9 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isInadimplente: Boolean(user?.inadimplente),
         canBook:
           user?.perfil === 'admin' ||
-          (user?.tipo_socio === 'socio' &&
-            user?.categoria_socio === 'titular' &&
-            !user?.inadimplente) ||
+          (user?.tipo_socio === 'socio' && !user?.inadimplente) ||
           user?.tipo_socio === 'nao_socio',
       }}
     >

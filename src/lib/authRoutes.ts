@@ -11,15 +11,16 @@ export function getPostLoginPath(user: AuthUser, from?: string): string {
   return '/reservas'
 }
 
-export type AdminTab = 'quadras' | 'agenda' | 'usuarios' | 'guias'
+export type AdminTab = 'reservas' | 'agenda' | 'usuarios' | 'quadras' | 'guias'
 
-export const ADMIN_TABS: AdminTab[] = ['quadras', 'agenda', 'usuarios', 'guias']
+export const ADMIN_TABS: AdminTab[] = ['reservas', 'agenda', 'usuarios', 'quadras', 'guias']
 
 export function parseAdminTab(param?: string): AdminTab | null {
-  if (param && ADMIN_TABS.includes(param as AdminTab)) return param as AdminTab
+  if (!param) return null
+  if (ADMIN_TABS.includes(param as AdminTab)) return param as AdminTab
   return null
 }
 
 export function adminTabPath(tab: AdminTab): string {
-  return tab === 'quadras' ? '/admin' : `/admin/${tab}`
+  return tab === 'reservas' ? '/admin' : `/admin/${tab}`
 }

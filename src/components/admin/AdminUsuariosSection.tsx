@@ -18,7 +18,7 @@ import {
 import { formatTitularVinculo, labelCategoriaSocio, resolveTitularUsuario } from '../../lib/bookingRules'
 import type { CamposPlanilhaUsuario } from '../../lib/usuarioPlanilha'
 import { labelCategoriaClube } from '../../lib/usuarioPlanilha'
-import { formatCpf, formatDate, formatPhone, maskPhoneInput } from '../../lib/utils'
+import { formatCpfDisplay, formatDate, formatPhone, maskPhoneInput } from '../../lib/utils'
 import { exportUsuariosExcel } from '../../lib/exportUsuariosExcel'
 import type { Usuario } from '../../types'
 import { UsuarioPlanilhaFields, resumoCamposPlanilha } from './UsuarioPlanilhaFields'
@@ -658,7 +658,7 @@ export function AdminUsuariosSection({
                   <div className="text-sm text-stone-600 space-y-0.5">
                     {u.email && <p>{u.email}</p>}
                     {u.telefone && <p className="font-mono">{formatPhone(u.telefone)}</p>}
-                    {u.cpf && <p className="font-mono text-xs text-stone-400">{formatCpf(u.cpf)}</p>}
+                    {u.cpf && <p className="text-xs text-stone-400">{formatCpfDisplay(u.cpf)}</p>}
                     {resumoCamposPlanilha(u).length > 0 && (
                       <p className="text-xs text-stone-500">{resumoCamposPlanilha(u).join(' · ')}</p>
                     )}
@@ -682,7 +682,7 @@ export function AdminUsuariosSection({
           </div>
 
           <p className="text-xs text-stone-400 mb-2 hidden md:block">
-            Ações fixas à direita. Role horizontalmente para ver e-mail, telefone e CPF.
+            Ações fixas à direita. E-mail e telefone vêm de cadastro manual — a planilha do clube não traz esses campos. CPF provisório = senha de 6 dígitos na importação.
           </p>
 
           <div className="motion-card border border-stone-200 hidden md:flex md:flex-col min-h-[520px] max-h-[calc(100vh-11rem)]">
@@ -791,7 +791,7 @@ export function AdminUsuariosSection({
                           {u.telefone ? formatPhone(u.telefone) : '—'}
                         </td>
                         <td className="px-3 py-2.5 font-mono text-stone-500 whitespace-nowrap text-xs">
-                          {formatCpf(u.cpf)}
+                          {formatCpfDisplay(u.cpf)}
                         </td>
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <span

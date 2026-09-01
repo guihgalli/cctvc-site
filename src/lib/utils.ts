@@ -19,6 +19,19 @@ export function isValidPassword(password: string): boolean {
   return /^\d{6}$/.test(password)
 }
 
+/** CPF gerado na importação da planilha (6 dígitos da senha + 00000) — não é CPF cadastral real */
+export function isCpfSinteticoImport(cpf: string | null | undefined): boolean {
+  const cleaned = cleanCpf(cpf)
+  return cleaned.length === 11 && cleaned.endsWith('00000')
+}
+
+/** Formata CPF para exibição; marca provisório quando veio só da importação */
+export function formatCpfDisplay(cpf: string | null | undefined): string {
+  if (!cpf) return '—'
+  if (isCpfSinteticoImport(cpf)) return 'Provisório (senha)'
+  return formatCpf(cpf)
+}
+
 /** Formata CPF para exibição: 000.000.000-00 */
 export function formatCpf(cpf: string | null | undefined): string {
   if (!cpf) return '—'

@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo, type CSSProperties, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 
 import { Layout } from '../components/Layout'
 import { ReservaStatusModal } from '../components/ReservaStatusModal'
@@ -63,12 +63,10 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
 function AvisosPerfil({
   isSocio,
   isAdmin,
-  isDependente,
   isInadimplente,
 }: {
   isSocio: boolean
   isAdmin: boolean
-  isDependente: boolean
   isInadimplente: boolean
 }) {
   const [adminDismissed, setAdminDismissed] = useState(
@@ -88,14 +86,15 @@ function AvisosPerfil({
         </>
       ),
     })
-  } else if (isDependente) {
+  } else if (isSocio && !isAdmin) {
     avisos.push({
-      key: 'dependente',
+      key: 'limite-familia',
       className: 'text-blue-800 bg-blue-50 border-blue-200',
       content: (
         <>
-          Como <strong>sócio dependente</strong>, você pode visualizar horários e acompanhar suas
-          reservas, mas apenas o titular pode fazer novos agendamentos.
+          Sua família (titular + dependentes) pode fazer no máximo{' '}
+          <strong>2 reservas por semana</strong> (segunda a domingo), incluindo pendentes e
+          confirmadas.
         </>
       ),
     })
@@ -164,8 +163,12 @@ function SlotIndisponivel({ label }: { label: string }) {
   )
 }
 
-export function ReservationsPage() {
-  const { user, isSocio, canBook, isAdmin, isDependente, isInadimplente, isTitular } = useAuth()
+interface ReservationsContentProps {
+  embedded?: boolean
+}
+
+export function ReservationsContent({ embedded = false }: ReservationsContentProps) {
+  const { user, isSocio, canBook, isAdmin, isInadimplente } = useAuth()
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [abaAtiva, setAbaAtiva] = useState<'reservar' | 'minhas'>('reservar')
   const [fotoExpandida, setFotoExpandida] = useState(false)
@@ -238,7 +241,6 @@ export function ReservationsPage() {
     canBook,
     isAdmin,
     isSocio,
-    isTitular,
     quadraSelecionada,
     dataSelecionada,
     reservas,
@@ -281,7 +283,6 @@ export function ReservationsPage() {
   }
 
   function motivoSlotIndisponivel(): string {
-    if (isDependente) return 'Apenas o titular pode reservar'
     if (isInadimplente) return 'Regularize pendências financeiras'
     if (!canBook) return 'Seu perfil não permite reservas'
     return 'Indisponível'
@@ -291,6 +292,7 @@ export function ReservationsPage() {
     quadraSelecionada?.fotos_quadras?.find((f) => f.principal) || quadraSelecionada?.fotos_quadras?.[0]
 
   if (loading) {
+    if (embedded) return <ReservationsPageSkeleton />
     return (
       <Layout>
         <ReservationsPageSkeleton />
@@ -298,23 +300,24 @@ export function ReservationsPage() {
     )
   }
 
-  return (
-    <Layout>
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-          <h1 className="text-2xl font-bold text-emerald-900">Reserva de Quadras</h1>
-          <Link
-            to="/guia"
-            className="text-sm text-emerald-700 hover:underline shrink-0 min-h-11 inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 rounded"
-          >
-            Guia de uso
-          </Link>
-        </div>
+  const pageContent = (
+    <>
+      <div className={embedded ? undefined : 'max-w-5xl mx-auto px-4 py-8'}>
+        {!embedded && (
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+            <h1 className="text-2xl font-bold text-emerald-900">Reserva de Quadras</h1>
+            <Link
+              to="/guia"
+              className="text-sm text-emerald-700 hover:underline shrink-0 min-h-11 inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 rounded"
+            >
+              Guia de uso
+            </Link>
+          </div>
+        )}
 
         <AvisosPerfil
           isSocio={isSocio}
           isAdmin={isAdmin}
-          isDependente={isDependente}
           isInadimplente={isInadimplente}
         />
 
@@ -576,7 +579,7 @@ export function ReservationsPage() {
                             {reserva ? (
                               <div
                                 className={`flex-1 flex items-center gap-2 rounded-lg border px-2 py-1.5 sm:px-3 ${
-                                  minha
+                                  minha || isAdmin
                                     ? reserva.status === 'pendente'
                                       ? 'border-amber-300 bg-amber-50'
                                       : 'border-emerald-300 bg-emerald-50'
@@ -608,6 +611,33 @@ export function ReservationsPage() {
                                       </p>
                                     </div>
                                   </button>
+                                ) : isAdmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirModalReserva(reserva, quadraSelecionada?.nome)}
+                                    className={`flex-1 flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left motion-cta min-h-[44px] ${
+                                      reserva.status === 'pendente'
+                                        ? 'hover:bg-amber-100/70'
+                                        : 'hover:bg-emerald-100/70'
+                                    }`}
+                                  >
+                                    <div className="min-w-0">
+                                      <p
+                                        className={`font-semibold text-sm truncate ${
+                                          reserva.status === 'pendente' ? 'text-amber-800' : 'text-emerald-800'
+                                        }`}
+                                      >
+                                        {reserva.usuarios?.nome ?? 'Reservado'}
+                                      </p>
+                                      <p className="text-xs text-stone-500 mt-0.5 truncate">
+                                        {reserva.usuarios?.codigo_usuario && (
+                                          <span>Matr. {reserva.usuarios.codigo_usuario} · </span>
+                                        )}
+                                        {reserva.status === 'pendente' ? 'Pendente' : 'Confirmada'} ·{' '}
+                                        {slot.start} – {slot.end}
+                                      </p>
+                                    </div>
+                                  </button>
                                 ) : (
                                   <div className="flex-1 px-2 py-1.5 min-h-[44px] flex items-center">
                                     <div>
@@ -618,7 +648,8 @@ export function ReservationsPage() {
                                     </div>
                                   </div>
                                 )}
-                                {minha && (reserva.status === 'confirmada' || reserva.status === 'pendente') && (
+                                {(minha || isAdmin) &&
+                                  (reserva.status === 'confirmada' || reserva.status === 'pendente') && (
                                   <button
                                     type="button"
                                     onClick={() => solicitarCancelamento(reserva.id)}
@@ -746,7 +777,7 @@ export function ReservationsPage() {
         requerPagamento={quadraRequerPagamento(
           reservaModal?.quadras?.tipo_quadra ?? quadraSelecionada?.tipo_quadra
         )}
-        nomeUsuario={nomeUsuarioReserva ?? user?.nome}
+        nomeUsuario={nomeUsuarioReserva ?? reservaModal?.usuarios?.nome ?? user?.nome}
         expiracaoPendenteMinutos={modalExpiracaoMinutos}
         valorVisitante={modalValorVisitante}
         onClose={fecharModalReserva}
@@ -816,8 +847,18 @@ export function ReservationsPage() {
         onConfirm={confirmarCancelamento}
         onCancel={() => setCancelConfirmId(null)}
       />
-    </Layout>
+    </>
   )
+
+  if (embedded) return pageContent
+
+  return <Layout>{pageContent}</Layout>
+}
+
+export function ReservationsPage() {
+  const { isAdmin } = useAuth()
+  if (isAdmin) return <Navigate to="/admin" replace />
+  return <ReservationsContent />
 }
 
 function StatusBadge({ status }: { status: Reserva['status'] }) {

@@ -18,7 +18,6 @@ interface UseBookingActionsParams {
   canBook: boolean
   isAdmin: boolean
   isSocio: boolean
-  isTitular: boolean
   quadraSelecionada: Quadra | null
   dataSelecionada: string
   reservas: Reserva[]
@@ -33,7 +32,6 @@ export function useBookingActions({
   canBook,
   isAdmin,
   isSocio,
-  isTitular,
   quadraSelecionada,
   dataSelecionada,
   reservas,
@@ -232,7 +230,7 @@ export function useBookingActions({
 
       const requerPagamento = quadraRequerPagamento(quadraSelecionada.tipo_quadra)
 
-      if (isSocio && isTitular && !requerPagamento) {
+      if (isSocio && !requerPagamento) {
         setSlotPendente({ inicio: horaInicio, fim: horaFim })
         setParticipantesModalOpen(true)
         return
@@ -250,7 +248,6 @@ export function useBookingActions({
       horarioOcupado,
       isAdmin,
       isSocio,
-      isTitular,
       setMessage,
     ]
   )

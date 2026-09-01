@@ -64,11 +64,21 @@ const FAQ_ITEMS = [
 
   {
 
-    question: 'Sou dependente. Por que não consigo reservar?',
+    question: 'Qual é o limite de reservas da família?',
 
     answer:
 
-      'Dependentes acompanham horários e reservas em que foram incluídos, mas apenas o titular da família cria novos agendamentos.',
+      'Titular e dependentes compartilham o limite de 2 reservas por semana (segunda a domingo). Reservas pendentes e confirmadas contam para esse total.',
+
+  },
+
+  {
+
+    question: 'Sou dependente. Posso reservar sozinho?',
+
+    answer:
+
+      'Sim. Dependentes podem criar reservas normalmente, respeitando o limite de 2 por semana da família (titular + dependentes).',
 
   },
 
@@ -172,7 +182,7 @@ function profileHighlightIndex(
 
 export function GuidePage() {
 
-  const { user, isTitular, isDependente, isInadimplente, canBook, isAdmin } = useAuth()
+  const { user, isTitular, isDependente, isInadimplente, canBook, isAdmin, isSocio } = useAuth()
 
   const isVisitante = user?.tipo_socio === 'nao_socio'
 
@@ -464,7 +474,7 @@ export function GuidePage() {
 
 
 
-              {canBook && isTitular && (
+              {canBook && isSocio && !isVisitante && (
 
                 <GuideCard title="Próximo passo">
 
@@ -538,21 +548,21 @@ export function GuidePage() {
 
 
 
-              {isDependente && (
+              {isDependente && canBook && (
 
                 <GuideCard title="Próximo passo">
 
                   <p className="text-sm text-stone-600 mb-4 max-w-prose">
 
-                    Peça ao titular da família para reservar e incluí-lo como participante. Você
+                    Você pode reservar quadras normalmente. Lembre-se: sua família (titular +
 
-                    acompanha tudo em Minhas Reservas.
+                    dependentes) compartilha o limite de 2 reservas por semana.
 
                   </p>
 
-                  <Link to="/reservas" className="motion-btn motion-btn--secondary motion-btn--md min-h-11">
+                  <Link to="/reservas" className="motion-btn motion-btn--primary motion-btn--md min-h-11">
 
-                    Ver horários disponíveis
+                    Fazer uma reserva
 
                   </Link>
 
@@ -664,13 +674,13 @@ export function GuidePage() {
 
             >
 
-              {canBook && isTitular && (
+              {canBook && isSocio && !isVisitante && (
 
                 <GuideCallout variant="success" title={`Você está como ${perfilLabel}`}>
 
                   Suas reservas são <strong>confirmadas na hora</strong>, sem necessidade de aprovação
 
-                  da secretaria.
+                  da secretaria. Sua família pode fazer no máximo <strong>2 reservas por semana</strong>.
 
                 </GuideCallout>
 
@@ -678,13 +688,13 @@ export function GuidePage() {
 
 
 
-              {isDependente && (
+              {isDependente && !canBook && (
 
                 <GuideCallout variant="info" title="Sócio dependente">
 
-                  Você pode visualizar horários e acompanhar reservas em que foi incluído como
+                  Você pode visualizar horários, mas não criar novas reservas enquanto houver
 
-                  participante. Novos agendamentos são feitos pelo titular da família.
+                  pendências financeiras no seu cadastro.
 
                 </GuideCallout>
 
@@ -730,9 +740,9 @@ export function GuidePage() {
 
                 rows={[
 
-                  ['Sócio titular (ativo)', 'Sim', 'Reserva confirmada na hora'],
+                  ['Sócio titular (ativo)', 'Sim', 'Reserva confirmada na hora — limite familiar 2/semana'],
 
-                  ['Sócio dependente', 'Não', 'Visualiza horários e acompanha participações'],
+                  ['Sócio dependente (ativo)', 'Sim', 'Reserva confirmada na hora — limite familiar 2/semana'],
 
                   ['Sócio inadimplente', 'Não', 'Acesso ao sistema, sem novos agendamentos'],
 
@@ -770,9 +780,9 @@ export function GuidePage() {
 
             >
 
-              {canBook && isTitular && (
+              {canBook && isSocio && !isVisitante && (
 
-                <GuideCard title="Passo a passo — sócio titular">
+                <GuideCard title="Passo a passo — sócio">
 
                   <GuideSteps
 
@@ -840,25 +850,11 @@ export function GuidePage() {
 
 
 
-              {isDependente && (
-
-                <GuideCallout variant="info">
-
-                  Peça ao titular da família para reservar o horário e incluí-lo como participante na
-
-                  confirmação.
-
-                </GuideCallout>
-
-              )}
-
-
-
               {isInadimplente && (
 
                 <GuideCallout variant="danger">
 
-                  Regularize pendências com a secretaria antes de tentar novos agendamentos.
+                  Regularize pendências financeiras com a secretaria para voltar a reservar.
 
                 </GuideCallout>
 
@@ -914,7 +910,7 @@ export function GuidePage() {
 
                   'Reservas em que você foi incluído aparecem com o badge Participante.',
 
-                  'Para cancelar: abra a reserva e clique em Cancelar reserva — apenas o titular pode cancelar.',
+                  'Para cancelar: abra a reserva e clique em Cancelar reserva — quem fez o agendamento pode cancelar.',
 
                 ]}
 
@@ -922,9 +918,9 @@ export function GuidePage() {
 
               <GuideCallout variant="info">
 
-                Participantes não cancelam reservas. Se precisar desistir, peça ao titular que fez o
+                Participantes incluídos na reserva não cancelam o horário. Se precisar desistir, peça
 
-                agendamento.
+                a quem criou a reserva.
 
               </GuideCallout>
 
@@ -1026,9 +1022,9 @@ export function GuidePage() {
 
                   <li>
 
-                    <strong>Limite:</strong> sócio titular — no máximo <strong>2 reservas por semana</strong>{' '}
+                    <strong>Limite:</strong> família (titular + dependentes) — no máximo{' '}
 
-                    (inclui pendentes e confirmadas).
+                    <strong>2 reservas por semana</strong> (inclui pendentes e confirmadas).
 
                   </li>
 
@@ -1036,7 +1032,7 @@ export function GuidePage() {
 
                   <li>Horários ocupados ou pendentes bloqueiam novas reservas naquele slot.</li>
 
-                  <li>Dependentes não criam reservas — entram como participantes.</li>
+                  <li>Dependentes podem reservar diretamente; o limite semanal é compartilhado com o titular.</li>
 
                 </ul>
 
