@@ -353,6 +353,17 @@ export async function fetchUserBookings(_usuarioId: string): Promise<Reserva[]> 
   return data || []
 }
 
+/** Reservas da família (titular + dependentes) na semana da data informada */
+export async function fetchFamilyWeeklyBookingCount(dataReserva: string): Promise<number> {
+  const token = requireToken()
+  const count = await rpc<number>(
+    'contar_reservas_familia_semana',
+    { p_token: token, p_data: dataReserva },
+    'Erro ao verificar limite semanal.'
+  )
+  return count ?? 0
+}
+
 export async function createBooking(reserva: {
   quadra_id: string
   usuario_id: string

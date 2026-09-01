@@ -126,6 +126,14 @@ export function quadraRequerPagamento(tipo: string | null | undefined): boolean 
   return tipo === 'locacao'
 }
 
+/** Limite semanal compartilhado entre titular e dependentes (segunda a domingo) */
+export const LIMITE_RESERVAS_FAMILIA_SEMANA = 2
+
+/** Mensagem quando a família já atingiu o limite semanal de reservas */
+export function mensagemLimiteSemanalFamilia(): string {
+  return `Você não pode solicitar esta reserva: sua família (titular e dependentes) já atingiu o limite de ${LIMITE_RESERVAS_FAMILIA_SEMANA} reservas nesta semana (segunda a domingo).`
+}
+
 /** Visibilidade da quadra conforme perfil do usuário logado */
 export function quadraVisivelParaUsuario(
   tipo: string | null | undefined,

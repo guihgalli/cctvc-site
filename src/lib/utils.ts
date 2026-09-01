@@ -274,6 +274,14 @@ export function getBookingErrorMessage(err: unknown): string {
   ) {
     return 'Este horário acabou de ser reservado. Atualizamos a grade — escolha outro horário.'
   }
+  if (
+    lower.includes('máximo 2') ||
+    lower.includes('maximo 2') ||
+    lower.includes('2 vezes por semana') ||
+    (lower.includes('2 reservas') && lower.includes('semana'))
+  ) {
+    return 'Você não pode solicitar esta reserva: sua família (titular e dependentes) já atingiu o limite de 2 reservas nesta semana (segunda a domingo).'
+  }
   return msg
 }
 

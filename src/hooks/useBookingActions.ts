@@ -1,12 +1,17 @@
 import { useCallback, useState } from 'react'
-import { adminCreateBooking, cancelBooking, createBooking } from '../services/api'
+import { adminCreateBooking, cancelBooking, createBooking, fetchFamilyWeeklyBookingCount } from '../services/api'
 import {
   formatTime,
   getBookingErrorMessage,
   isPastDate,
   isPastDateTime,
 } from '../lib/utils'
-import { isDataReservavel, quadraRequerPagamento } from '../lib/bookingRules'
+import {
+  isDataReservavel,
+  LIMITE_RESERVAS_FAMILIA_SEMANA,
+  mensagemLimiteSemanalFamilia,
+  quadraRequerPagamento,
+} from '../lib/bookingRules'
 import { horarioDoDia } from '../lib/bookingSchedule'
 import type { AuthUser } from '../types'
 import type { Quadra, Reserva } from '../types'
@@ -77,6 +82,24 @@ export function useBookingActions({
       return !horarioOcupado(horaInicio)
     },
     [canBook, dataSelecionada, horarioOcupado, horarioPassado]
+  )
+
+  const verificarLimiteSemanalFamilia = useCallback(
+    async (data: string): Promise<boolean> => {
+      if (!isSocio || isAdmin) return true
+
+      try {
+        const count = await fetchFamilyWeeklyBookingCount(data)
+        if (count >= LIMITE_RESERVAS_FAMILIA_SEMANA) {
+          setMessage({ type: 'error', text: mensagemLimiteSemanalFamilia() })
+          return false
+        }
+        return true
+      } catch {
+        return true
+      }
+    },
+    [isSocio, isAdmin, setMessage]
   )
 
   const abrirModalReserva = useCallback((reserva: Reserva, quadraNome?: string) => {
@@ -222,6 +245,10 @@ export function useBookingActions({
         return
       }
 
+      if (!(await verificarLimiteSemanalFamilia(dataSelecionada))) {
+        return
+      }
+
       if (isAdmin) {
         setSlotPendente({ inicio: horaInicio, fim: horaFim })
         setAdminUsuarioModalOpen(true)
@@ -249,6 +276,7 @@ export function useBookingActions({
       isAdmin,
       isSocio,
       setMessage,
+      verificarLimiteSemanalFamilia,
     ]
   )
 
