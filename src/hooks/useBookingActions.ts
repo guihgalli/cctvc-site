@@ -9,6 +9,7 @@ import {
 import {
   formatTime,
   getBookingErrorMessage,
+  getErrorMessage,
   isPastDate,
   isPastDateTime,
 } from '../lib/utils'
@@ -18,6 +19,7 @@ import {
   LIMITE_RESERVAS_FAMILIA_SEMANA,
   mensagemLimiteSemanalFamilia,
   quadraRequerPagamento,
+  reservaPermiteCancelamento,
 } from '../lib/bookingRules'
 import { horarioDoDia } from '../lib/bookingSchedule'
 import type { AuthUser } from '../types'
@@ -136,9 +138,24 @@ export function useBookingActions({
     setNomeUsuarioReserva(undefined)
   }, [])
 
-  const solicitarCancelamento = useCallback((reservaId: string) => {
-    setCancelConfirmId(reservaId)
-  }, [])
+  const solicitarCancelamento = useCallback(
+    (reservaId: string) => {
+      const reserva =
+        minhasReservas.find((item) => item.id === reservaId) ??
+        reservas.find((item) => item.id === reservaId)
+
+      if (reserva && !reservaPermiteCancelamento(reserva)) {
+        setMessage({
+          type: 'error',
+          text: 'Não é possível cancelar reservas de datas anteriores.',
+        })
+        return
+      }
+
+      setCancelConfirmId(reservaId)
+    },
+    [minhasReservas, reservas, setMessage]
+  )
 
   const confirmarCancelamento = useCallback(async () => {
     if (!cancelConfirmId) return
@@ -150,8 +167,11 @@ export function useBookingActions({
       setCancelConfirmId(null)
       setMessage({ type: 'success', text: 'Reserva cancelada.' })
       await Promise.all([refreshMyBookings(), refreshCourtBookings()])
-    } catch {
-      setMessage({ type: 'error', text: 'Erro ao cancelar reserva.' })
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: getErrorMessage(err, 'Erro ao cancelar reserva.'),
+      })
     } finally {
       setCancelando(false)
     }

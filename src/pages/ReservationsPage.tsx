@@ -17,7 +17,7 @@ import { useBookingActions } from '../hooks/useBookingActions'
 import { ParticipantesReservaModal } from '../components/ParticipantesReservaModal'
 import { AdminReservaUsuarioModal } from '../components/AdminReservaUsuarioModal'
 import { diaDisponivel } from '../lib/bookingSchedule'
-import { isDataReservavel, labelTipoQuadra, quadraRequerPagamento } from '../lib/bookingRules'
+import { isDataReservavel, labelTipoQuadra, quadraRequerPagamento, reservaPermiteCancelamento } from '../lib/bookingRules'
 import {
   DEFAULT_SLOT_MINUTES,
   generateTimeSlotsFromRange,
@@ -649,8 +649,7 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
                                     </div>
                                   </div>
                                 )}
-                                {(minha || isAdmin) &&
-                                  (reserva.status === 'confirmada' || reserva.status === 'pendente') && (
+                                {(minha || isAdmin) && reservaPermiteCancelamento(reserva) && (
                                   <button
                                     type="button"
                                     onClick={() => solicitarCancelamento(reserva.id)}
@@ -766,8 +765,7 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
                       </p>
                     )}
                   </button>
-                  {(reserva.status === 'confirmada' || reserva.status === 'pendente') &&
-                    reserva.usuario_id === user?.id && (
+                  {reserva.usuario_id === user?.id && reservaPermiteCancelamento(reserva) && (
                       <button
                         type="button"
                         onClick={() => solicitarCancelamento(reserva.id)}
@@ -795,7 +793,11 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
         valorVisitante={modalValorVisitante}
         onClose={fecharModalReserva}
         onCancel={
-          reservaModal?.usuario_id === user?.id ? solicitarCancelamento : undefined
+          reservaModal &&
+          reservaModal.usuario_id === user?.id &&
+          reservaPermiteCancelamento(reservaModal)
+            ? solicitarCancelamento
+            : undefined
         }
       />
 

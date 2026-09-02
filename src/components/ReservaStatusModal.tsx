@@ -9,6 +9,7 @@ import {
   formatExpiracaoRestante,
   formatMoney,
 } from '../lib/utils'
+import { reservaPermiteCancelamento } from '../lib/bookingRules'
 import type { Reserva } from '../types'
 import { Modal } from './motion/Modal'
 import { Button } from './motion/Button'
@@ -58,7 +59,7 @@ export function ReservaStatusModal({
   const minutosExpiracao =
     reservaAtiva.quadras?.expiracao_pendente_minutos ?? expiracaoPendenteMinutos
   const valorReserva = reservaAtiva.quadras?.valor_visitante ?? valorVisitante
-  const podeCancelar = reservaAtiva.status === 'pendente' || reservaAtiva.status === 'confirmada'
+  const podeCancelar = reservaPermiteCancelamento(reservaAtiva)
   const mostrarPagamentoPix =
     reservaAtiva.status === 'pendente' && (isVisitante || requerPagamento)
   const prazoPagamento =

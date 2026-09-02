@@ -1,4 +1,4 @@
-import { todayIsoDate } from './utils'
+import { isPastDate, todayIsoDate } from './utils'
 import type { Reserva, TitularResumo, Usuario } from '../types'
 
 /** Segunda=0 … Domingo=6 (semana clube) */
@@ -157,6 +157,14 @@ export function familiaAtingiuLimiteSemanal(
   data: string
 ): boolean {
   return contarReservasFamiliaSemana(reservas, data) >= LIMITE_RESERVAS_FAMILIA_SEMANA
+}
+
+type ReservaCancelamento = Pick<Reserva, 'data_reserva' | 'status'>
+
+/** Reserva ainda pode ser cancelada (somente futuras ou hoje, status ativo). */
+export function reservaPermiteCancelamento(reserva: ReservaCancelamento): boolean {
+  if (reserva.status !== 'pendente' && reserva.status !== 'confirmada') return false
+  return !isPastDate(reserva.data_reserva)
 }
 
 /** Visibilidade da quadra conforme perfil do usuário logado */
