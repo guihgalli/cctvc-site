@@ -236,6 +236,7 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
     confirmarReservaVisitante,
     slotPendente,
     nomeUsuarioReserva,
+    limiteSemanalFamiliaAtingido,
   } = useBookingActions({
     user,
     canBook,
@@ -708,7 +709,11 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
               </div>
             ) : minhasReservas.length === 0 ? (
               <div className="motion-card p-8 text-center">
-                <p className="text-stone-500 mb-4">Você não tem reservas futuras.</p>
+                <p className="text-stone-500 mb-4">
+                  {isSocio
+                    ? 'Sua família não tem reservas futuras.'
+                    : 'Você não tem reservas futuras.'}
+                </p>
                 <button
                   type="button"
                   onClick={() => setAbaAtiva('reservar')}
@@ -737,14 +742,22 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
                           Participante
                         </span>
                       )}
+                      {reserva.reserva_familiar && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-violet-100 text-violet-800 font-medium">
+                          Família
+                        </span>
+                      )}
                     </div>
                     <p className="text-stone-600 text-sm">
                       {formatDate(reserva.data_reserva)} · {formatTime(reserva.hora_inicio)} –{' '}
                       {formatTime(reserva.hora_fim)}
                     </p>
-                    {reserva.participante && reserva.titular_reserva && (
+                    {(reserva.participante || reserva.reserva_familiar) && reserva.titular_reserva && (
                       <p className="text-stone-500 text-xs mt-1">
                         Reserva de {reserva.titular_reserva.nome}
+                        {reserva.titular_reserva.codigo_usuario
+                          ? ` (${reserva.titular_reserva.codigo_usuario})`
+                          : ''}
                       </p>
                     )}
                     {reserva.participantes && reserva.participantes.length > 0 && (
@@ -754,7 +767,7 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
                     )}
                   </button>
                   {(reserva.status === 'confirmada' || reserva.status === 'pendente') &&
-                    !reserva.participante && (
+                    reserva.usuario_id === user?.id && (
                       <button
                         type="button"
                         onClick={() => solicitarCancelamento(reserva.id)}
@@ -781,7 +794,9 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
         expiracaoPendenteMinutos={modalExpiracaoMinutos}
         valorVisitante={modalValorVisitante}
         onClose={fecharModalReserva}
-        onCancel={reservaModal?.participante ? undefined : solicitarCancelamento}
+        onCancel={
+          reservaModal?.usuario_id === user?.id ? solicitarCancelamento : undefined
+        }
       />
 
       <ParticipantesReservaModal
@@ -789,6 +804,7 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
         onClose={fecharParticipantesModal}
         onConfirm={confirmarReservaComParticipantes}
         loading={!!reservandoSlot}
+        limiteAtingido={limiteSemanalFamiliaAtingido}
         quadraNome={quadraSelecionada?.nome}
         dataReserva={dataSelecionada}
         horaInicio={slotPendente?.inicio}

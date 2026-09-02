@@ -3,7 +3,6 @@ import { fetchFamilyWeeklyBookingCount, searchParticipantesReserva } from '../se
 import type { Usuario } from '../types'
 import { Modal } from './motion/Modal'
 import { Button } from './motion/Button'
-import { FeedbackMessage } from './motion/FeedbackMessage'
 import { ReservaSlotResumo } from './ReservaSlotResumo'
 import {
   descricaoUsuarioReserva,
@@ -21,6 +20,7 @@ interface ParticipantesReservaModalProps {
   onClose: () => void
   onConfirm: (participanteIds: string[]) => void
   loading?: boolean
+  limiteAtingido?: boolean
   quadraNome?: string
   dataReserva?: string
   horaInicio?: string
@@ -61,6 +61,7 @@ export function ParticipantesReservaModal({
   onClose,
   onConfirm,
   loading = false,
+  limiteAtingido: limiteAtingidoProp = false,
   quadraNome,
   dataReserva,
   horaInicio,
@@ -159,8 +160,9 @@ export function ParticipantesReservaModal({
 
   const listaVisivel = busca.trim().length >= 2 ? resultadosBusca : dependentes
   const mostrandoDependentes = busca.trim().length < 2
-  const limiteAtingido =
+  const limiteAtingidoLocal =
     reservasFamiliaSemana !== null && reservasFamiliaSemana >= LIMITE_RESERVAS_FAMILIA_SEMANA
+  const limiteAtingido = limiteAtingidoProp || limiteAtingidoLocal
 
   return (
     <Modal open={open} onClose={onClose} labelledBy="participantes-title" maxWidth="lg">
@@ -180,6 +182,15 @@ export function ParticipantesReservaModal({
           horaFim={horaFim}
           className="mb-4"
         />
+      )}
+
+      {limiteAtingido && (
+        <p
+          role="alert"
+          className="text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm mb-4"
+        >
+          {mensagemLimiteSemanalFamilia()}
+        </p>
       )}
 
       <input
@@ -230,12 +241,6 @@ export function ParticipantesReservaModal({
           />
         ))}
       </div>
-
-      {limiteAtingido && (
-        <FeedbackMessage type="error" className="mb-4">
-          {mensagemLimiteSemanalFamilia()}
-        </FeedbackMessage>
-      )}
 
       <div className="flex flex-col-reverse sm:flex-row gap-3">
         <Button variant="ghost" size="lg" className="w-full sm:w-auto" onClick={onClose}>

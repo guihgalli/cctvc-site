@@ -92,6 +92,7 @@ export interface Reserva {
   usuarios?: Usuario
   participantes?: ReservaParticipante[]
   participante?: boolean
+  reserva_familiar?: boolean
   titular_reserva?: { nome: string; codigo_usuario: string | null }
 }
 
