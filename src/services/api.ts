@@ -361,7 +361,7 @@ export async function fetchFamilyWeeklyBookingCount(dataReserva: string): Promis
     { p_token: token, p_data: dataReserva },
     'Erro ao verificar limite semanal.'
   )
-  return count ?? 0
+  return Number(count) || 0
 }
 
 export async function createBooking(reserva: {

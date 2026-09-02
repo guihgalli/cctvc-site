@@ -1,5 +1,11 @@
 import { useCallback, useState } from 'react'
-import { adminCreateBooking, cancelBooking, createBooking, fetchFamilyWeeklyBookingCount } from '../services/api'
+import {
+  adminCreateBooking,
+  cancelBooking,
+  createBooking,
+  fetchFamilyWeeklyBookingCount,
+  fetchUserBookings,
+} from '../services/api'
 import {
   formatTime,
   getBookingErrorMessage,
@@ -7,6 +13,7 @@ import {
   isPastDateTime,
 } from '../lib/utils'
 import {
+  contarReservasFamiliaSemana,
   isDataReservavel,
   LIMITE_RESERVAS_FAMILIA_SEMANA,
   mensagemLimiteSemanalFamilia,
@@ -18,6 +25,12 @@ import type { Quadra, Reserva } from '../types'
 
 type PageMessage = { type: 'success' | 'error'; text: string }
 
+type SlotPendente = {
+  inicio: string
+  fim: string
+  limiteAtingido: boolean
+}
+
 interface UseBookingActionsParams {
   user: AuthUser | null
   canBook: boolean
@@ -26,6 +39,7 @@ interface UseBookingActionsParams {
   quadraSelecionada: Quadra | null
   dataSelecionada: string
   reservas: Reserva[]
+  minhasReservas: Reserva[]
   refreshCourtBookings: (options?: { silent?: boolean }) => Promise<void>
   refreshMyBookings: () => Promise<void>
   setMessage: (message: PageMessage | null) => void
@@ -40,6 +54,7 @@ export function useBookingActions({
   quadraSelecionada,
   dataSelecionada,
   reservas,
+  minhasReservas,
   refreshCourtBookings,
   refreshMyBookings,
   setMessage,
@@ -55,9 +70,8 @@ export function useBookingActions({
   const [participantesModalOpen, setParticipantesModalOpen] = useState(false)
   const [adminUsuarioModalOpen, setAdminUsuarioModalOpen] = useState(false)
   const [visitanteConfirmOpen, setVisitanteConfirmOpen] = useState(false)
-  const [slotPendente, setSlotPendente] = useState<{ inicio: string; fim: string } | null>(null)
+  const [slotPendente, setSlotPendente] = useState<SlotPendente | null>(null)
   const [nomeUsuarioReserva, setNomeUsuarioReserva] = useState<string | undefined>()
-  const [limiteSemanalFamiliaAtingido, setLimiteSemanalFamiliaAtingido] = useState(false)
 
   const janelaDia = horarioDoDia(quadraSelecionada, dataSelecionada)
 
@@ -85,17 +99,26 @@ export function useBookingActions({
     [canBook, dataSelecionada, horarioOcupado, horarioPassado]
   )
 
-  const obterReservasFamiliaSemana = useCallback(
-    async (data: string): Promise<number | null> => {
-      if (!isSocio || isAdmin) return 0
+  const verificarLimiteSemanalFamilia = useCallback(
+    async (data: string): Promise<boolean> => {
+      if (!isSocio || isAdmin || !user) return false
+
+      let count = contarReservasFamiliaSemana(minhasReservas, data)
 
       try {
-        return await fetchFamilyWeeklyBookingCount(data)
+        const [freshReservas, remoteCount] = await Promise.all([
+          fetchUserBookings(user.id),
+          fetchFamilyWeeklyBookingCount(data).catch(() => null),
+        ])
+        count = Math.max(count, contarReservasFamiliaSemana(freshReservas, data))
+        if (remoteCount !== null) count = Math.max(count, remoteCount)
       } catch {
-        return null
+        /* mantém contagem local */
       }
+
+      return count >= LIMITE_RESERVAS_FAMILIA_SEMANA
     },
-    [isSocio, isAdmin]
+    [isSocio, isAdmin, user, minhasReservas]
   )
 
   const abrirModalReserva = useCallback((reserva: Reserva, quadraNome?: string) => {
@@ -241,12 +264,10 @@ export function useBookingActions({
         return
       }
 
-      const reservasFamiliaSemana = await obterReservasFamiliaSemana(dataSelecionada)
-      const limiteAtingido =
-        reservasFamiliaSemana !== null && reservasFamiliaSemana >= LIMITE_RESERVAS_FAMILIA_SEMANA
+      const limiteAtingido = await verificarLimiteSemanalFamilia(dataSelecionada)
 
       if (isAdmin) {
-        setSlotPendente({ inicio: horaInicio, fim: horaFim })
+        setSlotPendente({ inicio: horaInicio, fim: horaFim, limiteAtingido: false })
         setAdminUsuarioModalOpen(true)
         return
       }
@@ -254,9 +275,8 @@ export function useBookingActions({
       const requerPagamento = quadraRequerPagamento(quadraSelecionada.tipo_quadra)
 
       if (isSocio && !requerPagamento) {
-        setLimiteSemanalFamiliaAtingido(limiteAtingido)
         setMessage(null)
-        setSlotPendente({ inicio: horaInicio, fim: horaFim })
+        setSlotPendente({ inicio: horaInicio, fim: horaFim, limiteAtingido })
         setParticipantesModalOpen(true)
         return
       }
@@ -266,7 +286,7 @@ export function useBookingActions({
         return
       }
 
-      setSlotPendente({ inicio: horaInicio, fim: horaFim })
+      setSlotPendente({ inicio: horaInicio, fim: horaFim, limiteAtingido: false })
       setVisitanteConfirmOpen(true)
     },
     [
@@ -279,7 +299,7 @@ export function useBookingActions({
       isAdmin,
       isSocio,
       setMessage,
-      obterReservasFamiliaSemana,
+      verificarLimiteSemanalFamilia,
     ]
   )
 
@@ -311,7 +331,6 @@ export function useBookingActions({
   const fecharParticipantesModal = useCallback(() => {
     setParticipantesModalOpen(false)
     setSlotPendente(null)
-    setLimiteSemanalFamiliaAtingido(false)
   }, [])
 
   const fecharAdminUsuarioModal = useCallback(() => {
@@ -353,6 +372,5 @@ export function useBookingActions({
     confirmarReservaVisitante,
     slotPendente,
     nomeUsuarioReserva,
-    limiteSemanalFamiliaAtingido,
   }
 }

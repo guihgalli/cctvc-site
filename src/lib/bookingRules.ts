@@ -1,5 +1,5 @@
 import { todayIsoDate } from './utils'
-import type { TitularResumo, Usuario } from '../types'
+import type { Reserva, TitularResumo, Usuario } from '../types'
 
 /** Segunda=0 … Domingo=6 (semana clube) */
 function dowSegunda(date: string): number {
@@ -132,6 +132,31 @@ export const LIMITE_RESERVAS_FAMILIA_SEMANA = 2
 /** Mensagem quando a família já atingiu o limite semanal de reservas */
 export function mensagemLimiteSemanalFamilia(): string {
   return `Você não pode solicitar esta reserva: sua família (titular e dependentes) já atingiu o limite de ${LIMITE_RESERVAS_FAMILIA_SEMANA} reservas nesta semana (segunda a domingo).`
+}
+
+type ReservaContagemSemanal = Pick<Reserva, 'data_reserva' | 'status'>
+
+/** Conta reservas da família na semana da data (segunda a domingo). */
+export function contarReservasFamiliaSemana(
+  reservas: ReservaContagemSemanal[],
+  data: string
+): number {
+  const inicio = inicioSemanaSegunda(data)
+  const fim = fimSemanaDomingo(data)
+
+  return reservas.filter(
+    (reserva) =>
+      (reserva.status === 'pendente' || reserva.status === 'confirmada') &&
+      reserva.data_reserva >= inicio &&
+      reserva.data_reserva <= fim
+  ).length
+}
+
+export function familiaAtingiuLimiteSemanal(
+  reservas: ReservaContagemSemanal[],
+  data: string
+): boolean {
+  return contarReservasFamiliaSemana(reservas, data) >= LIMITE_RESERVAS_FAMILIA_SEMANA
 }
 
 /** Visibilidade da quadra conforme perfil do usuário logado */

@@ -236,7 +236,6 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
     confirmarReservaVisitante,
     slotPendente,
     nomeUsuarioReserva,
-    limiteSemanalFamiliaAtingido,
   } = useBookingActions({
     user,
     canBook,
@@ -245,6 +244,7 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
     quadraSelecionada,
     dataSelecionada,
     reservas,
+    minhasReservas,
     refreshCourtBookings,
     refreshMyBookings,
     setMessage,
@@ -804,7 +804,7 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
         onClose={fecharParticipantesModal}
         onConfirm={confirmarReservaComParticipantes}
         loading={!!reservandoSlot}
-        limiteAtingido={limiteSemanalFamiliaAtingido}
+        limiteAtingido={slotPendente?.limiteAtingido ?? false}
         quadraNome={quadraSelecionada?.nome}
         dataReserva={dataSelecionada}
         horaInicio={slotPendente?.inicio}

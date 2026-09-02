@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchFamilyWeeklyBookingCount, searchParticipantesReserva } from '../services/api'
+import { searchParticipantesReserva } from '../services/api'
 import type { Usuario } from '../types'
 import { Modal } from './motion/Modal'
 import { Button } from './motion/Button'
 import { ReservaSlotResumo } from './ReservaSlotResumo'
-import {
-  descricaoUsuarioReserva,
-  LIMITE_RESERVAS_FAMILIA_SEMANA,
-  mensagemLimiteSemanalFamilia,
-} from '../lib/bookingRules'
+import { descricaoUsuarioReserva, mensagemLimiteSemanalFamilia } from '../lib/bookingRules'
 
 type ParticipanteResumo = Pick<
   Usuario,
@@ -61,7 +57,7 @@ export function ParticipantesReservaModal({
   onClose,
   onConfirm,
   loading = false,
-  limiteAtingido: limiteAtingidoProp = false,
+  limiteAtingido = false,
   quadraNome,
   dataReserva,
   horaInicio,
@@ -72,8 +68,6 @@ export function ParticipantesReservaModal({
   const [resultadosBusca, setResultadosBusca] = useState<ParticipanteResumo[]>([])
   const [selecionados, setSelecionados] = useState<ParticipanteResumo[]>([])
   const [carregando, setCarregando] = useState(false)
-  const [reservasFamiliaSemana, setReservasFamiliaSemana] = useState<number | null>(null)
-  const [verificandoLimite, setVerificandoLimite] = useState(false)
 
   useEffect(() => {
     if (!open) {
@@ -81,34 +75,8 @@ export function ParticipantesReservaModal({
       setDependentes([])
       setResultadosBusca([])
       setSelecionados([])
-      setReservasFamiliaSemana(null)
     }
   }, [open])
-
-  useEffect(() => {
-    if (!open || !dataReserva) {
-      setReservasFamiliaSemana(null)
-      return
-    }
-
-    let cancelled = false
-    setVerificandoLimite(true)
-
-    fetchFamilyWeeklyBookingCount(dataReserva)
-      .then((count) => {
-        if (!cancelled) setReservasFamiliaSemana(count)
-      })
-      .catch(() => {
-        if (!cancelled) setReservasFamiliaSemana(null)
-      })
-      .finally(() => {
-        if (!cancelled) setVerificandoLimite(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [open, dataReserva])
 
   useEffect(() => {
     if (!open) return
@@ -160,9 +128,6 @@ export function ParticipantesReservaModal({
 
   const listaVisivel = busca.trim().length >= 2 ? resultadosBusca : dependentes
   const mostrandoDependentes = busca.trim().length < 2
-  const limiteAtingidoLocal =
-    reservasFamiliaSemana !== null && reservasFamiliaSemana >= LIMITE_RESERVAS_FAMILIA_SEMANA
-  const limiteAtingido = limiteAtingidoProp || limiteAtingidoLocal
 
   return (
     <Modal open={open} onClose={onClose} labelledBy="participantes-title" maxWidth="lg">
@@ -198,7 +163,8 @@ export function ParticipantesReservaModal({
         value={busca}
         onChange={(e) => setBusca(e.target.value)}
         placeholder="Nome, matrícula ou CPF (mín. 2 caracteres para buscar)"
-        className="w-full border border-stone-300 rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-emerald-500 outline-none"
+        disabled={limiteAtingido}
+        className="w-full border border-stone-300 rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-stone-100 disabled:text-stone-400"
       />
 
       {selecionados.length > 0 && (
@@ -252,7 +218,7 @@ export function ParticipantesReservaModal({
           className="flex-1"
           loading={loading}
           loadingText="Reservando..."
-          disabled={limiteAtingido || verificandoLimite}
+          disabled={limiteAtingido}
           onClick={handleConfirm}
         >
           Confirmar reserva
