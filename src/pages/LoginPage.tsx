@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { Logo } from '../components/Logo'
@@ -8,8 +8,6 @@ import { PageLoadingSkeleton } from '../components/motion/Skeleton'
 import { useAuth } from '../contexts/AuthContext'
 import { isValidUserCode, isValidPassword } from '../lib/utils'
 import { getPostLoginPath } from '../lib/authRoutes'
-
-type LoginMode = 'google' | 'socio'
 
 const benefits = [
   {
@@ -24,21 +22,18 @@ const benefits = [
   },
   {
     title: 'Acesso exclusivo para sócios',
-    description: 'Entre com Google ou matrícula e use os serviços digitais do clube.',
+    description: 'Entre com matrícula ou Google e use os serviços digitais do clube.',
     icon: ShieldIcon,
   },
 ]
 
 export function LoginPage() {
-  const [mode, setMode] = useState<LoginMode>('google')
   const [userCode, setUserCode] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const { login, loginWithGoogle, loading, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const googlePanelId = useId()
-  const socioPanelId = useId()
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/reservas'
 
@@ -47,11 +42,6 @@ export function LoginPage() {
       navigate(getPostLoginPath(user), { replace: true })
     }
   }, [user, loading, navigate])
-
-  function switchMode(next: LoginMode) {
-    setMode(next)
-    setError('')
-  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -116,7 +106,7 @@ export function LoginPage() {
                 Entre e reserve sua quadra
               </h1>
               <p className="text-emerald-100/90 leading-relaxed mb-8 home-fade-up home-fade-up--delay-3">
-                Acesse com Google ou com matrícula e senha de sócio para gerenciar reservas e sua conta no clube.
+                Acesse com matrícula e senha de sócio ou com Google para gerenciar reservas e sua conta no clube.
               </p>
 
               <ul className="space-y-3 home-fade-up home-fade-up--delay-4">
@@ -139,7 +129,7 @@ export function LoginPage() {
             <div className="login-page__card motion-card shadow-lg motion-page-enter">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-emerald-900">Entrar</h2>
-                <p className="text-stone-500 text-sm mt-1">Escolha como deseja acessar sua conta</p>
+                <p className="text-stone-500 text-sm mt-1">Use sua matrícula e senha de sócio</p>
               </div>
 
               {error && (
@@ -148,123 +138,75 @@ export function LoginPage() {
                 </FeedbackMessage>
               )}
 
-              <div
-                className="login-page__tabs mb-6"
-                role="tablist"
-                aria-label="Forma de login"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  id={`${googlePanelId}-tab`}
-                  aria-selected={mode === 'google'}
-                  aria-controls={googlePanelId}
-                  className={`login-page__tab cursor-pointer ${
-                    mode === 'google' ? 'login-page__tab--active' : 'login-page__tab--inactive'
-                  }`}
-                  onClick={() => switchMode('google')}
-                >
-                  Google
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  id={`${socioPanelId}-tab`}
-                  aria-selected={mode === 'socio'}
-                  aria-controls={socioPanelId}
-                  className={`login-page__tab cursor-pointer ${
-                    mode === 'socio' ? 'login-page__tab--active' : 'login-page__tab--inactive'
-                  }`}
-                  onClick={() => switchMode('socio')}
-                >
-                  Matrícula
-                </button>
-              </div>
-
-              {mode === 'google' ? (
-                <div
-                  id={googlePanelId}
-                  role="tabpanel"
-                  aria-labelledby={`${googlePanelId}-tab`}
-                  className="motion-tab-panel"
-                >
-                  <p className="text-sm text-stone-600 mb-4 leading-relaxed">
-                    Recomendado para a maioria dos sócios. Você será redirecionado para confirmar sua conta Google.
-                  </p>
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    className="w-full border-stone-300"
-                    onClick={handleGoogleLogin}
-                    loading={loading}
-                    loadingText="Conectando..."
-                  >
-                    <GoogleIcon />
-                    Continuar com Google
-                  </Button>
+              <form onSubmit={handleSubmit} className="space-y-4 motion-tab-panel">
+                <div>
+                  <label htmlFor="userCode" className="block text-sm font-medium text-stone-700 mb-1.5">
+                    Matrícula
+                  </label>
+                  <input
+                    id="userCode"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={userCode}
+                    onChange={(e) => {
+                      setUserCode(e.target.value.replace(/\D/g, '').slice(0, 4))
+                      if (error) setError('')
+                    }}
+                    className="login-page__field"
+                    placeholder="0000"
+                    autoComplete="username"
+                    required
+                  />
                 </div>
-              ) : (
-                <form
-                  id={socioPanelId}
-                  role="tabpanel"
-                  aria-labelledby={`${socioPanelId}-tab`}
-                  onSubmit={handleSubmit}
-                  className="space-y-4 motion-tab-panel"
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-stone-700 mb-1.5">
+                    Senha
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value.replace(/\D/g, '').slice(0, 6))
+                      if (error) setError('')
+                    }}
+                    className="login-page__field"
+                    placeholder="••••••"
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  loading={loading}
+                  loadingText="Entrando..."
                 >
-                  <div>
-                    <label htmlFor="userCode" className="block text-sm font-medium text-stone-700 mb-1.5">
-                      Matrícula
-                    </label>
-                    <input
-                      id="userCode"
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={4}
-                      value={userCode}
-                      onChange={(e) => {
-                        setUserCode(e.target.value.replace(/\D/g, '').slice(0, 4))
-                        if (error) setError('')
-                      }}
-                      className="login-page__field"
-                      placeholder="0000"
-                      autoComplete="username"
-                      required
-                    />
-                  </div>
+                  Entrar com matrícula
+                </Button>
 
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-stone-700 mb-1.5">
-                      Senha
-                    </label>
-                    <input
-                      id="password"
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value.replace(/\D/g, '').slice(0, 6))
-                        if (error) setError('')
-                      }}
-                      className="login-page__field"
-                      placeholder="••••••"
-                      autoComplete="current-password"
-                      required
-                    />
-                  </div>
+                <div className="login-page__divider pt-2">ou</div>
 
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="lg"
-                    className="w-full"
-                    loading={loading}
-                    loadingText="Entrando..."
-                  >
-                    Entrar com matrícula
-                  </Button>
-                </form>
-              )}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  className="w-full border-stone-300"
+                  onClick={handleGoogleLogin}
+                  loading={loading}
+                  loadingText="Conectando..."
+                >
+                  <GoogleIcon />
+                  Continuar com Google
+                </Button>
+              </form>
             </div>
           </div>
         </div>
