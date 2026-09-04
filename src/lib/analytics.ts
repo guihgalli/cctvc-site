@@ -2,7 +2,7 @@ const GTM_ID = import.meta.env.VITE_GTM_CONTAINER_ID?.trim()
 
 declare global {
   interface Window {
-    dataLayer?: Record<string, unknown>[]
+    dataLayer?: Array<Record<string, unknown> | unknown[]>
   }
 }
 
@@ -17,6 +17,17 @@ export function initAnalytics(): void {
   if (!isAnalyticsEnabled() || initialized) return
 
   window.dataLayer = window.dataLayer ?? []
+  // Antes do GTM carregar: libera analytics (consent mode no container não bloqueia GA4).
+  window.dataLayer.push([
+    'consent',
+    'default',
+    {
+      analytics_storage: 'granted',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+    },
+  ])
   window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' })
 
   const script = document.createElement('script')

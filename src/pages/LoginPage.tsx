@@ -21,8 +21,8 @@ const benefits = [
     icon: ListIcon,
   },
   {
-    title: 'Acesso exclusivo para sócios',
-    description: 'Entre com matrícula ou Google e use os serviços digitais do clube.',
+    title: 'Acesso para sócios e visitantes',
+    description: 'Sócios usam matrícula; visitantes entram com Google para reservar quadras.',
     icon: ShieldIcon,
   },
 ]
@@ -106,7 +106,7 @@ export function LoginPage() {
                 Entre e reserve sua quadra
               </h1>
               <p className="text-emerald-100/90 leading-relaxed mb-8 home-fade-up home-fade-up--delay-3">
-                Acesse com matrícula e senha de sócio ou com Google para gerenciar reservas e sua conta no clube.
+                Sócios acessam com matrícula e senha. Visitantes entram com Google para reservar quadras e acompanhar reservas.
               </p>
 
               <ul className="space-y-3 home-fade-up home-fade-up--delay-4">
@@ -129,7 +129,9 @@ export function LoginPage() {
             <div className="login-page__card motion-card shadow-lg motion-page-enter">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-emerald-900">Entrar</h2>
-                <p className="text-stone-500 text-sm mt-1">Use sua matrícula e senha de sócio</p>
+                <p className="text-stone-500 text-sm mt-1">
+                  Sócios usam matrícula; visitantes usam Google
+                </p>
               </div>
 
               {error && (
@@ -139,73 +141,107 @@ export function LoginPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4 motion-tab-panel">
-                <div>
-                  <label htmlFor="userCode" className="block text-sm font-medium text-stone-700 mb-1.5">
-                    Matrícula
-                  </label>
-                  <input
-                    id="userCode"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={userCode}
-                    onChange={(e) => {
-                      setUserCode(e.target.value.replace(/\D/g, '').slice(0, 4))
-                      if (error) setError('')
-                    }}
-                    className="login-page__field"
-                    placeholder="0000"
-                    autoComplete="username"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-stone-700 mb-1.5">
-                    Senha
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value.replace(/\D/g, '').slice(0, 6))
-                      if (error) setError('')
-                    }}
-                    className="login-page__field"
-                    placeholder="••••••"
-                    autoComplete="current-password"
-                    required
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  className="w-full"
-                  loading={loading}
-                  loadingText="Entrando..."
+                <section
+                  className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 space-y-4"
+                  aria-labelledby="login-socio-heading"
                 >
-                  Entrar com matrícula
-                </Button>
+                  <div>
+                    <p
+                      id="login-socio-heading"
+                      className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800"
+                    >
+                      Sou sócio
+                    </p>
+                    <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                      Use sua matrícula e senha de associado do clube.
+                    </p>
+                  </div>
 
-                <div className="login-page__divider pt-2">ou</div>
+                  <div>
+                    <label htmlFor="userCode" className="block text-sm font-medium text-stone-700 mb-1.5">
+                      Matrícula
+                    </label>
+                    <input
+                      id="userCode"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={userCode}
+                      onChange={(e) => {
+                        setUserCode(e.target.value.replace(/\D/g, '').slice(0, 4))
+                        if (error) setError('')
+                      }}
+                      className="login-page__field"
+                      placeholder="0000"
+                      autoComplete="username"
+                      required
+                    />
+                  </div>
 
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="lg"
-                  className="w-full border-stone-300"
-                  onClick={handleGoogleLogin}
-                  loading={loading}
-                  loadingText="Conectando..."
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-stone-700 mb-1.5">
+                      Senha
+                    </label>
+                    <input
+                      id="password"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value.replace(/\D/g, '').slice(0, 6))
+                        if (error) setError('')
+                      }}
+                      className="login-page__field"
+                      placeholder="••••••"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    loading={loading}
+                    loadingText="Entrando..."
+                  >
+                    Entrar como sócio
+                  </Button>
+                </section>
+
+                <div className="login-page__divider pt-1">ou</div>
+
+                <section
+                  className="rounded-xl border border-stone-200 bg-stone-50/80 p-4 space-y-3"
+                  aria-labelledby="login-visitante-heading"
                 >
-                  <GoogleIcon />
-                  Continuar com Google
-                </Button>
+                  <div>
+                    <p
+                      id="login-visitante-heading"
+                      className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-700"
+                    >
+                      Sou visitante
+                    </p>
+                    <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                      Não é sócio? Entre com sua conta Google para reservar quadras.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="lg"
+                    className="w-full border-stone-300"
+                    onClick={handleGoogleLogin}
+                    loading={loading}
+                    loadingText="Conectando..."
+                  >
+                    <GoogleIcon />
+                    Entrar como visitante com Google
+                  </Button>
+                </section>
               </form>
             </div>
           </div>
