@@ -62,9 +62,12 @@ Copie `.env.example` para `.env` e preencha:
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
 VITE_SITE_URL=https://www.cctvc.com.br
+VITE_GTM_CONTAINER_ID=GTM-P9QFH7BD
 ```
 
 `VITE_SITE_URL` define a URL canônica usada no redirect OAuth (login Google). Em produção no Cloudflare Pages, defina também essa variável.
+
+`VITE_GTM_CONTAINER_ID` ativa o Google Tag Manager. Sem essa variável, o rastreamento fica desativado (útil em desenvolvimento local). Configure a tag GA4 dentro do painel do GTM.
 
 ### 4. Rodar localmente
 
@@ -96,6 +99,7 @@ Acesse `http://localhost:5173`
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_SITE_URL` = `https://www.cctvc.com.br` (redirect OAuth Google)
+   - `VITE_GTM_CONTAINER_ID` = `GTM-P9QFH7BD` (Google Tag Manager, opcional)
 4. Deploy automático a cada push na branch principal
 
 Headers de segurança (CSP) e redirect SPA estão em `public/_headers` e `public/_redirects`.
