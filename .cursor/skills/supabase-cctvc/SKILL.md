@@ -93,6 +93,8 @@ SET search_path = public, extensions
   - `002_storage_fotos_quadra.sql` — bucket + policies de Storage
   - `003_security_hardening.sql` — sessões, RLS, RPCs de auth/reservas/admin
   - `004_alterar_senha.sql` — coluna `senha_hash`, login com hash, RPC `alterar_senha`
+  - `005_prazo_fim_semana.sql` — prazo sábado/domingo até sexta 17h
+  - `006_extrato_diario_email.sql` — extrato diário por e-mail (destinatários + log)
 
 Tabelas principais:
 

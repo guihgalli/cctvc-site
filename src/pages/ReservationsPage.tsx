@@ -17,7 +17,14 @@ import { useBookingActions } from '../hooks/useBookingActions'
 import { ParticipantesReservaModal } from '../components/ParticipantesReservaModal'
 import { AdminReservaUsuarioModal } from '../components/AdminReservaUsuarioModal'
 import { diaDisponivel } from '../lib/bookingSchedule'
-import { isDataReservavel, labelTipoQuadra, quadraRequerPagamento, reservaPermiteCancelamento } from '../lib/bookingRules'
+import {
+  AVISO_PRAZO_FIM_SEMANA,
+  isDataReservavel,
+  labelTipoQuadra,
+  prazoReservaFimDeSemanaExpirado,
+  quadraRequerPagamento,
+  reservaPermiteCancelamento,
+} from '../lib/bookingRules'
 import {
   DEFAULT_SLOT_MINUTES,
   generateTimeSlotsFromRange,
@@ -74,6 +81,17 @@ function AvisosPerfil({
   )
 
   const avisos: { key: string; className: string; content: ReactNode; dismissible?: boolean }[] = []
+
+  avisos.push({
+    key: 'prazo-fds',
+    className: 'text-amber-900 bg-amber-50 border-amber-200',
+    content: (
+      <>
+        Reservas de <strong>sábado e domingo</strong> devem ser solicitadas até{' '}
+        <strong>sexta-feira às 17h</strong>. Depois desse horário, o fim de semana fica bloqueado.
+      </>
+    ),
+  })
 
   if (isInadimplente) {
     avisos.push({
@@ -279,11 +297,15 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
   }
 
   function labelDiaIndisponivel(data: string): string {
+    if (prazoReservaFimDeSemanaExpirado(data)) return 'Prazo 17h'
     if (!isDataReservavel(data)) return 'Indisponível'
     return 'Fechado'
   }
 
-  function motivoSlotIndisponivel(): string {
+  function motivoSlotIndisponivel(data?: string): string {
+    if (data && prazoReservaFimDeSemanaExpirado(data)) {
+      return 'Prazo encerrado (sexta 17h)'
+    }
     if (isInadimplente) return 'Regularize pendências financeiras'
     if (!canBook) return 'Seu perfil não permite reservas'
     return 'Indisponível'
@@ -324,7 +346,7 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
 
         <p className="text-stone-500 text-sm mb-6">
           Agendamentos da semana atual (segunda a domingo). A <strong>próxima semana</strong> abre aos{' '}
-          <strong>domingos</strong>.
+          <strong>domingos</strong>. {AVISO_PRAZO_FIM_SEMANA}
         </p>
 
         <div className="flex gap-2 mb-6" role="tablist" aria-label="Seções de reserva">
@@ -430,7 +452,8 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
                     const selecionada = data === dataSelecionada
                     const quadraAberta = diaDisponivel(quadraSelecionada, data)
                     const periodoLiberado = isDataReservavel(data)
-                    const disponivel = quadraAberta && periodoLiberado
+                    const prazoOk = !prazoReservaFimDeSemanaExpirado(data)
+                    const disponivel = quadraAberta && periodoLiberado && prazoOk
                     const labelIndisponivel = !disponivel ? labelDiaIndisponivel(data) : null
 
                     return (
@@ -659,15 +682,15 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
                                   </button>
                                 )}
                               </div>
-                            ) : !canBook ? (
-                              <SlotIndisponivel label={motivoSlotIndisponivel()} />
+                            ) : !disponivel ? (
+                              <SlotIndisponivel label={motivoSlotIndisponivel(dataSelecionada)} />
                             ) : (
                               <button
                                 type="button"
-                                disabled={!disponivel || reservandoSlot !== null}
+                                disabled={reservandoSlot !== null}
                                 onClick={() => handleReservar(slot.start, slot.end)}
                                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-2.5 text-sm font-medium motion-cta transition-colors min-h-[44px] ${
-                                  disponivel && reservandoSlot === null
+                                  reservandoSlot === null
                                     ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400'
                                     : 'border-stone-200 text-stone-300 cursor-not-allowed'
                                 }`}

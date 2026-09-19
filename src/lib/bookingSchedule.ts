@@ -30,6 +30,10 @@ export function diaDisponivel(quadra: Quadra | null, data: string): boolean {
   return !!horarioDoDia(quadra, data)
 }
 
-export function proximaDataDisponivel(quadra: Quadra | null, datas: string[]): string | undefined {
-  return datas.find((data) => diaDisponivel(quadra, data))
+export function proximaDataDisponivel(
+  quadra: Quadra | null,
+  datas: string[],
+  extraOk?: (data: string) => boolean
+): string | undefined {
+  return datas.find((data) => diaDisponivel(quadra, data) && (extraOk?.(data) ?? true))
 }

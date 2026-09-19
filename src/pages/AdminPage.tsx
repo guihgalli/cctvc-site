@@ -9,6 +9,7 @@ import { LazyImage } from '../components/motion/LazyImage'
 import { AdminPageSkeleton, AdminUsuariosSkeleton } from '../components/motion/Skeleton'
 import { AdminUsuariosSection, contarUsuariosPendentes } from '../components/admin/AdminUsuariosSection'
 import { AdminGuideSection } from '../components/admin/AdminGuideSection'
+import { AdminExtratoSection } from '../components/admin/AdminExtratoSection'
 import { ReservationsContent } from './ReservationsPage'
 import { CAMPOS_PLANILHA_VAZIOS, type CamposPlanilhaUsuario } from '../lib/usuarioPlanilha'
 import { ConfirmDialog } from '../components/motion/ConfirmDialog'
@@ -216,7 +217,7 @@ export function AdminPage() {
   }, [aba, filtroQuadra, filtroData, filtroPendentes, abaInicializada, abaParam])
 
   async function carregarDados() {
-    if (aba === 'guias' || aba === 'reservas') {
+    if (aba === 'guias' || aba === 'reservas' || aba === 'extrato') {
       setLoading(false)
       return
     }
@@ -753,6 +754,7 @@ export function AdminPage() {
     { id: 'agenda', label: 'Agenda' },
     { id: 'usuarios', label: 'Usuários' },
     { id: 'quadras', label: 'Quadras' },
+    { id: 'extrato', label: 'Extrato' },
     { id: 'guias', label: 'Guias' },
   ]
 
@@ -841,7 +843,7 @@ export function AdminPage() {
           </FeedbackMessage>
         )}
 
-        {loading && aba !== 'guias' && aba !== 'reservas' ? (
+        {loading && aba !== 'guias' && aba !== 'reservas' && aba !== 'extrato' ? (
           aba === 'usuarios' ? <AdminUsuariosSkeleton /> : <AdminPageSkeleton />
         ) : (
           <>
@@ -857,6 +859,12 @@ export function AdminPage() {
 
         <TabPanel active={aba === 'reservas'}>
           <ReservationsContent embedded />
+        </TabPanel>
+
+        <TabPanel active={aba === 'extrato'}>
+          <AdminExtratoSection
+            onMessage={(msg) => setMessage(msg)}
+          />
         </TabPanel>
 
         <TabPanel active={aba === 'quadras'}>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchCourts } from '../services/api'
-import { generateBookableDates, quadraVisivelParaUsuario } from '../lib/bookingRules'
+import { generateBookableDates, podeAgendarData, quadraVisivelParaUsuario } from '../lib/bookingRules'
 import { todayIsoDate } from '../lib/utils'
 import { diaDisponivel, proximaDataDisponivel } from '../lib/bookingSchedule'
 import type { AuthUser, Quadra } from '../types'
@@ -12,6 +12,10 @@ interface UseQuadrasOptions {
 
 function quadraVisivel(quadra: Quadra, user: AuthUser | null | undefined): boolean {
   return quadraVisivelParaUsuario(quadra.tipo_quadra, user)
+}
+
+function dataAgendavel(quadra: Quadra | null, data: string): boolean {
+  return diaDisponivel(quadra, data) && podeAgendarData(data)
 }
 
 export function useQuadras({ user, onError }: UseQuadrasOptions = {}) {
@@ -29,8 +33,12 @@ export function useQuadras({ user, onError }: UseQuadrasOptions = {}) {
 
   const selecionarProximaData = useCallback(
     (quadra: Quadra | null, dataAtual: string) => {
-      if (!quadra || diaDisponivel(quadra, dataAtual)) return dataAtual
-      return proximaDataDisponivel(quadra, datasDisponiveis) ?? dataAtual
+      if (!quadra || dataAgendavel(quadra, dataAtual)) return dataAtual
+      return (
+        proximaDataDisponivel(quadra, datasDisponiveis, (data) => podeAgendarData(data)) ??
+        proximaDataDisponivel(quadra, datasDisponiveis) ??
+        dataAtual
+      )
     },
     [datasDisponiveis]
   )

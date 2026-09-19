@@ -114,6 +114,16 @@ const FAQ_ITEMS = [
 
   {
 
+    question: 'Até quando posso reservar sábado e domingo?',
+
+    answer:
+
+      'Reservas de sábado e domingo devem ser solicitadas até sexta-feira às 17h. Depois desse horário, o fim de semana fica bloqueado.',
+
+  },
+
+  {
+
     question: 'Como incluo meu filho(a) na reserva?',
 
     answer:
@@ -1017,6 +1027,14 @@ export function GuidePage() {
                   <li>
 
                     <strong>Próxima semana</strong> abre para reserva aos <strong>domingos</strong>.
+
+                  </li>
+
+                  <li>
+
+                    <strong>Sábado e domingo:</strong> solicite até <strong>sexta-feira às 17h</strong>;
+
+                    após esse horário o fim de semana fica bloqueado.
 
                   </li>
 

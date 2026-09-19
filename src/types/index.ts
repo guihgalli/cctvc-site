@@ -138,4 +138,23 @@ export type User = Usuario
 export type Court = Quadra
 export type CourtPhoto = FotoQuadra
 export type Booking = Reserva
+
+export interface ExtratoDestinatario {
+  id: string
+  email: string
+  nome: string | null
+  ativo: boolean
+  criado_em: string
+}
+
+export interface ExtratoEnvioLog {
+  id: string
+  enviado_em: string
+  destinatarios: string[]
+  qtd_reservas: number
+  ok: boolean
+  erro: string | null
+  periodo_inicio: string | null
+  periodo_fim: string | null
+}
 export type UserRole = PerfilUsuario

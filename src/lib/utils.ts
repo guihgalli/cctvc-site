@@ -282,6 +282,12 @@ export function getBookingErrorMessage(err: unknown): string {
   ) {
     return 'Você não pode solicitar esta reserva: sua família (titular e dependentes) já atingiu o limite de 2 reservas nesta semana (segunda a domingo).'
   }
+  if (
+    lower.includes('sexta-feira') &&
+    (lower.includes('17h') || lower.includes('17:00') || lower.includes('sábado'))
+  ) {
+    return 'Reservas de sábado e domingo devem ser solicitadas até sexta-feira às 17h. O prazo para este fim de semana já encerrou.'
+  }
   return msg
 }
 

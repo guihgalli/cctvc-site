@@ -9,7 +9,7 @@ Site institucional com sistema de reserva de quadras esportivas.
 - **Login visitante**: Google com e-mail não cadastrado — reserva **pendente** até admin aprovar após pagamento
 - **Conta**: sócio altera senha; visitante cadastra WhatsApp para confirmação
 - **Reservas (usuário)**: visualizar quadras, escolher data/horário conforme disponibilidade da quadra, cancelar reservas
-- **Painel Admin**: cadastrar quadras, configurar dias/horários, upload de fotos, **aprovar/recusar reservas pendentes** (WhatsApp automático na aprovação), gerenciar usuários (sócio / não-sócio)
+- **Painel Admin**: cadastrar quadras, configurar dias/horários, upload de fotos, **aprovar/recusar reservas pendentes** (WhatsApp automático na aprovação), gerenciar usuários (sócio / não-sócio), **extrato diário por e-mail** (destinatários + envio teste)
 - Validações: não permite reservar datas/horários passados, dias fechados nem horários já ocupados
 
 ## Stack
@@ -160,6 +160,43 @@ O administrador cadastra usuários no painel Admin informando:
 - **Perfil** (usuário ou admin)
 
 A senha inicial é gerada automaticamente: **3 primeiros dígitos do CPF**. O sócio pode alterá-la em **Conta** após o login.
+
+## Extrato diário por e-mail (08h)
+
+Envio automático das reservas **pendentes e confirmadas** dos próximos **3 dias** (hoje + 2), todo dia às **08:00** (America/Sao_Paulo).
+
+### Painel admin
+
+1. Acesse **Admin → Extrato**
+2. Cadastre os e-mails destinatários (lista configurável)
+3. Use **Enviar agora (teste)** para validar antes do cron
+
+### Edge Function + Resend
+
+1. Crie conta em [Resend](https://resend.com) e verifique o domínio de envio (ex.: `cctvc.com.br`)
+2. Deploy da function:
+
+```bash
+npx supabase functions deploy extrato-diario --project-ref tkqydblejqzwihdjuztb
+```
+
+3. Secrets no Supabase (**Project Settings → Edge Functions → Secrets**):
+
+| Secret | Descrição |
+|--------|-----------|
+| `RESEND_API_KEY` | API key do Resend |
+| `RESEND_FROM` | Remetente, ex.: `CCTVC Extrato <extrato@cctvc.com.br>` |
+| `CRON_SECRET` | Token longo para o agendamento (header `Authorization: Bearer …`) |
+| `SUPABASE_URL` | URL do projeto (geralmente já injetada) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role (somente na function, nunca no frontend) |
+
+4. **Schedule** (Supabase Dashboard → Edge Functions → `extrato-diario` → Schedules):
+
+   - Cron UTC: `0 11 * * *` (= 08:00 BRT, sem horário de verão)
+   - Método: `POST`
+   - Header: `Authorization: Bearer <CRON_SECRET>`
+
+A migration `006_extrato_diario_email.sql` cria as tabelas `extrato_destinatarios` e `extrato_envios_log`.
 
 ## Logo
 

@@ -270,6 +270,7 @@ export function AdminGuideSection({
           <GuideCard title="Período e limites">
             <ul className="text-sm text-stone-600 space-y-2 list-disc pl-5 leading-relaxed max-w-prose">
               <li>Semana atual + próxima (próxima abre aos domingos).</li>
+              <li>Sábado/domingo: reserva só até sexta às 17h.</li>
               <li>Limite semanal de 2 reservas por família (titular + dependentes).</li>
               <li>Admin ignora limite semanal ao reservar por terceiros.</li>
               <li>Expiração de pendente configurável por quadra.</li>

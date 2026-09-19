@@ -1,6 +1,13 @@
 import { isPastDate, todayIsoDate } from './utils'
 import type { Reserva, TitularResumo, Usuario } from '../types'
 
+const BRAZIL_TZ = 'America/Sao_Paulo'
+/** Horário-limite na sexta (America/Sao_Paulo) para reservar sábado/domingo */
+export const PRAZO_FIM_SEMANA_HORA = 17
+
+export const AVISO_PRAZO_FIM_SEMANA =
+  'Reservas de sábado e domingo devem ser solicitadas até sexta-feira às 17h.'
+
 /** Segunda=0 … Domingo=6 (semana clube) */
 function dowSegunda(date: string): number {
   const d = new Date(`${date}T12:00:00`)
@@ -15,12 +22,70 @@ function addDays(iso: string, days: number): string {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
+function brazilNowParts(agora = new Date()): {
+  date: string
+  hour: number
+  minute: number
+} {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BRAZIL_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const parts = formatter.formatToParts(agora)
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0)
+  const year = get('year')
+  const month = get('month')
+  const day = get('day')
+  return {
+    date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    hour: get('hour'),
+    minute: get('minute'),
+  }
+}
+
 export function inicioSemanaSegunda(date: string): string {
   return addDays(date, -dowSegunda(date))
 }
 
 export function fimSemanaDomingo(date: string): string {
   return addDays(inicioSemanaSegunda(date), 6)
+}
+
+/** Sábado ou domingo (JS: 0=domingo, 6=sábado) */
+export function isDataFimDeSemana(date: string): boolean {
+  const js = new Date(`${date}T12:00:00`).getDay()
+  return js === 0 || js === 6
+}
+
+/** Sexta imediatamente anterior ao fim de semana da data */
+export function sextaAntesDoFimDeSemana(date: string): string | null {
+  const js = new Date(`${date}T12:00:00`).getDay()
+  if (js === 6) return addDays(date, -1)
+  if (js === 0) return addDays(date, -2)
+  return null
+}
+
+/**
+ * Reservas de sábado/domingo só até sexta 17h (America/Sao_Paulo) daquele fim de semana.
+ * A partir de 17:00 de sexta o prazo está encerrado.
+ */
+export function prazoReservaFimDeSemanaExpirado(dataReserva: string, agora = new Date()): boolean {
+  const sexta = sextaAntesDoFimDeSemana(dataReserva)
+  if (!sexta) return false
+
+  const { date: hoje, hour, minute } = brazilNowParts(agora)
+  if (hoje > sexta) return true
+  if (hoje < sexta) return false
+  return hour * 60 + minute >= PRAZO_FIM_SEMANA_HORA * 60
+}
+
+export function mensagemPrazoFimDeSemana(): string {
+  return `${AVISO_PRAZO_FIM_SEMANA} O prazo para este fim de semana já encerrou.`
 }
 
 /** Data está no período liberado para reserva (semana atual + próxima aos domingos) */
@@ -36,6 +101,13 @@ export function isDataReservavel(date: string, hoje = todayIsoDate()): boolean {
   if (dowSegunda(hoje) === 6 && date >= inicioProx && date <= fimProx) return true
 
   return false
+}
+
+/** Período liberado e, se for sábado/domingo, ainda dentro do prazo de sexta 17h */
+export function podeAgendarData(date: string, hoje = todayIsoDate(), agora = new Date()): boolean {
+  if (!isDataReservavel(date, hoje)) return false
+  if (prazoReservaFimDeSemanaExpirado(date, agora)) return false
+  return true
 }
 
 /** Gera datas reserváveis conforme regra semanal */

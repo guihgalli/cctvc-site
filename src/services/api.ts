@@ -6,6 +6,8 @@ import type {
   FotoQuadra,
   HorarioQuadra,
   Quadra,
+  ExtratoDestinatario,
+  ExtratoEnvioLog,
   Reserva,
   TipoQuadra,
   TipoSocio,
@@ -616,4 +618,87 @@ export async function updateUser(
 export async function deleteUser(id: string): Promise<void> {
   const token = requireToken()
   await rpc('admin_excluir_usuario', { p_token: token, p_id: id }, 'Erro ao excluir usuário.')
+}
+
+export async function fetchExtratoDestinatarios(): Promise<ExtratoDestinatario[]> {
+  const token = requireToken()
+  const data = await rpc<ExtratoDestinatario[]>(
+    'admin_listar_extrato_destinatarios',
+    { p_token: token },
+    'Erro ao carregar destinatários do extrato.'
+  )
+  return data || []
+}
+
+export async function addExtratoDestinatario(email: string, nome?: string): Promise<ExtratoDestinatario> {
+  const token = requireToken()
+  return rpc<ExtratoDestinatario>(
+    'admin_adicionar_extrato_destinatario',
+    { p_token: token, p_email: email, p_nome: nome ?? null },
+    'Erro ao adicionar destinatário.'
+  )
+}
+
+export async function updateExtratoDestinatario(
+  id: string,
+  updates: Partial<{ email: string; nome: string; ativo: boolean }>
+): Promise<ExtratoDestinatario> {
+  const token = requireToken()
+  return rpc<ExtratoDestinatario>(
+    'admin_atualizar_extrato_destinatario',
+    {
+      p_token: token,
+      p_id: id,
+      p_email: updates.email ?? null,
+      p_nome: updates.nome ?? null,
+      p_ativo: updates.ativo ?? null,
+    },
+    'Erro ao atualizar destinatário.'
+  )
+}
+
+export async function deleteExtratoDestinatario(id: string): Promise<void> {
+  const token = requireToken()
+  await rpc(
+    'admin_excluir_extrato_destinatario',
+    { p_token: token, p_id: id },
+    'Erro ao excluir destinatário.'
+  )
+}
+
+export async function fetchExtratoEnviosLog(limit = 20): Promise<ExtratoEnvioLog[]> {
+  const token = requireToken()
+  const data = await rpc<ExtratoEnvioLog[]>(
+    'admin_listar_extrato_envios_log',
+    { p_token: token, p_limit: limit },
+    'Erro ao carregar histórico de envios.'
+  )
+  return data || []
+}
+
+export interface DispararExtratoDiarioResult {
+  ok?: boolean
+  skipped?: boolean
+  reason?: string
+  destinatarios?: number
+  reservas?: number
+  periodo?: { inicio: string; fim: string }
+  error?: string
+}
+
+export async function dispararExtratoDiario(): Promise<DispararExtratoDiarioResult> {
+  const token = requireToken()
+  const { data, error } = await supabase.functions.invoke<DispararExtratoDiarioResult>('extrato-diario', {
+    body: { p_token: token },
+  })
+
+  if (error) {
+    throw new Error(error.message || 'Erro ao enviar extrato.')
+  }
+
+  if (data?.error) {
+    throw new Error(data.error)
+  }
+
+  return data ?? { ok: true }
 }

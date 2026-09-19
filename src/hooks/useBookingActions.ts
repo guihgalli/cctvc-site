@@ -18,6 +18,9 @@ import {
   isDataReservavel,
   LIMITE_RESERVAS_FAMILIA_SEMANA,
   mensagemLimiteSemanalFamilia,
+  mensagemPrazoFimDeSemana,
+  podeAgendarData,
+  prazoReservaFimDeSemanaExpirado,
   quadraRequerPagamento,
   reservaPermiteCancelamento,
 } from '../lib/bookingRules'
@@ -95,6 +98,7 @@ export function useBookingActions({
       if (!canBook) return false
       if (!dataSelecionada) return false
       if (!isDataReservavel(dataSelecionada)) return false
+      if (prazoReservaFimDeSemanaExpirado(dataSelecionada)) return false
       if (horarioPassado(horaInicio)) return false
       return !horarioOcupado(horaInicio)
     },
@@ -261,10 +265,12 @@ export function useBookingActions({
         return
       }
 
-      if (!isDataReservavel(dataSelecionada)) {
+      if (!podeAgendarData(dataSelecionada)) {
         setMessage({
           type: 'error',
-          text: 'Data fora do período liberado. A próxima semana abre aos domingos.',
+          text: prazoReservaFimDeSemanaExpirado(dataSelecionada)
+            ? mensagemPrazoFimDeSemana()
+            : 'Data fora do período liberado. A próxima semana abre aos domingos.',
         })
         return
       }
