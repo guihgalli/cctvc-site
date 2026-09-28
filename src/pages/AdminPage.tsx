@@ -10,6 +10,7 @@ import { AdminPageSkeleton, AdminUsuariosSkeleton } from '../components/motion/S
 import { AdminUsuariosSection, contarUsuariosPendentes } from '../components/admin/AdminUsuariosSection'
 import { AdminGuideSection } from '../components/admin/AdminGuideSection'
 import { AdminExtratoSection } from '../components/admin/AdminExtratoSection'
+import { AdminPromocoesSection } from '../components/admin/AdminPromocoesSection'
 import { ReservationsContent } from './ReservationsPage'
 import { CAMPOS_PLANILHA_VAZIOS, type CamposPlanilhaUsuario } from '../lib/usuarioPlanilha'
 import { ConfirmDialog } from '../components/motion/ConfirmDialog'
@@ -217,7 +218,7 @@ export function AdminPage() {
   }, [aba, filtroQuadra, filtroData, filtroPendentes, abaInicializada, abaParam])
 
   async function carregarDados() {
-    if (aba === 'guias' || aba === 'reservas' || aba === 'extrato') {
+    if (aba === 'guias' || aba === 'reservas' || aba === 'extrato' || aba === 'promocoes') {
       setLoading(false)
       return
     }
@@ -754,6 +755,7 @@ export function AdminPage() {
     { id: 'agenda', label: 'Agenda' },
     { id: 'usuarios', label: 'Usuários' },
     { id: 'quadras', label: 'Quadras' },
+    { id: 'promocoes', label: 'Promoções e avisos' },
     { id: 'extrato', label: 'Extrato' },
     { id: 'guias', label: 'Guias' },
   ]
@@ -843,7 +845,11 @@ export function AdminPage() {
           </FeedbackMessage>
         )}
 
-        {loading && aba !== 'guias' && aba !== 'reservas' && aba !== 'extrato' ? (
+        {loading &&
+        aba !== 'guias' &&
+        aba !== 'reservas' &&
+        aba !== 'extrato' &&
+        aba !== 'promocoes' ? (
           aba === 'usuarios' ? <AdminUsuariosSkeleton /> : <AdminPageSkeleton />
         ) : (
           <>
@@ -859,6 +865,10 @@ export function AdminPage() {
 
         <TabPanel active={aba === 'reservas'}>
           <ReservationsContent embedded />
+        </TabPanel>
+
+        <TabPanel active={aba === 'promocoes'}>
+          {aba === 'promocoes' && <AdminPromocoesSection onMessage={setMessage} />}
         </TabPanel>
 
         <TabPanel active={aba === 'extrato'}>

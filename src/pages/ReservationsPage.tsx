@@ -16,7 +16,10 @@ import { useMyBookings } from '../hooks/useMyBookings'
 import { useBookingActions } from '../hooks/useBookingActions'
 import { ParticipantesReservaModal } from '../components/ParticipantesReservaModal'
 import { AdminReservaUsuarioModal } from '../components/AdminReservaUsuarioModal'
+import { useAvisosReserva } from '../hooks/useAvisosReserva'
+import { TextoFormatado } from '../components/TextoFormatado'
 import { diaDisponivel } from '../lib/bookingSchedule'
+import { aplicarValorMensagem, MENSAGEM_LOCACAO_PADRAO, promocoesVisiveis } from '../lib/avisosReserva'
 import {
   AVISO_PRAZO_FIM_SEMANA,
   isDataReservavel,
@@ -34,7 +37,6 @@ import {
   isToday,
   formatDate,
   formatTime,
-  formatMoney,
 } from '../lib/utils'
 import type { Reserva } from '../types'
 
@@ -281,6 +283,12 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
     [janelaDia, horarioPassado]
   )
 
+  const avisosReserva = useAvisosReserva()
+  const promocoesQuadra = useMemo(
+    () => promocoesVisiveis(avisosReserva.promocoes, quadraSelecionada?.id, isSocio),
+    [avisosReserva.promocoes, quadraSelecionada?.id, isSocio]
+  )
+
   const pendentesCount = useMemo(
     () => minhasReservas.filter((r) => r.status === 'pendente').length,
     [minhasReservas]
@@ -418,18 +426,27 @@ export function ReservationsContent({ embedded = false }: ReservationsContentPro
                   {quadraSelecionada.descricao && (
                     <p className="text-stone-500 text-sm">{quadraSelecionada.descricao}</p>
                   )}
+                  {promocoesQuadra.map((promo) => (
+                    <div
+                      key={promo.id}
+                      className="text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm leading-relaxed"
+                    >
+                      <p className="font-semibold">{promo.titulo}</p>
+                      {promo.mensagem && (
+                        <p className="mt-1">
+                          <TextoFormatado texto={promo.mensagem} />
+                        </p>
+                      )}
+                    </div>
+                  ))}
                   {quadraRequerPagamento(quadraSelecionada.tipo_quadra) && (
                     <div className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm leading-relaxed">
-                      <strong>Quadra de locação.</strong> A reserva só será confirmada após o
-                      pagamento via PIX
-                      {quadraSelecionada.valor_visitante != null && (
-                        <>
-                          {' '}
-                          de{' '}
-                          <strong>{formatMoney(Number(quadraSelecionada.valor_visitante))}</strong>
-                        </>
-                      )}
-                      . Envie o comprovante pelo WhatsApp dentro do prazo da quadra.
+                      <TextoFormatado
+                        texto={aplicarValorMensagem(
+                          avisosReserva.mensagem_locacao || MENSAGEM_LOCACAO_PADRAO,
+                          quadraSelecionada.valor_visitante
+                        )}
+                      />
                     </div>
                   )}
                 </div>

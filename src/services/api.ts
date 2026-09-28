@@ -2,6 +2,9 @@ import { supabase } from '../lib/supabase'
 import { getAppOrigin } from '../lib/siteOrigin'
 import type {
   AuthUser,
+  AvisosReserva,
+  Promocao,
+  PublicoPromocao,
   CourtScheduleInput,
   FotoQuadra,
   HorarioQuadra,
@@ -674,6 +677,72 @@ export async function fetchExtratoEnviosLog(limit = 20): Promise<ExtratoEnvioLog
     'Erro ao carregar histórico de envios.'
   )
   return data || []
+}
+
+/** Público: mensagem de locação personalizada + promoções vigentes hoje */
+export async function fetchAvisosReserva(): Promise<AvisosReserva> {
+  const data = await rpc<AvisosReserva>('listar_avisos_reserva', {}, 'Erro ao carregar promoções.')
+  return {
+    mensagem_locacao: data?.mensagem_locacao ?? null,
+    promocoes: data?.promocoes ?? [],
+  }
+}
+
+export async function fetchAvisosReservaAdmin(): Promise<AvisosReserva> {
+  const token = requireToken()
+  const data = await rpc<AvisosReserva>(
+    'admin_listar_promocoes',
+    { p_token: token },
+    'Erro ao carregar promoções.'
+  )
+  return {
+    mensagem_locacao: data?.mensagem_locacao ?? null,
+    promocoes: data?.promocoes ?? [],
+  }
+}
+
+/** Mensagem vazia restaura o texto padrão */
+export async function saveMensagemLocacao(mensagem: string): Promise<void> {
+  const token = requireToken()
+  await rpc(
+    'admin_salvar_mensagem_locacao',
+    { p_token: token, p_mensagem: mensagem.trim() || null },
+    'Erro ao salvar mensagem de locação.'
+  )
+}
+
+export interface PromocaoInput {
+  titulo: string
+  mensagem?: string | null
+  quadra_id?: string | null
+  publico?: PublicoPromocao
+  data_inicio?: string | null
+  data_fim?: string | null
+  ativo?: boolean
+}
+
+export async function savePromocao(id: string | null, promocao: PromocaoInput): Promise<Promocao> {
+  const token = requireToken()
+  return rpc<Promocao>(
+    'admin_salvar_promocao',
+    {
+      p_token: token,
+      p_id: id,
+      p_titulo: promocao.titulo,
+      p_mensagem: promocao.mensagem ?? null,
+      p_quadra_id: promocao.quadra_id || null,
+      p_publico: promocao.publico ?? 'todos',
+      p_data_inicio: promocao.data_inicio || null,
+      p_data_fim: promocao.data_fim || null,
+      p_ativo: promocao.ativo ?? true,
+    },
+    'Erro ao salvar promoção.'
+  )
+}
+
+export async function deletePromocao(id: string): Promise<void> {
+  const token = requireToken()
+  await rpc('admin_excluir_promocao', { p_token: token, p_id: id }, 'Erro ao excluir promoção.')
 }
 
 export interface DispararExtratoDiarioResult {

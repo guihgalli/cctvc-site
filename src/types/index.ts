@@ -157,4 +157,26 @@ export interface ExtratoEnvioLog {
   periodo_inicio: string | null
   periodo_fim: string | null
 }
+
+export type PublicoPromocao = 'todos' | 'socios' | 'visitantes'
+
+export interface Promocao {
+  id: string
+  titulo: string
+  mensagem: string | null
+  /** null = vale para todas as quadras */
+  quadra_id: string | null
+  publico: PublicoPromocao
+  data_inicio: string | null
+  data_fim: string | null
+  ativo: boolean
+  criado_em: string
+}
+
+export interface AvisosReserva {
+  /** null = usa o texto padrão da quadra de locação */
+  mensagem_locacao: string | null
+  promocoes: Promocao[]
+}
+
 export type UserRole = PerfilUsuario
