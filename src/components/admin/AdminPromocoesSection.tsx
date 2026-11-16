@@ -15,6 +15,7 @@ import {
 } from '../../lib/avisosReserva'
 import { quadraRequerPagamento } from '../../lib/bookingRules'
 import { TextoFormatado } from '../TextoFormatado'
+import { AdminEnviarPromocaoWhatsApp } from './AdminEnviarPromocaoWhatsApp'
 import type { Promocao, PublicoPromocao, Quadra } from '../../types'
 
 interface AdminPromocoesSectionProps {
@@ -60,6 +61,7 @@ export function AdminPromocoesSection({ onMessage }: AdminPromocoesSectionProps)
   const [form, setForm] = useState<PromocaoForm>(FORM_VAZIO)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvandoPromo, setSalvandoPromo] = useState(false)
+  const [envioPromocaoId, setEnvioPromocaoId] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     setLoading(true)
@@ -194,6 +196,13 @@ export function AdminPromocoesSection({ onMessage }: AdminPromocoesSectionProps)
 
   return (
     <div className="space-y-8">
+      <AdminEnviarPromocaoWhatsApp
+        promocoes={promocoes}
+        quadras={quadras}
+        promocaoInicialId={envioPromocaoId}
+        onMessage={onMessage}
+      />
+
       <section className="space-y-3">
         <div>
           <h2 className="font-semibold text-stone-700">Mensagem da quadra de locação</h2>
@@ -400,7 +409,7 @@ export function AdminPromocoesSection({ onMessage }: AdminPromocoesSectionProps)
                       {nomeQuadra(p.quadra_id)} · {LABEL_PUBLICO[p.publico]} · {periodoPromocao(p)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex flex-wrap items-center gap-3 shrink-0">
                     <button
                       type="button"
                       onClick={() => toggleAtivo(p)}
@@ -410,6 +419,22 @@ export function AdminPromocoesSection({ onMessage }: AdminPromocoesSectionProps)
                     >
                       {p.ativo ? 'Ativa' : 'Inativa'}
                     </button>
+                    {p.ativo && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEnvioPromocaoId(p.id)
+                          window.requestAnimationFrame(() => {
+                            document
+                              .getElementById('painel-envio-whatsapp')
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                          })
+                        }}
+                        className="text-[#128C7E] hover:text-emerald-900 text-sm font-medium"
+                      >
+                        Enviar WhatsApp
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => editar(p)}

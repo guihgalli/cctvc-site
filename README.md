@@ -9,7 +9,7 @@ Site institucional com sistema de reserva de quadras esportivas.
 - **Login visitante**: Google com e-mail não cadastrado — reserva **pendente** até admin aprovar após pagamento
 - **Conta**: sócio altera senha; visitante cadastra WhatsApp para confirmação
 - **Reservas (usuário)**: visualizar quadras, escolher data/horário conforme disponibilidade da quadra, cancelar reservas
-- **Painel Admin**: cadastrar quadras, configurar dias/horários, upload de fotos, **aprovar/recusar reservas pendentes** (WhatsApp automático na aprovação), gerenciar usuários (sócio / não-sócio), **extrato diário por e-mail** (destinatários + envio teste)
+- **Painel Admin**: cadastrar quadras, configurar dias/horários, upload de fotos, **aprovar/recusar reservas pendentes** (WhatsApp automático na aprovação), gerenciar usuários (sócio / não-sócio), **promoções/avisos** com envio filtrado no WhatsApp, **extrato diário por e-mail** (destinatários + envio teste)
 - Validações: não permite reservar datas/horários passados, dias fechados nem horários já ocupados
 
 ## Stack

@@ -15,6 +15,7 @@ O painel admin concentra três áreas:
 | **Quadras** | `/admin` | Cadastro, horários, fotos e configuração das quadras |
 | **Agenda** | `/admin/agenda` | Aprovar/recusar reservas, liberações e visão geral |
 | **Usuários** | `/admin/usuarios` | Cadastro, edição, ativação e exportação de usuários |
+| **Promoções e avisos** | `/admin/promocoes` | Mensagem de locação, promoções e envio filtrado no WhatsApp |
 | **Guias** | `/admin/guias` | Guia operacional do administrador (exclusivo admin) |
 
 O dashboard inicial exibe cards com totais: reservas pendentes, quadras ativas, quadras inativas e usuários cadastrados.
@@ -136,6 +137,23 @@ Admins podem criar reservas para qualquer usuário (ignora limite semanal e per�
 3. Escolha quadra, data e horário
 4. *(Opcional)* Adicione participantes
 5. Confirme
+
+---
+
+## 3b. Promoções e envio no WhatsApp
+
+Na aba **Promoções e avisos**:
+
+1. Cadastre a promoção (título, mensagem, público, período, quadra)
+2. No painel **Enviar promoção no WhatsApp**:
+   - Escolha a promoção ativa
+   - Filtre por **Todos / Sócios / Visitantes** e busque por nome ou telefone
+   - Marque contatos (ou **Selecionar filtrados**)
+   - Revise a mensagem (ou **Copiar para grupo** e cole em um grupo do WhatsApp)
+   - **Enviar selecionados** abre o WhatsApp em fila (um contato por vez — confirme o envio no app)
+3. Na lista de promoções, **Enviar WhatsApp** leva ao painel com aquela promoção selecionada
+
+> Só entram na lista usuários **ativos** com WhatsApp válido cadastrado. O envio usa o app/Web do WhatsApp (`wa.me`); não há disparo automático em massa pela API.
 
 ---
 
